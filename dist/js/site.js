@@ -1,0 +1,238 @@
+/* site.js — client runtime for the Astro-migrated RaysPage.
+ *
+ * In the original site, components.js both INJECTED the nav/footer/cursor
+ * (server-rendered statically by BaseLayout in the new setup) AND ran the
+ * page behaviours below. Here we keep only the runtime behaviour + the
+ * shared RAF visibility manager. Nav/footer/cursor/back-to-top are now
+ * static markup in BaseLayout, so initAll can assume they already exist.
+ */
+(function () {
+  'use strict';
+
+  // ---- Shared RAF visibility manager ----
+  // A single visibilitychange listener pauses/resumes every registered loop,
+  // replacing the 3 separate listeners hero-sparkle / cursor / smooth-scroll
+  // used to attach.
+  window.RayRAF = (function () {
+    const loops = new Set();
+    let bound = false;
+
+    function bind() {
+      if (bound) return;
+      bound = true;
+      document.addEventListener('visibilitychange', function () {
+        loops.forEach(function (l) {
+          try { document.hidden ? l.stop() : l.start(); } catch (e) {}
+        });
+      });
+    }
+
+    return {
+      register: function (loop) {
+        if (!loop || typeof loop.start !== 'function' || typeof loop.stop !== 'function') return;
+        loops.add(loop);
+        bind();
+      },
+      unregister: function (loop) { loops.delete(loop); },
+    };
+  })();
+
+  // ---- Shared scroll manager ----
+  // A single passive scroll listener drives every registered handler, throttled
+  // with requestAnimationFrame. Replaces the 4 separate scroll listeners that
+  // site.js and nav.js used to attach (reading progress, back-to-top, nav
+  // state, and article scroll-depth analytics).
+  window.RayScroll = (function () {
+    const handlers = new Set();
+    let bound = false;
+    let ticking = false;
+
+    function flush() {
+      ticking = false;
+      handlers.forEach(function (fn) {
+        try { fn(); } catch (e) {}
+      });
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(flush);
+    }
+
+    function bind() {
+      if (bound) return;
+      bound = true;
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    return {
+      add: function (fn) {
+        if (typeof fn !== 'function') return;
+        handlers.add(fn);
+        bind();
+        // run once so the handler sets its initial state (e.g. on reload at a
+        // scrolled position, or a restored scroll offset)
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(flush);
+        }
+      },
+      remove: function (fn) { handlers.delete(fn); },
+    };
+  })();
+
+  // ---- Page Transition Logic ----
+  function initPageTransition() {
+    const overlay = document.getElementById('pageTransitionOverlay');
+    if (!overlay) return;
+
+    function fadeOut() {
+      overlay.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.opacity = '0';
+      overlay.style.pointerEvents = 'none';
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted && parseFloat(overlay.style.opacity) < 1) return;
+      overlay.style.transition = 'none';
+      overlay.style.opacity = '1';
+      overlay.getBoundingClientRect();
+      requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+    });
+
+    document.addEventListener('click', function (e) {
+      const link = e.target.closest('a[href]');
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      if (!href) return;
+      if (href.startsWith('#')) return;
+      if (href.startsWith('http') || href.startsWith('//')) return;
+      // javascript: links (e.g. <a href="javascript:history.back()">) must run
+      // natively — intercepting and doing window.location.href='javascript:...'
+      // is deprecated, CSP-blockable, and silently fails in some browsers.
+      if (href.startsWith('javascript:')) return;
+      if (link.target === '_blank') return;
+      if (link.hasAttribute('download')) return;
+
+      const currentFile = window.location.pathname.split('/').pop() || 'index.html';
+      const targetFile = (href.split('#')[0].split('?')[0]).split('/').pop();
+      if (targetFile === currentFile) return;
+
+      e.preventDefault();
+
+      overlay.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.opacity = '1';
+      overlay.style.pointerEvents = 'auto';
+
+      setTimeout(() => { window.location.href = href; }, 320);
+    });
+  }
+
+  // ---- Reading Progress logic ----
+  function initReadingProgress() {
+    const progressBar = document.getElementById('readingProgress');
+    if (!progressBar) return;
+
+    const content = document.querySelector('.essay-content')
+      || document.querySelector('.essays-list')
+      || document.querySelector('.notes-list')
+      || document.querySelector('.note-body');
+    if (!content) return;
+
+    function updateProgress() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressBar.style.width = Math.min(progress, 100) + '%';
+    }
+
+    RayScroll.add(updateProgress);
+  }
+
+  // ---- Back to Top logic ----
+  function initBackToTop() {
+    const btn = document.getElementById('backToTop');
+    if (!btn) return;
+
+    RayScroll.add(function () {
+      if (window.scrollY > 400) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    });
+
+    btn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // ---- Analytics: Umami custom events (centralised, runs on every page) ----
+  function initAnalytics() {
+    if (!window.umami) {
+      var tries = 0, timer = setInterval(function () {
+        if (window.umami || ++tries > 40) { clearInterval(timer); _flush(); }
+      }, 150);
+    }
+    var Q = [];
+    function _track(name, data) { data = data || {};
+      try { window.umami && window.umami.track(name, data); return; } catch (_) {}
+      Q.push({ name: name, data: data });
+    }
+    function _flush() {
+      while (Q.length) {
+        var e = Q.shift();
+        try { window.umami && window.umami.track(e.name, e.data); } catch (_) {}
+      }
+    }
+
+    document.addEventListener('click', function (ev) {
+      var a = ev.target.closest ? ev.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      if (/^https?:\/\//i.test(href) && !/raychan\.top/i.test(href)) {
+        _track('outbound_link', { href: href });
+      }
+    }, true);
+
+    var backBtn = document.querySelector('.note-back-fixed');
+    if (backBtn) {
+      backBtn.addEventListener('click', function () {
+        _track('back_button', {});
+      });
+    }
+
+    var isArticle = document.querySelector('.essay-hero-title, .note-title');
+    if (isArticle) {
+      var marks = [25, 50, 75, 100], fired = {};
+      RayScroll.add(function () {
+        var h = document.documentElement.scrollHeight - window.innerHeight;
+        if (h <= 0) return;
+        var pct = Math.round((window.scrollY / h) * 100);
+        for (var i = 0; i < marks.length; i++) {
+          var m = marks[i];
+          if (!fired[m] && pct >= m) { fired[m] = true; _track('scroll_depth', { percent: m }); }
+        }
+      });
+    }
+  }
+
+  // ---- Init ----
+  function initAll() {
+    initBackToTop();
+    initReadingProgress();
+    initPageTransition();
+    initAnalytics();
+  }
+
+  function boot() { initAll(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();

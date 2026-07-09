@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ray Chan - Essays</title>
+    <link>https://www.raychan.top/essays.html</link>
+    <description>Ray Chan 的随笔 - 关于生活、技术与思考的文字。</description>
+    <language>zh-CN</language>
+    <lastBuildDate>Wed, 08 Jul 2026 02:32:41 GMT</lastBuildDate>
+    <atom:link href="https://www.raychan.top/rss.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>选择的代价</title>
+      <link>https://www.raychan.top/essay-choice.html</link>
+      <description>选择从来不是孤立的，它依赖于当时能看到的条件。人能做出的选择，永远被当时能接触到的条件所框定。不是不想跳，是脚下没有可以落脚的石头。</description>
+      <pubDate>Wed, 01 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-choice.html</guid>
+    </item>
+
+    <item>
+      <title>尝试的意义</title>
+      <link>https://www.raychan.top/essay-trial.html</link>
+      <description>几乎所有的尝试都是不完美的。</description>
+      <pubDate>Tue, 25 Mar 2025 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-trial.html</guid>
+    </item>
+
+    <item>
+      <title>泡沫消散之后</title>
+      <link>https://www.raychan.top/essay-foam.html</link>
+      <description>当泡沫渐渐消散，才会发现真实的世界，那些虚幻的、昂贵的、光鲜的都只是生活的点缀。</description>
+      <pubDate>Mon, 06 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-foam.html</guid>
+    </item>
+
+    <item>
+      <title>不是做错什么，</title>
+      <link>https://www.raychan.top/essay-right.html</link>
+      <description>今天刷到一个非常感慨的事情，健身服务 Keep 因递交招股书 6 个月内未通过聆讯，IPO 申请状态已转为「失败」，这大概率意味着本次冲刺 IPO 失败了。</description>
+      <pubDate>Mon, 06 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-right.html</guid>
+    </item>
+
+    <item>
+      <title>真实的 PDCA</title>
+      <link>https://www.raychan.top/essay-pdca.html</link>
+      <description>和项目管理的朋友聊天，谈到了 PDCA 循环管理方法。</description>
+      <pubDate>Mon, 06 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-pdca.html</guid>
+    </item>
+
+    <item>
+      <title>星辰之子</title>
+      <link>https://www.raychan.top/essay-stardust.html</link>
+      <description>&quot;地球这样的行星，是产生不了重元素的，你身体里的铁，来自璀璨的超新星爆炸&quot;</description>
+      <pubDate>Tue, 07 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-stardust.html</guid>
+    </item>
+
+    <item>
+      <title>三件事</title>
+      <link>https://www.raychan.top/essay-threethings.html</link>
+      <description>你处在低谷期的时候</description>
+      <pubDate>Tue, 07 Jul 2026 00:00:00 GMT</pubDate>
+      <guid>https://www.raychan.top/essay-threethings.html</guid>
+    </item>
+
+  </channel>
+</rss>

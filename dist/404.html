@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>404 - Page Not Found | Ray Chan</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><link rel="stylesheet" href="/css/404.css"></head> <body> <canvas id="particleCanvas"></canvas>
+  
+  <div class="error-code">404</div>
+  <h1 class="error-title">Page Not Found</h1>
+  <p class="error-desc">The page you're looking for doesn't exist or has been moved.</p>
+  <a href="/" class="btn-home">Go Home</a> <script>// Simple particle effect for 404 page
+    (function() {
+      const canvas = document.getElementById('particleCanvas');
+      const ctx = canvas.getContext('2d');
+      let w, h, particles = [];
+      
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      
+      function createParticle() {
+        return {
+          x: Math.random() * w,
+          y: h + 10,
+          r: Math.random() * 1.5 + 0.5,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -(Math.random() * 0.5 + 0.2),
+          alpha: Math.random() * 0.5 + 0.2
+        };
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, w, h);
+        while (particles.length < 50) particles.push(createParticle());
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 0.002;
+          
+          if (p.alpha <= 0 || p.y < -10) {
+            particles.splice(i, 1);
+            continue;
+          }
+          
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+          ctx.fill();
+        }
+        
+        requestAnimationFrame(animate);
+      }
+      
+      resize();
+      animate();
+      window.addEventListener('resize', resize);
+    })();</script> </body> </html>
