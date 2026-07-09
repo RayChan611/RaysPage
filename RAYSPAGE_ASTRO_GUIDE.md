@@ -133,7 +133,7 @@ rayspage-astro/
 ├── package-lock.json
 ├── astro.config.mjs        # 构建配置（见 6.1）
 ├── tsconfig.json
-├── .gitignore              # 忽略 node_modules / dist / .astro / .DS_Store
+├── .gitignore              # 忽略 node_modules / .astro / .DS_Store
 ├── site/                   # ← 用户的网站源码（手写部分）
 │   ├── src/
 │   │   ├── env.d.ts
@@ -147,8 +147,8 @@ rayspage-astro/
 │   │   ├── photos/         # 9 张照片（照片页用）
 │   │   ├── favicon.svg, robots.txt, sitemap.xml, rss.xml, rss-notes.xml
 │   └── migrate.mjs         # ★ 一次性迁移脚本（旧 RaysPage HTML → astro 页面）
-├── node_modules/           # 依赖（146M，不提交）
-├── dist/                   # 构建产物（不提交，EdgeOne 自行构建或忽略）
+├── node_modules/           # 依赖（不提交）
+├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
 └── .astro/                 # Astro 缓存（不提交）
 ```
 
@@ -305,21 +305,38 @@ export default defineConfig({
 ### 7.1 当前部署方式
 - **EdgeOne** 连 GitHub 仓库 **`RayChan611/RaysPage`** 的 `main` 分支，push 触发重新部署。
 - 站点域名 `www.raychan.top`。
+- **策略**：仓库同时提交 Astro 源码 (`site/`) 和构建产物 (`dist/`)。EdgeOne 配置为**直接服务 `dist/` 目录的静态文件**，不依赖 EdgeOne 的 `npm ci` 构建环境。
+  - 好处：避免 EdgeOne 安装依赖失败、Node 版本不匹配、框架识别错误等问题。
+  - 代价：每次改源码后必须本地 `npm run build`，再把新的 `dist/` 一起 commit/push。
 
-### 7.2 构建参数（如果 EdgeOne 用「框架构建」模式）
+### 7.2 本地构建与提交流程
+```bash
+npm run build         # 生成 dist/（14 页 + 静态资源）
+git add -A            # 包含 site/ 源码改动 + dist/ 产物更新
+git commit -m "..."
+git push origin main  # 触发 EdgeOne 重新部署
 ```
-安装命令: npm ci
-构建命令: npm run build
+
+### 7.3 EdgeOne 控制台配置建议
+如果你需要手动检查或重建 EdgeOne 项目，使用以下设置：
+```
+框架预设: Static / 静态站点 / Other（不要让 EdgeOne 自动识别 Astro）
+安装命令: （留空，不需要安装）
+构建命令: （留空，不需要构建）
 输出目录: dist
+根目录:   /（默认）
 ```
-（Node 版本需支持 Astro 4，建议 Node 18+）
+> 如果 EdgeOne 强制要求填写构建命令，可以填 `echo "static dist"` 之类的 no-op。
 
-### 7.3 ⚠️ 关键部署陷阱
-**本仓库推的是 Astro 源码，仓库根目录没有 `index.html`**（源码在 `site/`，构建产物 `dist/` 被 `.gitignore` 忽略）。
-- 如果 EdgeOne 是「**框架构建**」模式（识别 Astro，跑 `npm ci`+`npm run build`，输出 `dist`）→ 正常，线上自动重建为新版。✅
-- 如果 EdgeOne 是「**直接服务仓库静态文件**」模式 → 线上会 **404**（根无 index.html）。必须把部署方式改成框架构建，或改为「提交构建产物到仓库根」（取消 gitignore dist，把 `dist/*` 放到根，让 EdgeOne 直接服务）。
-
-**接手时第一件事**：去 EdgeOne 控制台确认这次 push 后的部署状态。若是构建模式且成功 → 线上已是新版；若是静态模式/部署失败 → 改部署配置（用上面参数）。
+### 7.4 ⚠️ 关键部署陷阱
+- **不要只改源码忘记 build**：`dist/` 是 EdgeOne 实际服务的目录。如果只改了 `site/` 但没跑 `npm run build`，线上不会更新。
+- **不要提交 `node_modules`/` .astro`**：这些始终被 `.gitignore` 忽略。
+- **不要提交 `.DS_Store`**：macOS 自动文件，已加 `.gitignore`，偶尔需要手动清理。
+- 如果未来想改回「框架构建」模式（让 EdgeOne 自己 `npm run build`），需要：
+  1. 把 `dist` 重新加回 `.gitignore`；
+  2. 在 EdgeOne 里把框架改回 Astro / 自定义构建；
+  3. 填写安装命令 `npm ci`、构建命令 `npm run build`、输出目录 `dist`。
+  4. 但该项目已经验证 EdgeOne 的 `npm ci` 会失败，所以不建议改回。
 
 ---
 
@@ -327,10 +344,10 @@ export default defineConfig({
 
 | 仓库 | 内容 | 状态 |
 |---|---|---|
-| `RayChan611/RaysPage` | **本 Astro 新版**（源码） | `main` 分支 = `6b05228`，force push 覆盖旧历史 |
+| `RayChan611/RaysPage` | **本 Astro 新版**（源码 + 构建产物） | `main` 分支，源码在 `site/`，`dist/` 已提交，EdgeOne 直接服务 `dist/` |
 | `RayChan611/RaysPage-legacy` | 旧版原生 JS 站存档 | 107 commits 完整历史，作基础参考 |
 
-本地 `rayspage-astro` 目录：`git init` 过，已 commit（`.gitignore` 忽略 node_modules/dist/.astro，只提交根配置 + `site/` 90 文件），`origin` 指向 `RaysPage`。
+本地 `rayspage-astro` 目录：`git init` 过，已 commit（`.gitignore` 忽略 node_modules/.astro，提交根配置 + `site/` + `dist/`），`origin` 指向 `RaysPage`。
 
 **推送约定**：用户要求「说推送才推」。日常改动先本地 commit，等用户明确说「推送/推」再 `git push origin main`。注意是 force 场景需谨慎（覆盖线上）。
 
@@ -387,9 +404,9 @@ export default defineConfig({
 ### 10.6 `build.format` 不能改
 - 改成 `directory` 会破坏所有 `.html` 外链和站内 `href="xxx.html"`。保持 `'file'`。
 
-### 10.7 `dist` / `node_modules` 不提交
-- `.gitignore` 忽略它们。EdgeOne 自行构建（或你配置）。不要 `git add` 它们。
-- `node_modules` 约 146M，误提交会爆炸。
+### 10.7 `dist` 现在需要提交，`node_modules` 永不提交
+- **`dist/`**：已改为提交到仓库，因为 EdgeOne 直接服务 `dist/` 静态文件（见第 7 节）。每次改源码后必须 `npm run build` 并 commit 新的 `dist/`。
+- **`node_modules/` / `.astro/`**：始终被 `.gitignore` 忽略，不要 `git add` 它们。`node_modules` 约 146M，误提交会爆炸。
 
 ### 10.8 SSH push 卡顿
 - 用 SSH (`git@github.com:...`) push 曾卡 5 分钟无输出（实际在传，只是 `tail` 缓冲没刷）。改用 **https + gh token**（`gh auth setup-git` 配置 credential helper）稳定快速。
@@ -408,6 +425,12 @@ export default defineConfig({
 
 ### 10.12 公共路径
 - `public/` 内容输出到 `dist/` 根。JS/CSS 引用必须用绝对路径 `/js/...` `/css/...`。页面用相对路径 `../layouts/BaseLayout.astro` 引入布局（因在 `site/src/pages` 下）。
+
+### 10.13 EdgeOne「安装依赖」失败（本项目已踩）
+- 现象：push Astro 源码到 `RaysPage` 后，EdgeOne 部署日志显示「安装依赖 失败」/「No server-handler detected」。
+- 根因：EdgeOne 的自动构建环境未能正确安装依赖或识别 Astro（本项目使用了自定义 `srcDir`/`publicDir` 也可能加大识别难度）。
+- 修复：改为「提交 `dist/` 静态产物 + EdgeOne 直接服务 `dist/`」模式（见第 7 节）。
+- **教训**：部署方式要根据平台实际表现调整，不要假设「它应该能构建」。
 
 ---
 
@@ -476,6 +499,7 @@ const inlineScripts = [];
 - [ ] 读 `site/public/js/site.js` → 理解 `RayRAF`/`RayScroll` 双管理器（性能核心）
 - [ ] 读 `site/public/css/style.css` 的 `:root` → 理解设计系统变量
 - [ ] 读 `migrate.mjs` → 理解内容从哪里来、怎么生成的（改内容/同步旧站的钥匙）
+- [ ] 读第 7 节「部署」→ 理解 `dist/` 已提交，改源码后必须 `npm run build` 并 commit 新的 `dist/`
 - [ ] 读第 10 节「踩坑」→ 避免重犯已知错误
 - [ ] 本地 `npm run dev` 起服务，肉眼验收（headless 不能替代肉眼看动效/视觉）
 
@@ -485,7 +509,8 @@ const inlineScripts = [];
 - ❌ 不要动 `inlineStyles` 里的页专属 `<style>`（丢了 Back 按钮等会错位）
 - ❌ 不要拦截/改写 `javascript:` 链接
 - ❌ 不要自己加 `visibilitychange`/`scroll` 监听（用 RayRAF/RayScroll）
-- ❌ 不要把 `node_modules`/`dist` 提交进 git
+- ❌ 不要把 `node_modules` 提交进 git
+- ❌ 改源码后不要只 commit 源码而忘记 `npm run build` 并 commit 新的 `dist/`
 - ❌ 不要发明新的动画曲线（用第 4.4 节的统一曲线）
 - ❌ 未经确认不要 force push 覆盖 `RaysPage`（旧版历史在 `RaysPage-legacy`）
 
@@ -493,4 +518,4 @@ const inlineScripts = [];
 
 ---
 
-*文档生成日期：2026-07-09。基于 `rayspage-astro` 仓库实际代码（commit 6b05228）编写。如有代码演进，请以实际文件为准并同步更新本文件。*
+*文档更新日期：2026-07-09。本次更新：因 EdgeOne 构建失败，改为提交 `dist/` 并由 EdgeOne 直接服务静态产物。如有代码演进，请以实际文件为准并同步更新本文件。*
