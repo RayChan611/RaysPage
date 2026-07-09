@@ -1,0 +1,128 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogType?: string;
+  ogImage?: string;
+  ogUrl?: string;
+  twitterImage?: string;
+  extraCss?: string[];
+  current?: string;
+  preloadPhoto?: boolean;
+  inlineStyles?: string[];
+}
+const {
+  title = 'Ray Chan',
+  description = 'Ray Chan - Ground-up rebuild, quant strategies, full-stack engineering, personal reconstruction.',
+  canonical = 'https://www.raychan.top/',
+  ogType = 'website',
+  ogImage = 'https://www.raychan.top/assets/og/default.png',
+  ogUrl = canonical,
+  twitterImage = ogImage,
+  extraCss = [],
+  current = 'home',
+  preloadPhoto = false,
+  inlineStyles = [],
+} = Astro.props;
+
+const NAV_ITEMS = [
+  { href: 'index.html#about', label: 'About', key: 'about' },
+  { href: 'index.html#contact', label: 'Contact', key: 'contact' },
+  { href: 'photos.html', label: 'Photos', key: 'photos' },
+  { href: 'notes.html', label: 'Notes', key: 'notes' },
+  { href: 'essays.html', label: 'Essays', key: 'essays' },
+];
+const onIndex = current === 'home' || current === 'about' || current === 'contact';
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="baidu-site-verification" content="codeva-FkS9J5NQKE" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="author" content="Ray Chan" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Ray Chan" />
+  <meta property="og:site_name" content="Ray Chan" />
+  <meta property="og:url" content={ogUrl} />
+  <meta property="og:type" content={ogType} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={twitterImage} />
+  {canonical && <link rel="canonical" href={canonical} />}
+  <style>
+    html, body { background: #0a0a0a; margin: 0; }
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 40px; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="/css/style.css" />
+  {extraCss.map((href) => <link rel="stylesheet" href={'/' + href} />)}
+  {inlineStyles.map((css) => <style is:inline set:html={css}></style>)}
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script>
+  {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
+</head>
+<body>
+  <!-- RayRAF + page behaviours. Loaded synchronously BEFORE page scripts so
+       window.RayRAF exists when hero-sparkle / cursor / smooth-scroll register. -->
+  <script is:inline src="/js/site.js"></script>
+
+  <div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true" style="opacity:1;pointer-events:auto;transition:none;"></div>
+
+  <!-- Reading progress bar (was injected by the old components.js; now static). -->
+  <div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
+
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-outline" id="cursorOutline" aria-hidden="true"></div>
+
+  <nav class="nav scrolled" id="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="Ray Chan - Home"><span class="nav-logo-c">R</span><span class="nav-logo-expand">ay&nbsp;</span><span class="nav-logo-r">C</span><span class="nav-logo-expand2">han</span></a>
+      <div class="nav-right">
+        <div class="nav-links" id="navLinks">
+          {NAV_ITEMS.map((item) => {
+            if (onIndex && (item.key === 'about' || item.key === 'contact')) {
+              const isActive = item.key === current;
+              return <a class={isActive ? 'nav-link nav-link-active' : 'nav-link'} href={'#' + item.key} aria-current={isActive ? 'page' : undefined}>{item.label}</a>;
+            }
+            const isActive = item.key === current;
+            const cls = isActive ? 'nav-link nav-link-active' : 'nav-link';
+            return isActive
+              ? <span class={cls} aria-current="page">{item.label}</span>
+              : <a class={cls} href={item.href}>{item.label}</a>;
+          })}
+        </div>
+        <button class="nav-mobile-btn" id="navMobileBtn" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <slot />
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-copy">&copy; 2026 Ray Chan. Built with Devotion.</p>
+    </div>
+  </footer>
+  <button class="back-to-top" id="backToTop" aria-label="Back to top" title="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+
+  <!-- Global client scripts (load order matters: lenis before smooth-scroll). -->
+  <script is:inline src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script is:inline src="/js/smooth-scroll.js"></script>
+  <script is:inline src="/js/cursor.js"></script>
+  <script is:inline src="/js/nav.js"></script>
+</body>
+</html>
