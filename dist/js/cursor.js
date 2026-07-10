@@ -1,13 +1,12 @@
 /* ============================================
-   Custom Cursor — Soft Streamline (physics chain)
-   The head pins 1:1 to the pointer. The trail is a chain of N
-   nodes, each spring-pulled toward the node AHEAD of it, with a
-   touch of downward GRAVITY and velocity DAMPING. This gives the
-   ribbon real inertia: it lags behind fast motion, follows through
-   when you stop (settling with a gentle sag), and feels weighted
-   rather than a dead echo of the path. Rendered as a smoothed SVG
-   path (tail→head transparent→visible gradient + gaussian blur).
-   The head uses translate3d (GPU-composited).
+   Custom Cursor — Soft Streamline (damped cascade)
+   The head pins 1:1 to the pointer. The trail is a short cascade of
+   N points, each lerping toward the point ahead of it with a small
+   delay. This gives the ribbon fluid inertia without the physical
+   instability of a spring/gravity chain: it follows the real path,
+   stays compact, and settles quickly when you stop.
+   Rendered as a smoothed SVG path (tail→head transparent→visible
+   gradient + gaussian blur). The head uses translate3d (GPU-composited).
 
    The RAF loop is started directly here (NOT relying on RayRAF to
    kick it) — RayRAF only pauses/resumes on tab visibility changes.
@@ -33,36 +32,33 @@
 
     document.body.classList.add('custom-cursor-active');
 
-    // --- tunables (ribbon physics) ---
-    const N        = 14;    // number of chain nodes (length of the ribbon)
-    const STIFF    = 0.30;  // spring pull toward the node ahead (lag/flow)
-    const DAMP     = 0.80;  // velocity friction (lower = settles faster)
-    const GRAVITY  = 0.10;  // gentle downward pull on trailing nodes (weight)
-    const SHRINK   = 0.5;   // px/frame below which the head counts as idle
-    const FADE_EASE = 0.10; // global opacity ease (silky in/out)
+    // --- tunables ---
+    const N         = 8;    // trail length (compact)
+    const LAG        = 0.28; // how tightly each point follows the one ahead
+    const FADE_EASE  = 0.12; // global opacity ease in/out
+    const SHRINK     = 0.6;  // px/frame threshold for "still"
 
-    // head (1:1 with pointer)
+    // head
     let mx = -100, my = -100;
     let hx = -100, hy = -100;
-
-    // physics chain of nodes; node 0 is pinned to the head each frame
-    const pts = [];
-    for (let i = 0; i < N; i++) pts.push({ x: -100, y: -100, vx: 0, vy: 0 });
-
     let fade = 0;
     let hasMoved = false;
     let animId = null;
 
+    // trail points: p[0] is just behind the head, p[N-1] is the tail tip
+    const pts = [];
+    for (let i = 0; i < N; i++) pts.push({ x: -100, y: -100 });
+
     head.style.opacity = '0';
+    svg.style.opacity = '0';
 
     function reveal(e) {
       if (hasMoved) return;
       hasMoved = true;
       mx = e.clientX; my = e.clientY;
       hx = mx; hy = my;
-      for (let i = 0; i < N; i++) { pts[i].x = mx; pts[i].y = my; pts[i].vx = 0; pts[i].vy = 0; }
+      for (let i = 0; i < N; i++) { pts[i].x = mx; pts[i].y = my; }
       head.style.opacity = '1';
-      svg.style.opacity = '0';
     }
 
     document.addEventListener('pointermove', (e) => {
@@ -74,7 +70,7 @@
     // Fallback: light up even if pointermove is not forwarded (embedded previews).
     document.addEventListener('pointerover', reveal, { passive: true });
 
-    // Smooth the chain into one continuous curve (quadratic beziers through midpoints).
+    // Quadratic bezier through midpoints for a smooth ribbon.
     function buildPath(p) {
       if (p.length < 2) return '';
       let d = 'M ' + p[0].x.toFixed(1) + ' ' + p[0].y.toFixed(1);
@@ -93,34 +89,27 @@
       const dx = mx - hx;
       const dy = my - hy;
 
-      // head: exact 1:1, glued to the pointer
+      // head: exact 1:1
       hx += dx;
       hy += dy;
       head.style.transform =
         'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
 
-      // physics chain: node 0 pinned to head; each node springs toward
-      // the one ahead + subtle gravity + velocity damping → inertia/weight
-      pts[0].x = hx; pts[0].y = hy; pts[0].vx = 0; pts[0].vy = 0;
+      // damped cascade: each point follows the one ahead
+      pts[0].x += (hx - pts[0].x) * LAG;
+      pts[0].y += (hy - pts[0].y) * LAG;
       for (let i = 1; i < N; i++) {
-        const p = pts[i];
-        const q = pts[i - 1];
-        p.vx += (q.x - p.x) * STIFF;
-        p.vy += (q.y - p.y) * STIFF + GRAVITY;
-        p.vx *= DAMP;
-        p.vy *= DAMP;
-        p.x += p.vx;
-        p.y += p.vy;
+        pts[i].x += (pts[i - 1].x - pts[i].x) * LAG;
+        pts[i].y += (pts[i - 1].y - pts[i].y) * LAG;
       }
 
-      // silky in/out: visible while moving, eases to nothing when still
+      // fade in while moving, fade out when still
       const moving = Math.hypot(dx, dy) > SHRINK;
       const target = moving ? 1 : 0;
       fade += (target - fade) * FADE_EASE;
 
       if (fade > 0.001) {
         path.setAttribute('d', buildPath(pts));
-        // gradient: tail (transparent) → head (visible)
         const tail = pts[N - 1];
         const headP = pts[0];
         grad.setAttribute('x1', tail.x);
@@ -139,7 +128,7 @@
     // Start the loop directly (RayRAF does NOT auto-start registered loops).
     animId = requestAnimationFrame(frame);
 
-    // Pause on hidden tab to save CPU (RayRAF only fires on visibilitychange).
+    // Pause on hidden tab to save CPU.
     if (window.RayRAF) {
       window.RayRAF.register({
         start: function () { if (!animId) animId = requestAnimationFrame(frame); },
