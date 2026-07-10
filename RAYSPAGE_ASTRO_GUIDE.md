@@ -137,16 +137,22 @@ rayspage-astro/
 ├── site/                   # ← 用户的网站源码（手写部分）
 │   ├── src/
 │   │   ├── env.d.ts
+│   │   ├── content/        # ★ Content Collections（见 5.6）
+│   │   │   ├── config.ts   #   essays / notes 的 zod schema
+│   │   │   ├── essays/*.mdx   # 7 篇随笔（MDX 内容工程化）
+│   │   │   └── notes/*.mdx    # 7 条笔记（MDX，部分 hasDetail）
 │   │   ├── layouts/
 │   │   │   └── BaseLayout.astro   # ★ 全站静态外壳（nav/footer/cursor/转场/进度条/回顶）
 │   │   └── pages/          # ★ 14 个页面（index/essays/notes/photos/404 + 7 essays + 2 notes）
+│   │       ├── essay-[slug].astro / note-[slug].astro  # 动态路由，渲染 <Content />
 │   ├── public/             # ← 原样拷进构建产物根目录的静态资产
 │   │   ├── css/            # style.css（全局设计系统）+ 页专属（essays/notes/photos/reading-progress/search/404）
-│   │   ├── js/             # 12 个客户端脚本（见 6.4）
+│   │   ├── js/             # 12 个客户端脚本（见 6.4）+ back-lift.js（返回按钮，由 MDX 详情页用）
 │   │   ├── assets/         # og 图（default + 各文章）、ray-photo.webp
 │   │   ├── photos/         # 9 张照片（照片页用）
 │   │   ├── favicon.svg, robots.txt, sitemap.xml, rss.xml, rss-notes.xml
-│   └── migrate.mjs         # ★ 一次性迁移脚本（旧 RaysPage HTML → astro 页面）
+│   ├── migrate.mjs         # ★ 一次性迁移脚本（旧 RaysPage HTML → astro 页面，非 content）
+│   └── migrate-content.mjs # ★ 一次性迁移脚本（旧 essay/note 详情页 → Content Collections MDX）
 ├── node_modules/           # 依赖（不提交）
 ├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
 └── .astro/                 # Astro 缓存（不提交）
@@ -203,10 +209,56 @@ const inlineScripts = [];
 ```
 **正文是字符串通过 `<Fragment set:html={...}>` 注入**——这是为了保证「内容/效果 100% 等价原站」。改页面正文直接改这个字符串（或重跑 migrate）。
 
+> ⚠️ 更新：随笔（essays）与读书笔记（notes）已从「硬编码 `bodyHtml` 字符串」迁移到 **Astro Content Collections + MDX**（见 5.6）。这两类内容不再用上面的 `bodyHtml` 模式，而是写在 `site/src/content/essays/*.mdx`、`site/src/content/notes/*.mdx`，由动态路由 `essay-[slug].astro` / `note-[slug].astro` 渲染。index / photos / 404 等页面仍用本节的 `bodyHtml` 模式。
+
 ### 5.5 客户端脚本加载顺序（不可乱）
 1. `site.js` → 定义 `RayRAF`/`RayScroll` 单例
 2. 页面 `pageScripts`（defer）→ 各效果脚本（hero-sparkle/search/photos/card-tilt/button-effects/hero-typewriter/scratch-to-reveal 等），它们运行时会 `window.RayRAF.register(...)` / `window.RayScroll.add(...)`
 3. 全局尾部：`lenis` → `smooth-scroll` → `cursor` → `nav`（这些必须最后，且 lenis 在 smooth-scroll 前）
+
+### 5.6 内容工程化：Content Collections + MDX（essays / notes）
+随笔与读书笔记已「壳化」迁移到 Content Collections，拿到 MDX 的内容工程化红利（frontmatter 类型约束、构建期校验、`getCollection` 聚合、未来可用原生 MDX 书写）。
+
+**目录与结构**
+```
+site/src/content/
+  config.ts            # defineCollection: essays / notes（zod schema）
+  essays/*.mdx         # 7 篇随笔（choice/foam/pdca/right/stardust/threethings/trial）
+  notes/*.mdx          # 7 条笔记（principles/katwu-lenny + extra-1..5）
+site/src/pages/
+  essay-[slug].astro   # getStaticPaths → 渲染 <Content />，输出 essay-${slug}.html
+  note-[slug].astro    # 仅 hasDetail:true 的笔记生成详情页，输出 note-${slug}.html
+  essays.astro         # getCollection('essays') 按 date 倒序渲染卡片
+  notes.astro          # getCollection('notes') 渲染卡片（hasDetail 为链接，否则为静态摘录）
+```
+- `build.format:'file'` 下，动态路由输出文件名 = `essay-${slug}.html` / `note-${slug}.html`，**URL 与旧站完全一致**，SEO/外链零破坏。
+- `notes` 集合有混合结构：2 条有详情页（`hasDetail:true`，`principles`/`katwu-lenny`），5 条只有列表摘录卡片（`hasDetail:false`，`extra-1..5`，原站本就无详情页）。`note-[slug].astro` 用 `getCollection('notes').filter(n=>n.data.hasDetail)` 只生成详情页，避免为摘录卡生成空详情页。
+
+**MDX 文件长这样**
+```mdx
+---
+title: "Kat Wu × Lenny 播客访谈"
+book: "Kat Wu × Lenny 播客访谈"
+date: "2025-01-02"
+description: "..."
+excerpt: "<div class=\"note-excerpt\">...</div>"
+tags: ["PM · AI"]
+ogImage: "https://www.raychan.top/assets/og/note-katwu-lenny.png"
+hasDetail: true
+---
+<div id="global-bg-effect" class="hero-bg-effect">
+  <div class="hero-glow-line hero-glow-line--indigo-blur"></div>
+  ...
+</div>
+<main class="note-page">
+  ...
+</main>
+```
+正文 HTML 写在 frontmatter 之后，由动态路由 `const { Content } = await render(entry);` + `<Content />` 渲染。
+
+**样式 / 脚本复用**：原各详情页的 `inlineStyles` 已提升到共享 `public/css/essays.css`；尾部「返回」按钮的 `inlineScripts` 已提升为共享 `public/js/back-lift.js`（对缺失按钮自动 no-op）。动态路由统一加载 `hero-sparkle.js` + `back-lift.js`。
+
+**迁移脚本（一次性）**：`site/migrate-content.mjs` 从旧 `*.astro` 详情页抽取 `bodyHtml` + 元数据，生成 MDX。**重跑需要原始 `*.astro` 源文件**（已从 git 删除，但 `git HEAD` 仍保留——恢复 `git checkout HEAD -- site/src/pages/essay-*.astro ...` 才能重跑）。详见 10.14 的 MDX 解析坑。
 
 ---
 
@@ -214,15 +266,20 @@ const inlineScripts = [];
 
 ### 6.1 Astro 配置（`astro.config.mjs`）
 ```js
+import { defineConfig } from 'astro/config';
+import mdx from '@astrojs/mdx';
+
 export default defineConfig({
   srcDir: './site/src',
   publicDir: './site/public',
   build: { format: 'file' },     // 输出 index.html/essays.html，URL 与原站一致
-  trailingSlash: 'ignore'
+  trailingSlash: 'ignore',
+  integrations: [mdx()]           // 启用 MDX（essays/notes 内容工程化）
 });
 ```
 - `format: 'file'` 是**硬约束**：保证外部链接（如其他站指向 `raychan.top/essays.html`）和站内 `href="essays.html"` 不破坏。不要改成 `directory`。
 - `publicDir` 内容原样进 `dist/` 根（所以 JS/CSS 用绝对路径 `/js/...` `/css/...` 引用）。
+- `mdx()` 集成用于 Content Collections 的 `*.mdx` 文件（`@astrojs/mdx` v3，兼容 Astro 4）。
 
 ### 6.2 共享运行时：`site.js`（最重要的一块 JS）
 文件：`site/public/js/site.js`。定义了两个**全局单例管理器**，是性能优化的核心（把原来分散的多个监听器合并）：
@@ -432,6 +489,14 @@ git push origin main  # 触发 EdgeOne 重新部署
 - 修复：改为「提交 `dist/` 静态产物 + EdgeOne 直接服务 `dist/`」模式（见第 7 节）。
 - **教训**：部署方式要根据平台实际表现调整，不要假设「它应该能构建」。
 
+### 10.14 MDX 内嵌 HTML 的解析坑（迁移 essays/notes 时必踩）
+MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`）处理，比浏览器 HTML 解析器严很多。直接把旧站 `<body>` 正文贴进 `.mdx` 会报 `Expected a closing tag for <div> ... before the end of paragraph`。两个必须处理的点（已写进 `migrate-content.mjs`）：
+
+1. **void 元素必须自闭合**：HTML 的 `<br>`、`<img ...>`、`<hr>`、`<input ...>` 在 MDX 里必须写成 `<br />`、`<img ... />`。否则报 `Unexpected closing tag </h1>, expected corresponding closing tag for <br>`。`migrate-content.mjs` 的 `normalizeVoid()` 自动把 `<br>` → `<br />`。
+2. **每个标签必须独占一行（pretty-print）**：若一行里多个标签、且其中一个**开标签跨到下一行**（如 `<div class="dialogue"><div class="speaker">x</div><div class="text">` 后接下一行的 `<p>`），JSX 解析器会误判成「段落里开了个未闭合 `<div>`」而报错。`migrate-content.mjs` 的 `stripBlankLines()`（实为 prettify：在每个非自闭合 `>` 后、`每个 `<` 前断行）解决了它。
+- 另外：MDX 正文里不要出现裸 `{` / `}`（会被当 JSX 表达式）；HTML 注释 `<!-- -->` 也可能触发解析问题——迁移脚本已确认正文无这两类字符。
+- **重跑迁移脚本的前提**：脚本从旧的 `essay-*.astro` / `note-*.astro` 详情页抽取正文，但这些文件构建期已被删除。重跑前必须先 `git checkout HEAD -- site/src/pages/essay-*.astro site/src/pages/note-*.astro`（恢复源），跑完再删回、并还原已重写的 `essays.astro`/`notes.astro` 列表页。
+
 ---
 
 ## 11. 常见任务怎么做 (How-to)
@@ -479,13 +544,17 @@ const inlineScripts = [];
 - 动效曲线沿用第 4.4 节的统一曲线，不要发明新曲线。
 
 ### 11.5 改内容
-- 页面正文在 `*.astro` 的 `bodyHtml` 字符串里。直接编辑，或改旧站后重跑 `migrate.mjs`。
-- 文章/笔记的具体文字在 `bodyHtml` 内（JSON 转义，注意引号转义）。
+- **随笔 / 读书笔记（MDX）**：直接编辑 `site/src/content/essays/*.mdx` 或 `site/src/content/notes/*.mdx`。
+  - frontmatter（`title`/`date`/`description`/`excerpt`/`tags`/`ogImage`/`hasDetail`）受 `site/src/content/config.ts` 的 zod schema 约束，构建期校验，写错类型会构建失败。
+  - 正文 HTML 写在 frontmatter 之后，按 10.14 的规则：**void 元素自闭合、每个标签独占一行**。新增笔记若用纯 markdown 书写更省心；沿用旧站 HTML 则注意断行。
+  - 改完 `npm run build` 验证（动态路由 `essay-[slug].astro`/`note-[slug].astro` 自动按 slug 生成页面）。
+  - ⚠️ `notes` 里 `extra-1..5` 的 `date` 是占位值（`2024-01-0N`），`principles`/`katwu-lenny` 的日期也需按真实阅读时间校正。
+- **其他页面（index / photos / 404）**：正文仍在 `*.astro` 的 `bodyHtml` 字符串里，直接编辑或改旧站后重跑 `migrate.mjs`。
 
 ### 11.6 同步旧站更新
 - 旧站内容在 `RaysPage-legacy`（或本地 `RaysPage` 目录）。
-- 改 `migrate.mjs` 的 `SRC`/`OUT` 为正确路径，跑 `node site/migrate.mjs`，再 `npm run build` 验证。
-- **重跑会覆盖 `src/pages/*.astro`**，如果有手动微调，先备份或 rebase。
+- **HTML 壳迁移**：改 `migrate.mjs` 的 `SRC`/`OUT` 为正确路径，跑 `node site/migrate.mjs`，再 `npm run build` 验证。重跑会覆盖 `src/pages/*.astro`（非 content 页面），手动微调先备份。
+- **MDX 内容迁移（一次性）**：`site/migrate-content.mjs` 把旧的 `essay-*.astro`/`note-*.astro` 详情页正文抽成 MDX。**前提与步骤见 10.14**（需先从 `git HEAD` 恢复源文件才能重跑）。日常加新文章请直接写 `.mdx`，不要依赖此脚本。
 
 ---
 
@@ -495,7 +564,9 @@ const inlineScripts = [];
 
 - [ ] 读 `astro.config.mjs` → 理解 `format:'file'` 和 `site/` 结构
 - [ ] 读 `site/src/layouts/BaseLayout.astro` → 理解静态外壳 + 脚本加载顺序 + Props
-- [ ] 读一个页面（如 `notes.astro`）→ 理解 `meta`/`bodyHtml`/`pageScripts`/`inlineStyles` 模式
+- [ ] 读一个列表页（如 `notes.astro`）→ 理解 `getCollection('notes')` + 卡片渲染（`note-card`/`note-card-link`）模式
+- [ ] 读 `site/src/content/config.ts` + 一个 `essays/*.mdx` → 理解 Content Collections 的 frontmatter schema 与正文渲染（5.6）
+- [ ] 读一个动态路由（如 `essay-[slug].astro`）→ 理解 `getStaticPaths` + `render(entry)` + `<Content />`（替代旧 `bodyHtml` 模式）
 - [ ] 读 `site/public/js/site.js` → 理解 `RayRAF`/`RayScroll` 双管理器（性能核心）
 - [ ] 读 `site/public/css/style.css` 的 `:root` → 理解设计系统变量
 - [ ] 读 `migrate.mjs` → 理解内容从哪里来、怎么生成的（改内容/同步旧站的钥匙）

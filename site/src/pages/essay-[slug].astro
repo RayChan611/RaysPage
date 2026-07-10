@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// One route generates every essay detail page (essay-choice.html, ...).
+// `build.format: 'file'` keeps the output filename = `essay-${slug}.html`,
+// so existing links / SEO are preserved.
+export async function getStaticPaths() {
+  const essays = await getCollection('essays');
+  return essays.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, description, ogImage } = entry.data;
+const pageUrl = `https://www.raychan.top/essay-${entry.slug}.html`;
+---
+<BaseLayout
+  title={`${title} | Ray Chan`}
+  description={description}
+  canonical={pageUrl}
+  ogType="article"
+  ogImage={ogImage}
+  ogUrl={pageUrl}
+  twitterImage={ogImage}
+  extraCss={["css/essays.css", "css/reading-progress.css"]}
+  current="other"
+>
+  <Content />
+</BaseLayout>
+<script is:inline defer src="/js/hero-sparkle.js"></script>
+<script is:inline defer src="/js/back-lift.js"></script>

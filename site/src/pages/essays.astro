@@ -1,5 +1,7 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+
 const meta = {
   title: "Essays | Ray Chan",
   description: "Personal essays and thoughts by Ray Chan.",
@@ -8,16 +10,61 @@ const meta = {
   ogImage: "https://www.raychan.top/assets/og/default.png",
   ogUrl: "https://www.raychan.top/essays.html",
   twitterImage: "https://www.raychan.top/assets/og/default.png",
-  extraCss: ["css/essays.css","css/reading-progress.css","css/search.css"],
+  extraCss: ["css/essays.css", "css/reading-progress.css", "css/search.css"],
   current: "essays",
   preloadPhoto: false,
 };
-const bodyHtml = "<div id=\"global-bg-effect\" class=\"hero-bg-effect\">\n    <div class=\"hero-glow-line hero-glow-line--indigo-blur\"></div>\n    <div class=\"hero-glow-line hero-glow-line--indigo\"></div>\n    <div class=\"hero-glow-line hero-glow-line--sky-blur\"></div>\n    <div class=\"hero-glow-line hero-glow-line--sky\"></div>\n    <canvas id=\"hero-sparkle-canvas\"></canvas>\n  </div>\n\n  \n  \n\n  \n  <section class=\"essays-hero\">\n    <div class=\"container\">\n      <h1 class=\"essays-title\">Essays</h1>\n      <p class=\"essays-subtitle\">Thoughts, notes, and scattered ideas.</p>\n    </div>\n  </section>\n\n  \n  <section class=\"essays-section section\" aria-label=\"Personal essays\">\n    <div class=\"container\">\n      \n      \n      <div class=\"search-container\">\n        <input type=\"text\" class=\"search-input\" id=\"searchInput\" placeholder=\"Search essays...\" aria-label=\"Search essays\" />\n        <div class=\"search-no-results\" id=\"searchNoResults\">No matching essays found.</div>\n      </div>\n\n      <div class=\"essays-list\" id=\"essaysList\">\n\n        <a href=\"essay-choice.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.01</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">选择的代价</h3>\n            <p class=\"essay-card-excerpt\">\"我只能说，给出的条件够不够让你做出那个选择。\"——每个选择都有价格，只是高低不同。</p>\n          </div>\n          <span class=\"essay-card-tag\">Choice</span>\n        </a>\n\n        <a href=\"essay-trial.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2025.03.25</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">尝试的意义</h3>\n            <p class=\"essay-card-excerpt\">\"几乎所有的尝试都是有用的，至少在排除错误项方面。\"</p>\n          </div>\n          <span class=\"essay-card-tag\">Quote</span>\n        </a>\n\n        <a href=\"essay-foam.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.06</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">泡沫消散之后</h3>\n            <p class=\"essay-card-excerpt\">人只能活在真实的爱、到手的钱和落地的实事中。</p>\n          </div>\n          <span class=\"essay-card-tag\">Life</span>\n        </a>\n\n        <a href=\"essay-right.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.06</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">不是做错什么，而是没做对什么</h3>\n            <p class=\"essay-card-excerpt\">有时候不是你做错什么，而是你没做对什么。</p>\n          </div>\n          <span class=\"essay-card-tag\">Business</span>\n        </a>\n\n        <a href=\"essay-pdca.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.06</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">真实的 PDCA</h3>\n            <p class=\"essay-card-excerpt\">Plan-delay-cancel-apologize</p>\n          </div>\n          <span class=\"essay-card-tag\">Quote</span>\n        </a>\n\n        <a href=\"essay-stardust.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.07</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">星辰之子</h3>\n            <p class=\"essay-quote-text\">渴望见证星河大海的极限，因为我们本就是星辰之子。</p>\n          </div>\n          <span class=\"essay-card-tag\">Cosmos</span>\n        </a>\n\n        <a href=\"essay-threethings.html\" class=\"essay-card animate-on-scroll\">\n          <span class=\"essay-date\">2026.07.07</span>\n          <div class=\"essay-card-body\">\n            <h3 class=\"essay-card-title\">三件事</h3>\n            <p class=\"essay-card-excerpt\">你自己，你的钱，你内心的平静。</p>\n          </div>\n          <span class=\"essay-card-tag\">Life</span>\n        </a>\n\n        \n        <div class=\"essay-card essay-card-placeholder animate-on-scroll\">\n          <div class=\"essay-empty\">\n            <span aria-hidden=\"true\">+</span>\n            <small>More coming</small>\n          </div>\n        </div>\n\n      </div>\n    </div>\n  </section>";
-const pageScripts = ["js/search.js","js/card-tilt.js","js/hero-sparkle.js"];
-const inlineScripts = [];
+
+// Driven by the `essays` Content Collection — no more hand-maintained cards.
+const essays = (await getCollection('essays')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+const fmtDate = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}.${m}.${day}`;
+};
+
+const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 ---
 <BaseLayout {...meta}>
-  <Fragment set:html={bodyHtml} />
-  {pageScripts.map((s) => <script is:inline defer src={'/' + s}></script>)}
-  {inlineScripts.map((c) => <script is:inline set:html={c}></script>)}
+  <div id="global-bg-effect" class="hero-bg-effect">
+    <div class="hero-glow-line hero-glow-line--indigo-blur"></div>
+    <div class="hero-glow-line hero-glow-line--indigo"></div>
+    <div class="hero-glow-line hero-glow-line--sky-blur"></div>
+    <div class="hero-glow-line hero-glow-line--sky"></div>
+    <canvas id="hero-sparkle-canvas"></canvas>
+  </div>
+
+  <section class="essays-hero">
+    <div class="container">
+      <h1 class="essays-title">Essays</h1>
+      <p class="essays-subtitle">Thoughts, notes, and scattered ideas.</p>
+    </div>
+  </section>
+
+  <section class="essays-section section" aria-label="Personal essays">
+    <div class="container">
+      <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search essays..." aria-label="Search essays" />
+        <div class="search-no-results" id="searchNoResults">No matching essays found.</div>
+      </div>
+
+      <div class="essays-list" id="essaysList">
+        {essays.map((e) => (
+          <a href={`essay-${e.slug}.html`} class="essay-card animate-on-scroll">
+            <span class="essay-date">{fmtDate(e.data.date)}</span>
+            <div class="essay-card-body">
+              <h3 class="essay-card-title">{e.data.title}</h3>
+              <p class="essay-card-excerpt">{e.data.excerpt}</p>
+            </div>
+            <span class="essay-card-tag">{e.data.tags[0] || 'Essay'}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
 </BaseLayout>
+{pageScripts.map((s) => <script is:inline defer src={'/' + s}></script>)}
