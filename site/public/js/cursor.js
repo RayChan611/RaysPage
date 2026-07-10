@@ -31,14 +31,14 @@
 
     document.body.classList.add('custom-cursor-active');
 
-    // --- tunables (fluid feel) ---
-    const MAX_PTS    = 14;   // how many particles form the visible ribbon
-    const EMIT_DIST    = 3.5;  // px the head must travel before emitting a particle
-    const DAMP         = 0.92; // velocity friction (0-1; higher = longer glide)
-    const GRAVITY      = 0.04; // tiny downward drift (weight, not droop)
-    const JITTER       = 0.25; // random velocity perturbation
-    const FADE_EASE    = 0.12; // global opacity ease in/out
-    const SHRINK       = 0.6;  // px/frame threshold for "still"
+    // --- tunables (subtle stardust) ---
+    const MAX_PTS    = 9;    // how many particles form the visible ribbon (shorter = subtler)
+    const EMIT_DIST  = 6.5;  // px the head must travel before emitting a particle (wider = fewer)
+    const DAMP       = 0.92; // velocity friction (0-1; higher = longer glide)
+    const GRAVITY    = 0.04; // tiny downward drift (weight, not droop)
+    const JITTER     = 0.25; // random velocity perturbation
+    const FADE_EASE  = 0.12; // global opacity ease in/out
+    const SHRINK     = 0.6;  // px/frame threshold for "still"
     const RIBBON_WIDTH = 2.5;  // stroke width
 
     // head state
@@ -120,7 +120,7 @@
             vx: (hvx * 0.35) + (Math.random() - 0.5) * JITTER,
             vy: (hvy * 0.35) + (Math.random() - 0.5) * JITTER,
             life: 1.0,
-            decay: 0.015 + Math.random() * 0.01,
+            decay: 0.022 + Math.random() * 0.012,
           });
           emitAcc -= EMIT_DIST;
         }

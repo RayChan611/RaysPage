@@ -47,11 +47,11 @@ button { font-family: inherit; }
   position: fixed;
   top: 0; left: 0;
   width: 9px; height: 9px;
-  background: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.7);
   border-radius: 50%;
   pointer-events: none;
   z-index: 11001;
-  box-shadow: 0 0 7px rgba(255,255,255,0.32), 0 0 2px rgba(255,255,255,0.55);
+  box-shadow: 0 0 6px rgba(255,255,255,0.22), 0 0 2px rgba(255,255,255,0.4);
   transform: translate3d(-100px,-100px,0);
   will-change: transform;
   opacity: 0;
@@ -69,7 +69,7 @@ button { font-family: inherit; }
 }
 /* hover: head grows subtly, ribbon brightens */
 body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
-body.cursor-hover #streamGrad stop:last-child { stop-opacity: 0.8; }
+body.cursor-hover #streamGrad stop:last-child { stop-opacity: 0.62; }
 
 @media (max-width: 768px) {
   .cursor-comet, .cursor-stream { display: none; }
