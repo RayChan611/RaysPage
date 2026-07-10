@@ -1,15 +1,14 @@
 /* ============================================
-   Custom Cursor — Soft Streamline (damped cascade)
-   The head pins 1:1 to the pointer. The trail is a short cascade of
-   N points, each lerping toward the point ahead of it with a small
-   delay. This gives the ribbon fluid inertia without the physical
-   instability of a spring/gravity chain: it follows the real path,
-   stays compact, and settles quickly when you stop.
-   Rendered as a smoothed SVG path (tail→head transparent→visible
-   gradient + gaussian blur). The head uses translate3d (GPU-composited).
+   Custom Cursor — Soft Fluid Stream (particle trail)
+   The head pins 1:1 to the pointer. The trail is a fluid ribbon made
+   of small particles emitted from the head while moving. Each particle
+   carries inherited velocity, gets damped, and drifts slightly, so the
+   ribbon has its own life: it swirls behind fast motion, softens on
+   curves, and dissolves naturally when you stop.
 
-   The RAF loop is started directly here (NOT relying on RayRAF to
-   kick it) — RayRAF only pauses/resumes on tab visibility changes.
+   The latest particles are connected by a smooth SVG path; older
+   particles fade out and are recycled. The head uses translate3d
+   (GPU-composited). The RAF loop is started directly here.
    ============================================ */
 
 (function () {
@@ -32,22 +31,27 @@
 
     document.body.classList.add('custom-cursor-active');
 
-    // --- tunables ---
-    const N         = 8;    // trail length (compact)
-    const LAG        = 0.28; // how tightly each point follows the one ahead
-    const FADE_EASE  = 0.12; // global opacity ease in/out
-    const SHRINK     = 0.6;  // px/frame threshold for "still"
+    // --- tunables (fluid feel) ---
+    const MAX_PTS    = 14;   // how many particles form the visible ribbon
+    const EMIT_DIST    = 3.5;  // px the head must travel before emitting a particle
+    const DAMP         = 0.92; // velocity friction (0-1; higher = longer glide)
+    const GRAVITY      = 0.04; // tiny downward drift (weight, not droop)
+    const JITTER       = 0.25; // random velocity perturbation
+    const FADE_EASE    = 0.12; // global opacity ease in/out
+    const SHRINK       = 0.6;  // px/frame threshold for "still"
+    const RIBBON_WIDTH = 2.5;  // stroke width
 
-    // head
+    // head state
     let mx = -100, my = -100;
     let hx = -100, hy = -100;
+    let hvx = 0, hvy = 0;      // head velocity used to seed particles
     let fade = 0;
     let hasMoved = false;
     let animId = null;
 
-    // trail points: p[0] is just behind the head, p[N-1] is the tail tip
-    const pts = [];
-    for (let i = 0; i < N; i++) pts.push({ x: -100, y: -100 });
+    // particle pool: newest at end, oldest at start
+    const particles = [];
+    let emitAcc = 0; // accumulated head travel since last emission
 
     head.style.opacity = '0';
     svg.style.opacity = '0';
@@ -57,7 +61,8 @@
       hasMoved = true;
       mx = e.clientX; my = e.clientY;
       hx = mx; hy = my;
-      for (let i = 0; i < N; i++) { pts[i].x = mx; pts[i].y = my; }
+      hvx = 0; hvy = 0;
+      particles.length = 0;
       head.style.opacity = '1';
     }
 
@@ -67,10 +72,9 @@
       reveal(e);
     }, { capture: true, passive: true });
 
-    // Fallback: light up even if pointermove is not forwarded (embedded previews).
     document.addEventListener('pointerover', reveal, { passive: true });
 
-    // Quadratic bezier through midpoints for a smooth ribbon.
+    // Smooth path through points with quadratic bezier midpoints.
     function buildPath(p) {
       if (p.length < 2) return '';
       let d = 'M ' + p[0].x.toFixed(1) + ' ' + p[0].y.toFixed(1);
@@ -85,33 +89,66 @@
       return d;
     }
 
+    // Age out the oldest particles until we are at MAX_PTS.
+    function trim() {
+      while (particles.length > MAX_PTS) particles.shift();
+    }
+
     function frame() {
       const dx = mx - hx;
       const dy = my - hy;
+      const dist = Math.hypot(dx, dy);
 
-      // head: exact 1:1
+      // head: exact 1:1, but remember velocity for particle seeding
+      hvx = dx;
+      hvy = dy;
       hx += dx;
       hy += dy;
       head.style.transform =
         'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
 
-      // damped cascade: each point follows the one ahead
-      pts[0].x += (hx - pts[0].x) * LAG;
-      pts[0].y += (hy - pts[0].y) * LAG;
-      for (let i = 1; i < N; i++) {
-        pts[i].x += (pts[i - 1].x - pts[i].x) * LAG;
-        pts[i].y += (pts[i - 1].y - pts[i].y) * LAG;
+      // emit particles while moving; keep a minimum spacing for a clean line
+      if (hasMoved && dist > 0) {
+        emitAcc += dist;
+        while (emitAcc >= EMIT_DIST) {
+          const t = EMIT_DIST / dist; // lerp fraction for this emission
+          const ex = hx - hvx * t;
+          const ey = hy - hvy * t;
+          particles.push({
+            x: ex,
+            y: ey,
+            vx: (hvx * 0.35) + (Math.random() - 0.5) * JITTER,
+            vy: (hvy * 0.35) + (Math.random() - 0.5) * JITTER,
+            life: 1.0,
+            decay: 0.015 + Math.random() * 0.01,
+          });
+          emitAcc -= EMIT_DIST;
+        }
       }
+
+      // evolve particles: drag, gravity, jitter, fade
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.vx *= DAMP;
+        p.vy *= DAMP;
+        p.vy += GRAVITY;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+      }
+      // drop dead particles
+      while (particles.length && particles[0].life <= 0) particles.shift();
+      trim();
 
       // fade in while moving, fade out when still
       const moving = Math.hypot(dx, dy) > SHRINK;
-      const target = moving ? 1 : 0;
+      const target = (moving || particles.length > 2) ? 1 : 0;
       fade += (target - fade) * FADE_EASE;
 
-      if (fade > 0.001) {
-        path.setAttribute('d', buildPath(pts));
-        const tail = pts[N - 1];
-        const headP = pts[0];
+      if (fade > 0.001 && particles.length >= 2) {
+        path.setAttribute('d', buildPath(particles));
+        const tail = particles[0];
+        const headP = particles[particles.length - 1];
         grad.setAttribute('x1', tail.x);
         grad.setAttribute('y1', tail.y);
         grad.setAttribute('x2', headP.x);
@@ -125,10 +162,8 @@
       animId = requestAnimationFrame(frame);
     }
 
-    // Start the loop directly (RayRAF does NOT auto-start registered loops).
     animId = requestAnimationFrame(frame);
 
-    // Pause on hidden tab to save CPU.
     if (window.RayRAF) {
       window.RayRAF.register({
         start: function () { if (!animId) animId = requestAnimationFrame(frame); },
@@ -136,7 +171,6 @@
       });
     }
 
-    // Hover affordance (event delegation)
     const hoverSel = 'a, button, .contact-card, .tag, .social-link, .gallery-item, .essay-card';
     document.addEventListener('mouseover', (e) => {
       if (e.target.closest(hoverSel)) document.body.classList.add('cursor-hover');

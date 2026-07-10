@@ -297,7 +297,7 @@ hasDetail: true
 |---|---|---|---|
 | `site.js` | 运行时管理器 + 转场/进度条/回顶/分析 | — | 全局最先加载 |
 | `smooth-scroll.js` | Lenis 平滑滚动 + 锚点跳转 + hash 定位 | RayRAF | `history.scrollRestoration='manual'`；`window.lenis` 暴露 |
-| `cursor.js` | 自定义光标（头部 1:1 + SVG 轨迹丝带拖尾） | RayRAF | 仅桌面(>768)、reduced-motion 直接 return、首次移动才显示、translate3d GPU 合成、SVG path 向量丝带 |
+| `cursor.js` | 自定义光标（头部 1:1 + 粒子流体丝带拖尾） | RayRAF | 仅桌面(>768)、reduced-motion 直接 return、首次移动才显示、translate3d GPU 合成、SVG path 向量丝带 |
 | `nav.js` | nav 滚动态 + 移动端菜单 + IntersectionObserver 揭示 + Hero 入场 | RayScroll | 移动端菜单用事件委托 |
 | `hero-sparkle.js` | canvas 粒子背景（notes/essays/photos 页） | RayRAF | `position:fixed` 满屏；reduced-motion 隐藏；MAX_PARTICLES=80 低端机封顶；inline draw 无 shadowBlur 高性能 |
 | `search.js` | essays/notes 页搜索过滤（WAAPI FLIP） | — | 依赖 `#searchInput`/`#notesList`/`#essaysList` |
@@ -315,7 +315,7 @@ hasDetail: true
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
 ### 5.4 自定义光标 & 粒子背景
-- **光标（柔软流线，级联延迟）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`）；拖尾 `#cursorStream` 是满屏 `SVG`，`<path id="streamPath">` 由 `buildPath()` 用**二次贝塞尔中点平滑**连成连续曲线。关键在于**级联延迟跟随**：`N(8)` 个拖尾点，`pts[0]` 向头部做 `LAG(0.28)` lerp，`pts[i]` 向 `pts[i-1]` 做同样 lerp。这样快速移动时丝带**柔和滞后**、停手时**快速收敛**，没有弹簧-重力链那种乱甩的"线虫感"。`stroke` 走 `url(#streamGrad)`（userSpace 渐变 tail→head 透明→0.5）、`filter="url(#streamSoft)"` 高斯模糊 `stdDeviation 1.1` 柔化；全局 `fade`(`FADE_EASE 0.12`) 随头部移动柔和淡入淡出（opacity 纯 JS 每帧控制，CSS 无 transition）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、丝带 `stop:last-child` 增亮至 0.8。
+- **光标（柔软流线，粒子流体）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`）；拖尾 `#cursorStream` 是满屏 `SVG`，`<path id="streamPath">` 由 `buildPath()` 用**二次贝塞尔中点平滑**连成连续曲线。与上版不同，拖尾不是历史点也不是 lerp 跟随点，而是**粒子流体**：头部移动时每隔 `EMIT_DIST(3.5px)` 发射一个小光点，粒子继承头部速度 `×0.35` 并叠加 `JITTER(±0.25)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.04)` 轻微下沉，同时 `life` 衰减。最近 `MAX_PTS(14)` 个存活粒子连成可见丝带，尾部因粒子衰老而自然透明、散开、消失。快速移动时粒子密集成线，转弯/急停时因惯性甩出柔和弧线，静止后缓缓消散，整体不再像数学曲线那么"刻意"。`stroke` 走 `url(#streamGrad)`（userSpace 渐变 tail→head 透明→0.5）、`filter="url(#streamSoft)"` 高斯模糊 `stdDeviation 1.1` 柔化；全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（opacity 纯 JS 每帧控制，CSS 无 transition）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、丝带 `stop:last-child` 增亮至 0.8。
 - **粒子背景**：出现在 notes/essays/photos 内页的 `#global-bg-effect` 容器内（首页用真实 Hero 背景图，无粒子）。canvas `position:fixed` 满屏，只在 tab 隐藏时暂停。性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
 
 ### 5.5 ★ 搜索过滤动画：WAAPI FLIP（重点代码思路）
