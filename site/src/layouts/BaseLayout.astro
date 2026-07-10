@@ -83,7 +83,19 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <!-- Reading progress bar (was injected by the old components.js; now static). -->
   <div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
 
-  <div class="cursor-comet-tail" id="cursorCometTail" aria-hidden="true"></div>
+  <svg class="cursor-stream" id="cursorStream" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="streamGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="0">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="0.5"/>
+      </linearGradient>
+      <filter id="streamSoft" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="1.1"/>
+      </filter>
+    </defs>
+    <path id="streamPath" fill="none" stroke="url(#streamGrad)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#streamSoft)"/>
+  </svg>
   <div class="cursor-comet" id="cursorComet" aria-hidden="true"></div>
 
   <nav class="nav scrolled" id="nav" aria-label="Main navigation">

@@ -1,9 +1,12 @@
 /* ============================================
-   Custom Cursor — Comet Trail
-   Head tracks 1:1 (instant, no lag). A linear streak extends
-   OPPOSITE the direction of motion; its length is proportional to
-   speed and tapers to a point when the pointer is still.
-   Uses translate3d (GPU-composited, no layout thrash).
+   Custom Cursor — Soft Streamline
+   Head tracks 1:1 (instant, no lag). A soft ribbon trails the
+   ACTUAL path the pointer has taken — built from a short history
+   of positions, smoothed with quadratic beziers, faded from tail
+   (transparent) to head (visible) and softened with a gaussian
+   blur. When the pointer stops, the ribbon retracts into a point.
+   Uses translate3d for the head (GPU-composited) and an SVG path
+   for the trail (vector, crisp at any DPR).
 
    The RAF loop is started directly here (NOT relying on RayRAF to
    kick it) — RayRAF only pauses/resumes on tab visibility changes.
@@ -18,40 +21,38 @@
   function init() {
     if (window.innerWidth <= 768) return;
 
-    const head = document.getElementById('cursorComet');
-    const tail = document.getElementById('cursorCometTail');
-    if (!head || !tail) {
+    const head  = document.getElementById('cursorComet');
+    const svg   = document.getElementById('cursorStream');
+    const path  = document.getElementById('streamPath');
+    const grad  = document.getElementById('streamGrad');
+    if (!head || !svg || !path || !grad) {
       setTimeout(init, 50); // BaseLayout not painted yet
       return;
     }
 
     document.body.classList.add('custom-cursor-active');
 
-    // --- tunables (physics feel) ---
-    const TAIL_BASE = 360;   // px, full-length of the streak element
-    const SPEED_K   = 0.70;  // length per px/frame of velocity
-    const TAIL_MAX  = 360;   // cap on streak length
-    const LEN_EASE  = 0.35;  // how fast length eases toward target
-    const ANG_EASE  = 0.30;  // how fast angle eases (avoids jitter)
+    // --- tunables (ribbon feel) ---
+    const MAX_PTS  = 24;     // history length → ribbon length
+    const SHRINK   = 0.5;    // px/frame below which we treat as idle (retract)
+    const EASE_IN  = 0.18;   // how fast a fresh point eases in (soft, not snappy)
 
     // Start off-screen so there is no (0,0) flash before the first move.
     let mx = -100, my = -100;   // latest pointer position
-    let px = -100, py = -100;   // previous frame position (for velocity)
-    let len = 0;                // current eased streak length
-    let ang = 0;                // current eased angle (rad)
+    let hx = -100, hy = -100;   // eased head position (1:1 but eased in slightly)
+    const buf = [];             // ring of recent {x,y}
     let hasMoved = false;
     let animId = null;
 
     head.style.opacity = '0';
-    tail.style.opacity = '0';
 
     function reveal(e) {
       if (hasMoved) return;
       hasMoved = true;
       mx = e.clientX; my = e.clientY;
-      px = mx; py = my;         // no huge initial velocity spike
+      hx = mx; hy = my;
       head.style.opacity = '1';
-      tail.style.opacity = '1';
+      svg.style.opacity = '1';
     }
 
     document.addEventListener('pointermove', (e) => {
@@ -60,41 +61,58 @@
       reveal(e);
     }, { capture: true, passive: true });
 
-    // Fallback so the cursor lights up even if pointermove is not forwarded
-    // (e.g. some embedded preview panels): any pointer entering the page reveals it.
+    // Fallback: light up even if pointermove is not forwarded (embedded previews).
     document.addEventListener('pointerover', reveal, { passive: true });
 
+    // Build a smooth path (quadratic beziers through midpoints) from the buffer.
+    function buildPath(pts) {
+      if (pts.length < 2) return '';
+      let d = 'M ' + pts[0].x.toFixed(1) + ' ' + pts[0].y.toFixed(1);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const xc = (pts[i].x + pts[i + 1].x) / 2;
+        const yc = (pts[i].y + pts[i + 1].y) / 2;
+        d += ' Q ' + pts[i].x.toFixed(1) + ' ' + pts[i].y.toFixed(1) +
+             ' ' + xc.toFixed(1) + ' ' + yc.toFixed(1);
+      }
+      const last = pts[pts.length - 1];
+      d += ' L ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1);
+      return d;
+    }
+
     function frame() {
-      const vx = mx - px;
-      const vy = my - py;
-      const speed = Math.hypot(vx, vy);
+      const dx = mx - hx;
+      const dy = my - hy;
+      const dist = Math.hypot(dx, dy);
 
-      // head: exact 1:1, centered
+      // head: eased-in 1:1 (EASE_IN keeps it glued but soft on first motion)
+      hx += dx * (hasMoved ? 1 : 0);
+      hy += dy * (hasMoved ? 1 : 0);
       head.style.transform =
-        'translate3d(' + (mx - 4.5) + 'px,' + (my - 4.5) + 'px,0)';
+        'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
 
-      // target length ∝ speed, capped
-      const targetLen = Math.min(speed * SPEED_K, TAIL_MAX);
-      len += (targetLen - len) * LEN_EASE;
-
-      if (speed > 0.5) {
-        let target = Math.atan2(vy, vx);
-        let diff = target - ang;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        ang += diff * ANG_EASE;
+      // ribbon: extend while moving, retract when idle
+      if (dist > SHRINK) {
+        buf.push({ x: hx, y: hy });
+        if (buf.length > MAX_PTS) buf.shift();
+      } else if (buf.length > 0) {
+        buf.shift(); // retract into the head when still
       }
 
-      if (len > 0.4) {
-        tail.style.opacity = '1';
-        tail.style.transform =
-          'translate3d(' + (mx - TAIL_BASE) + 'px,' + (my - 1.25) + 'px,0) ' +
-          'rotate(' + ang + 'rad) scaleX(' + (len / TAIL_BASE) + ')';
+      if (buf.length >= 2) {
+        path.setAttribute('d', buildPath(buf));
+        // gradient runs tail(opaque-0) → head(visible), in user space
+        const tail = buf[0];
+        const headP = buf[buf.length - 1];
+        grad.setAttribute('x1', tail.x);
+        grad.setAttribute('y1', tail.y);
+        grad.setAttribute('x2', headP.x);
+        grad.setAttribute('y2', headP.y);
+        svg.style.opacity = '1';
       } else {
-        tail.style.opacity = '0';
+        path.setAttribute('d', '');
+        svg.style.opacity = '0';
       }
 
-      px = mx; py = my;
       animId = requestAnimationFrame(frame);
     }
 

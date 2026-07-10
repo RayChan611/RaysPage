@@ -57,28 +57,23 @@ button { font-family: inherit; }
   opacity: 0;
   transition: width 0.25s, height 0.25s, opacity 0.3s;
 }
-.cursor-comet-tail {
+.cursor-stream {
   position: fixed;
-  top: 0; left: 0;
-  width: 360px; height: 2.5px;
-  border-radius: 2.5px;
-  background: linear-gradient(to left, rgba(255,255,255,0.5), rgba(255,255,255,0));
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 11000;
-  transform-origin: 100% 50%;
-  transform: translate3d(-460px,-100px,0) rotate(0deg) scaleX(0);
-  will-change: transform;
   opacity: 0;
   transition: opacity 0.25s;
+  overflow: visible;
 }
-/* hover: head grows subtly, streak brightens */
+/* hover: head grows subtly, ribbon brightens */
 body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
-body.cursor-hover .cursor-comet-tail {
-  background: linear-gradient(to left, rgba(255,255,255,0.78), rgba(255,255,255,0));
-}
+body.cursor-hover #streamGrad stop:last-child { stop-opacity: 0.8; }
 
 @media (max-width: 768px) {
-  .cursor-comet, .cursor-comet-tail { display: none; }
+  .cursor-comet, .cursor-stream { display: none; }
   body { cursor: auto; }
 }
 
@@ -794,7 +789,7 @@ body.cursor-hover .cursor-comet-tail {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .cursor-comet, .cursor-comet-tail { display: none !important; }
+  .cursor-comet, .cursor-stream { display: none !important; }
   body { cursor: auto !important; }
   button, a { cursor: pointer !important; }
   .animate-on-scroll {
@@ -870,7 +865,7 @@ body.cursor-hover .cursor-comet-tail {
   .custom-cursor-active * {
     cursor: none !important;
   }
-  #cursorComet, #cursorCometTail {
+  #cursorComet, #cursorStream {
     pointer-events: none !important;
   }
 }
