@@ -87,8 +87,10 @@
     const overlay = document.getElementById('pageTransitionOverlay');
     if (!overlay) return;
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     function fadeOut() {
-      overlay.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.transition = 'opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
     }
@@ -122,13 +124,14 @@
       const targetFile = (href.split('#')[0].split('?')[0]).split('/').pop();
       if (targetFile === currentFile) return;
 
+      if (reduceMotion) return;
       e.preventDefault();
 
-      overlay.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.transition = 'opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
       overlay.style.opacity = '1';
       overlay.style.pointerEvents = 'auto';
 
-      setTimeout(() => { window.location.href = href; }, 320);
+      setTimeout(() => { window.location.href = href; }, 300);
     });
   }
 
