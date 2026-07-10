@@ -1,105 +1,111 @@
 /* ============================================
-   Custom Cursor - desktop only
-   Delayed init so BaseLayout can render DOM first
+   Custom Cursor — Comet Trail
+   Head tracks 1:1 (instant, no lag). A linear streak extends
+   OPPOSITE the direction of motion; its length is proportional to
+   speed and tapers to a point when the pointer is still.
+   Uses translate3d (GPU-composited, no layout thrash).
    ============================================ */
 
 (function () {
   'use strict';
 
-  // Respect reduced motion preference
+  // Respect reduced-motion preference → keep the native cursor.
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   function init() {
     if (window.innerWidth <= 768) return;
 
-    const dot = document.getElementById('cursorDot');
-    const outline = document.getElementById('cursorOutline');
-    if (!dot || !outline) {
-      // BaseLayout hasn't rendered yet, retry shortly
-      setTimeout(init, 50);
+    const head = document.getElementById('cursorComet');
+    const tail = document.getElementById('cursorCometTail');
+    if (!head || !tail) {
+      setTimeout(init, 50); // BaseLayout not painted yet
       return;
     }
 
-    // Mark body so CSS can hide default cursor
     document.body.classList.add('custom-cursor-active');
 
-    let mouseX = 0, mouseY = 0;
-    let outlineX = 0, outlineY = 0;
+    // --- tunables (physics feel) ---
+    const TAIL_BASE = 190;   // px, full-length of the streak element
+    const SPEED_K   = 0.55;  // length per px/frame of velocity
+    const TAIL_MAX  = 190;   // cap on streak length
+    const LEN_EASE  = 0.35;  // how fast length eases toward target
+    const ANG_EASE  = 0.30;  // how fast angle eases (avoids jitter)
+
+    let mx = 0, my = 0;        // latest pointer position
+    let px = 0, py = 0;        // previous frame position (for velocity)
+    let len = 0;               // current eased streak length
+    let ang = 0;               // current eased angle (rad)
+    let hasMoved = false;
     let animId = null;
-    let hasMoved = false; // track if user has moved mouse yet
 
-    // Hide cursor initially to prevent (0,0) flash on page navigation
-    dot.style.opacity = '0';
-    outline.style.opacity = '0';
+    head.style.opacity = '0';
+    tail.style.opacity = '0';
 
-    // Use pointermove instead of mousemove to capture all pointer types
-    // (mouse, touchpad, pen) including during pointer capture (e.g. scratch-to-reveal)
     document.addEventListener('pointermove', (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      dot.style.left = (mouseX - 3) + 'px';
-      dot.style.top = (mouseY - 3) + 'px';
-      dot.style.opacity = '1';
-
-      // First move: reveal outline and kick off animation if not yet started
+      mx = e.clientX;
+      my = e.clientY;
       if (!hasMoved) {
         hasMoved = true;
-        outlineX = mouseX;
-        outlineY = mouseY;
-        outline.style.left = (outlineX - 15) + 'px';
-        outline.style.top = (outlineY - 15) + 'px';
-        outline.style.opacity = '1';
-        if (!animId) animId = requestAnimationFrame(animateOutline);
-      } else if (!animId) {
-        // Restart RAF if it was stopped (mouse moved again after settling)
-        animId = requestAnimationFrame(animateOutline);
+        px = mx; py = my;
+        head.style.opacity = '1';
+        tail.style.opacity = '1';
       }
-    }, { capture: true });
+    }, { capture: true, passive: true });
 
-    function animateOutline() {
-      outlineX += (mouseX - outlineX) * 0.12;
-      outlineY += (mouseY - outlineY) * 0.12;
-      outline.style.left = (outlineX - 15) + 'px';
-      outline.style.top = (outlineY - 15) + 'px';
+    function frame() {
+      // velocity this frame
+      const vx = mx - px;
+      const vy = my - py;
+      const speed = Math.hypot(vx, vy);
 
-      // Stop RAF when outline is close enough to mouse — saves CPU when idle
-      const dx = mouseX - outlineX;
-      const dy = mouseY - outlineY;
-      if (dx * dx + dy * dy < 0.5) {
-        animId = null; // stop loop, will restart on next pointermove
-        return;
+      // head: exact 1:1, centered
+      head.style.transform =
+        'translate3d(' + (mx - 4.5) + 'px,' + (my - 4.5) + 'px,0)';
+
+      // target length ∝ speed, capped
+      const targetLen = Math.min(speed * SPEED_K, TAIL_MAX);
+      len += (targetLen - len) * LEN_EASE;
+
+      // angle follows velocity; only update when actually moving
+      if (speed > 0.5) {
+        let target = Math.atan2(vy, vx);
+        // shortest-path angular interpolation (handle wrap)
+        let diff = target - ang;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        ang += diff * ANG_EASE;
       }
-      animId = requestAnimationFrame(animateOutline);
+
+      // streak: right-center anchored at the head, extends backward
+      if (len > 0.4) {
+        tail.style.opacity = '1';
+        tail.style.transform =
+          'translate3d(' + (mx - TAIL_BASE) + 'px,' + (my - 1.25) + 'px,0) ' +
+          'rotate(' + ang + 'rad) scaleX(' + (len / TAIL_BASE) + ')';
+      } else {
+        tail.style.opacity = '0';
+      }
+
+      px = mx; py = my;
+      animId = requestAnimationFrame(frame);
     }
-    // Animation now starts on first mousemove event (see above)
-    // This avoids the cursor jumping to (0,0) on page navigation
 
-    // Pause on hidden tab to save CPU — delegated to the shared manager.
     if (window.RayRAF) {
       window.RayRAF.register({
-        start: function () { if (!animId) animId = requestAnimationFrame(animateOutline); },
+        start: function () { if (!animId) animId = requestAnimationFrame(frame); },
         stop:  function () { if (animId) { cancelAnimationFrame(animId); animId = null; } },
       });
+    } else {
+      animId = requestAnimationFrame(frame);
     }
 
-    // Hover effects on interactive elements (event delegation)
-    document.addEventListener('mouseover', function (e) {
-      const target = e.target.closest('a, button, .contact-card, .tag, .social-link, .gallery-item, .essay-card');
-      if (target) {
-        dot.style.transform = 'scale(2.5)';
-        outline.style.width = '40px';
-        outline.style.height = '40px';
-        outline.style.borderColor = 'rgba(255,255,255,0.7)';
-      }
+    // Hover affordance (event delegation)
+    const hoverSel = 'a, button, .contact-card, .tag, .social-link, .gallery-item, .essay-card';
+    document.addEventListener('mouseover', (e) => {
+      if (e.target.closest(hoverSel)) document.body.classList.add('cursor-hover');
     });
-    document.addEventListener('mouseout', function (e) {
-      const target = e.target.closest('a, button, .contact-card, .tag, .social-link, .gallery-item, .essay-card');
-      if (target) {
-        dot.style.transform = 'scale(1)';
-        outline.style.width = '30px';
-        outline.style.height = '30px';
-        outline.style.borderColor = 'rgba(255,255,255,0.4)';
-      }
+    document.addEventListener('mouseout', (e) => {
+      if (e.target.closest(hoverSel)) document.body.classList.remove('cursor-hover');
     });
   }
 
