@@ -4,6 +4,9 @@
    OPPOSITE the direction of motion; its length is proportional to
    speed and tapers to a point when the pointer is still.
    Uses translate3d (GPU-composited, no layout thrash).
+
+   The RAF loop is started directly here (NOT relying on RayRAF to
+   kick it) — RayRAF only pauses/resumes on tab visibility changes.
    ============================================ */
 
 (function () {
@@ -31,29 +34,37 @@
     const LEN_EASE  = 0.35;  // how fast length eases toward target
     const ANG_EASE  = 0.30;  // how fast angle eases (avoids jitter)
 
-    let mx = 0, my = 0;        // latest pointer position
-    let px = 0, py = 0;        // previous frame position (for velocity)
-    let len = 0;               // current eased streak length
-    let ang = 0;               // current eased angle (rad)
+    // Start off-screen so there is no (0,0) flash before the first move.
+    let mx = -100, my = -100;   // latest pointer position
+    let px = -100, py = -100;   // previous frame position (for velocity)
+    let len = 0;                // current eased streak length
+    let ang = 0;                // current eased angle (rad)
     let hasMoved = false;
     let animId = null;
 
     head.style.opacity = '0';
     tail.style.opacity = '0';
 
+    function reveal(e) {
+      if (hasMoved) return;
+      hasMoved = true;
+      mx = e.clientX; my = e.clientY;
+      px = mx; py = my;         // no huge initial velocity spike
+      head.style.opacity = '1';
+      tail.style.opacity = '1';
+    }
+
     document.addEventListener('pointermove', (e) => {
       mx = e.clientX;
       my = e.clientY;
-      if (!hasMoved) {
-        hasMoved = true;
-        px = mx; py = my;
-        head.style.opacity = '1';
-        tail.style.opacity = '1';
-      }
+      reveal(e);
     }, { capture: true, passive: true });
 
+    // Fallback so the cursor lights up even if pointermove is not forwarded
+    // (e.g. some embedded preview panels): any pointer entering the page reveals it.
+    document.addEventListener('pointerover', reveal, { passive: true });
+
     function frame() {
-      // velocity this frame
       const vx = mx - px;
       const vy = my - py;
       const speed = Math.hypot(vx, vy);
@@ -66,17 +77,14 @@
       const targetLen = Math.min(speed * SPEED_K, TAIL_MAX);
       len += (targetLen - len) * LEN_EASE;
 
-      // angle follows velocity; only update when actually moving
       if (speed > 0.5) {
         let target = Math.atan2(vy, vx);
-        // shortest-path angular interpolation (handle wrap)
         let diff = target - ang;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         ang += diff * ANG_EASE;
       }
 
-      // streak: right-center anchored at the head, extends backward
       if (len > 0.4) {
         tail.style.opacity = '1';
         tail.style.transform =
@@ -90,13 +98,15 @@
       animId = requestAnimationFrame(frame);
     }
 
+    // Start the loop directly (RayRAF does NOT auto-start registered loops).
+    animId = requestAnimationFrame(frame);
+
+    // Pause on hidden tab to save CPU (RayRAF only fires on visibilitychange).
     if (window.RayRAF) {
       window.RayRAF.register({
         start: function () { if (!animId) animId = requestAnimationFrame(frame); },
         stop:  function () { if (animId) { cancelAnimationFrame(animId); animId = null; } },
       });
-    } else {
-      animId = requestAnimationFrame(frame);
     }
 
     // Hover affordance (event delegation)
