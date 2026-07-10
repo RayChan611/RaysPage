@@ -319,6 +319,19 @@
   color: var(--text-secondary);
 }
 
+/* Note card tag chip — mirrors .essay-card-tag (was previously unstyled) */
+.note-card-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
 /* Placeholder */
 .essay-card-placeholder {
   border-bottom: none;
@@ -519,239 +532,330 @@
 
 /* === Promoted from per-page inlineStyles (essay/note detail pages) === */
 
-.note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    @media (max-width: 768px) { .note-back-fixed { bottom: 20px; left: 20px; } }
+.note-back-fixed {
+  bottom: 20px;
+   left: 20px;
+   padding: 8px 16px;
+   font-size: 0.7rem;
+}
 
-/* --- */
+.note-back-fixed:hover {
+  color: var(--text-primary);
+   transform: translateX(-3px);
+}
 
-.note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    @media (max-width: 768px) { .note-back-fixed { bottom: 20px; left: 20px; } }
-
-    .essay-quote-block {
-      margin: 60px 0;
+.essay-quote-block {
+  margin: 60px 0;
+  
       padding: 48px 40px;
+  
       border-left: 1px solid rgba(255,255,255,0.12);
+  
       background: rgba(255,255,255,0.02);
-    }
-    .essay-quote-text {
-      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+}
+
+.essay-quote-text {
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  
       line-height: 1.8;
+  
       color: var(--text-primary);
+  
       letter-spacing: -0.01em;
-    }
-    .essay-quote-text + .essay-quote-text {
-      margin-top: 24px;
-    }
-    .essay-source {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.essay-quote-text + .essay-quote-text {
+  margin-top: 24px;
+}
+
+.pdca-line {
+  display: inline-block;
+  
       font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
-    }
-    .essay-source a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: color var(--transition);
-    }
-    .essay-source a:hover {
-      color: var(--text-primary);
-    }
-
-/* --- */
-
-.note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    @media (max-width: 768px) { .note-back-fixed { bottom: 20px; left: 20px; } }
-
-    .essay-quote-block {
-      margin: 60px 0;
-      padding: 48px 40px;
-      border-left: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.02);
-    }
-    .essay-quote-text {
-      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
-      line-height: 1.9;
-      color: var(--text-primary);
-      letter-spacing: -0.01em;
-    }
-
-/* --- */
-
-.note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    @media (max-width: 768px) { .note-back-fixed { bottom: 20px; left: 20px; } }
-
-    .essay-quote-block {
-      margin: 60px 0;
-      padding: 48px 40px;
-      border-left: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.02);
-    }
-    .essay-quote-text {
-      font-size: clamp(1.15rem, 2vw, 1.5rem);
-      line-height: 1.9;
-      color: var(--text-primary);
-      letter-spacing: -0.01em;
-    }
-    .essay-quote-text + .essay-quote-text {
-      margin-top: 24px;
-    }
-    .essay-conclusion {
-      margin-top: 40px;
-      padding-top: 28px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      font-size: clamp(1.25rem, 2.5vw, 1.7rem);
-      line-height: 1.8;
-      color: #f5f5f5;
-      letter-spacing: -0.01em;
-      text-align: center;
-    }
-
-/* --- */
-
-.note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    @media (max-width: 768px) { .note-back-fixed { bottom: 20px; left: 20px; } }
-
-    .essay-quote-block {
-      margin: 60px 0;
-      padding: 48px 40px;
-      border-left: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.02);
-    }
-    .essay-quote-text {
-      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
-      line-height: 1.9;
-      color: var(--text-primary);
-      letter-spacing: -0.01em;
-    }
-    .essay-quote-text + .essay-quote-text {
-      margin-top: 20px;
-    }
-    .pdca-line {
-      display: inline-block;
-      font-family: var(--font-mono);
+  
       font-size: clamp(1rem, 1.5vw, 1.2rem);
+  
       letter-spacing: 0.02em;
-    }
-    .pdca-ideal {
-      color: var(--text-muted);
-      text-decoration: line-through;
-      opacity: 0.6;
-    }
-    .pdca-real {
-      color: #f5f5f5;
-    }
+}
 
-/* --- */
+.pdca-ideal {
+  color: var(--text-muted);
+  
+      text-decoration: line-through;
+  
+      opacity: 0.6;
+}
+
+.pdca-real {
+  color: #f5f5f5;
+}
+
+.essay-conclusion {
+  margin-top: 40px;
+  
+      padding-top: 28px;
+  
+      border-top: 1px solid rgba(255,255,255,0.08);
+  
+      font-size: clamp(1.25rem, 2.5vw, 1.7rem);
+  
+      line-height: 1.8;
+  
+      color: #f5f5f5;
+  
+      letter-spacing: -0.01em;
+  
+      text-align: center;
+}
+
+.essay-source {
+  margin-top: 32px;
+  
+      padding-top: 24px;
+  
+      border-top: 1px solid rgba(255,255,255,0.08);
+  
+      font-family: var(--font-mono);
+  
+      font-size: 0.75rem;
+  
+      color: var(--text-muted);
+  
+      letter-spacing: 0.04em;
+}
+
+.essay-source a {
+  color: var(--text-secondary);
+  
+      text-decoration: none;
+  
+      transition: color var(--transition);
+}
+
+.essay-source a:hover {
+  color: var(--text-primary);
+}
 
 /* Note detail — unified layout */
     .note-page {
-      max-width: 800px;
+  max-width: 800px;
+  
       margin: 0 auto;
+  
       padding: 140px 40px 100px;
+  
       position: relative;
+  
       z-index: 1;
-    }
+}
 
-    /* Fixed back button — always visible at bottom-left */
+/* Fixed back button — always visible at bottom-left */
     .note-back-fixed {
-      position: fixed;
+  position: fixed;
+  
       bottom: 32px;
+  
       left: 40px;
+  
       z-index: 9999;
+  
       display: inline-flex;
+  
       align-items: center;
+  
       gap: 8px;
+  
       font-family: var(--font-mono);
+  
       font-size: 0.73rem;
+  
       color: var(--text-muted);
+  
       text-decoration: none;
+  
       letter-spacing: 0.06em;
+  
       padding: 8px 4px;
+  
       transition: color var(--transition-fast), transform var(--transition-fast);
-    }
-    .note-back-fixed:hover {
-      color: var(--text-primary);
-      transform: translateX(-3px);
-    }
+}
 
-    /* Title area */
-    .note-title-area { margin-bottom: 56px; padding-bottom: 44px; border-bottom: 1px solid var(--border); }
-    .note-title { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 14px; }
-    .note-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .note-author { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-muted); letter-spacing: 0.03em; }
-    .note-sep { color: var(--border); font-size: 0.5rem; letter-spacing: 0; }
-    .note-tag { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border); padding: 3px 11px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; }
+/* Title area */
+    .note-title-area {
+  margin-bottom: 56px;
+   padding-bottom: 44px;
+   border-bottom: 1px solid var(--border);
+}
 
-    /* Content */
-    .note-body { font-size: 0.95rem; line-height: 1.85; color: var(--text-secondary); }
-    .note-body section { margin-bottom: 52px; }
-    .note-body section:last-child { margin-bottom: 0; }
-    .note-body h2 {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0 0 20px 0;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-      letter-spacing: 0.02em;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-    }
+.note-title {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+   font-weight: 700;
+   letter-spacing: -0.02em;
+   line-height: 1.2;
+   margin-bottom: 14px;
+}
 
-    /* Highlight blocks */
+.note-meta-row {
+  display: flex;
+   align-items: center;
+   gap: 12px;
+   flex-wrap: wrap;
+}
+
+.note-author {
+  font-family: var(--font-mono);
+   font-size: 0.82rem;
+   color: var(--text-muted);
+   letter-spacing: 0.03em;
+}
+
+.note-sep {
+  color: var(--border);
+   font-size: 0.5rem;
+}
+
+.note-tag {
+  font-family: var(--font-mono);
+   font-size: 0.65rem;
+   color: var(--text-muted);
+   border: 1px solid var(--border);
+   padding: 3px 11px;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   border-radius: 3px;
+}
+
+/* Content */
+    .note-body {
+  font-size: 0.95rem;
+   line-height: 1.85;
+   color: var(--text-secondary);
+}
+
+.note-body section {
+  margin-bottom: 52px;
+}
+
+.note-body section:last-child {
+  margin-bottom: 0;
+}
+
+.note-body h2 {
+  font-size: 0.88rem;
+   font-weight: 600;
+   color: var(--text-primary);
+   margin: 0 0 20px 0;
+   padding-bottom: 10px;
+   border-bottom: 1px solid var(--border);
+   letter-spacing: 0.02em;
+   font-family: var(--font-mono);
+   text-transform: uppercase;
+}
+
+/* Highlight blocks */
     .highlight {
-      margin-bottom: 20px;
+  margin-bottom: 20px;
+  
       padding: 16px 18px 14px;
+  
       background: rgba(255,255,255,0.018);
+  
       border-left: 2px solid var(--accent);
+  
       transition: background var(--transition-fast);
-    }
-    .highlight:hover { background: rgba(255,255,255,0.028); }
-    .highlight-num {
-      font-family: var(--font-mono);
+}
+
+.highlight:hover {
+  background: rgba(255,255,255,0.028);
+}
+
+.highlight-num {
+  font-family: var(--font-mono);
+  
       font-size: 0.66rem;
+  
       color: var(--accent);
+  
       margin-bottom: 6px;
+  
       opacity: 0.85;
+  
       letter-spacing: 0.03em;
-    }
-    .highlight-text { color: rgba(255,255,255,0.86); font-size: 0.93rem; line-height: 1.72; }
-    .highlight-en { color: var(--text-muted); font-size: 0.77rem; line-height: 1.62; margin-top: 7px; font-style: italic; }
+}
 
-    @media (max-width: 768px) {
-      .note-page { padding: 110px 24px 80px; }
-      .note-back-fixed { bottom: 20px; left: 20px; padding: 8px 16px; font-size: 0.7rem; }
-    }
+.highlight-text {
+  color: rgba(255,255,255,0.86);
+   font-size: 0.93rem;
+   line-height: 1.72;
+}
 
-/* --- */
+.highlight-en {
+  color: var(--text-muted);
+   font-size: 0.77rem;
+   line-height: 1.62;
+   margin-top: 7px;
+   font-style: italic;
+}
 
-.note-page { max-width: 800px; margin: 0 auto; padding: 140px 40px 100px; position: relative; z-index: 1; }
-    .note-back-fixed { position: fixed; bottom: 32px; left: 40px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; padding: 8px 4px; transition: color var(--transition-fast), transform var(--transition-fast); }
-    .note-back-fixed:hover { color: var(--text-primary); transform: translateX(-3px); }
-    .note-title-area { margin-bottom: 56px; padding-bottom: 44px; border-bottom: 1px solid var(--border); }
-    .note-title { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 14px; }
-    .note-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .note-author { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-muted); letter-spacing: 0.03em; }
-    .note-sep { color: var(--border); font-size: 0.5rem; }
-    .note-tag { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border); padding: 3px 11px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; }
-    .note-body { font-size: 0.95rem; line-height: 1.85; color: var(--text-secondary); }
-    .note-body section { margin-bottom: 52px; }
-    .note-body section:last-child { margin-bottom: 0; }
-    .note-body h2 { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); letter-spacing: 0.02em; font-family: var(--font-mono); text-transform: uppercase; }
-    .dialogue { margin-bottom: 24px; padding: 16px 20px; background: rgba(255,255,255,0.018); border-radius: 6px; border-left: 2px solid var(--accent); transition: background var(--transition-fast); }
-    .dialogue:hover { background: rgba(255,255,255,0.028); }
-    .dialogue-speaker { font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.04em; }
-    .dialogue-speaker.lenny { color: #60a5fa; }
-    .dialogue-text p { color: rgba(255,255,255,0.86); font-size: 0.93rem; line-height: 1.75; margin-bottom: 8px; }
-    .dialogue-text p:last-child { margin-bottom: 0; }
-    .note-body ol, .note-body ul { padding-left: 20px; margin-bottom: 16px; }
-    .note-body ol li, .note-body ul li { margin-bottom: 8px; font-size: 0.93rem; line-height: 1.7; }
-    @media (max-width: 768px) { .note-page { padding: 110px 24px 80px; } .note-back-fixed { bottom: 20px; left: 20px; padding: 8px 16px; font-size: 0.7rem; } }
+.note-page {
+  padding: 110px 24px 80px;
+}
+
+.note-title-area {
+  margin-bottom: 56px;
+   padding-bottom: 44px;
+   border-bottom: 1px solid var(--border);
+}
+
+.note-body {
+  font-size: 0.95rem;
+   line-height: 1.85;
+   color: var(--text-secondary);
+}
+
+.dialogue {
+  margin-bottom: 24px;
+   padding: 16px 20px;
+   background: rgba(255,255,255,0.018);
+   border-radius: 6px;
+   border-left: 2px solid var(--accent);
+   transition: background var(--transition-fast);
+}
+
+.dialogue:hover {
+  background: rgba(255,255,255,0.028);
+}
+
+.dialogue-speaker {
+  font-family: var(--font-mono);
+   font-size: 0.7rem;
+   color: var(--accent);
+   margin-bottom: 6px;
+   letter-spacing: 0.04em;
+}
+
+.dialogue-speaker.lenny {
+  color: #60a5fa;
+}
+
+.dialogue-text p {
+  color: rgba(255,255,255,0.86);
+   font-size: 0.93rem;
+   line-height: 1.75;
+   margin-bottom: 8px;
+}
+
+.dialogue-text p:last-child {
+  margin-bottom: 0;
+}
+
+.note-body ol, .note-body ul {
+  padding-left: 20px;
+   margin-bottom: 16px;
+}
+
+.note-body ol li, .note-body ul li {
+  margin-bottom: 8px;
+   font-size: 0.93rem;
+   line-height: 1.7;
+}

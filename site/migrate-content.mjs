@@ -15,7 +15,7 @@
  *
  * Idempotent-ish: overwrites the content dir each run. Safe to re-run.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,54 +26,12 @@ const OUT = join(ROOT, 'site/src/content');
 const ESSAYS_OUT = join(OUT, 'essays');
 const NOTES_OUT = join(OUT, 'notes');
 
-// Collected per-page assets we promote to shared files (task 27).
-const collectedStyles = new Set();
-const collectedBackLift = new Set();
-
 function unescapeStr(s) {
   return s
     .replace(/\\"/g, '"')
     .replace(/\\n/g, '\n')
     .replace(/\\t/g, '\t')
     .replace(/\\r/g, '');
-}
-
-/**
- * Extract the string items of an inline `const x = ["...", "..."];` or
- * `x: ["...", ...]` array. A naive `[\s\S]*?]` / `];` boundary is unreliable
- * here: `inlineStyles` is not always followed by `];` (it may sit inside the
- * `meta` object as `inlineStyles: [...],`), and `inlineScripts` code contains
- * `]` chars of its own (e.g. `e[0]`). So we scan with a string-aware bracket
- * matcher that ignores brackets appearing inside string literals.
- */
-function extractArrayItems(raw, keyword) {
-  const start = raw.indexOf(keyword);
-  if (start < 0) return [];
-  const open = raw.indexOf('[', start);
-  if (open < 0) return [];
-  let depth = 0;
-  let inStr = false;
-  let esc = false;
-  let i = open;
-  for (; i < raw.length; i++) {
-    const ch = raw[i];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (ch === '\\') esc = true;
-      else if (ch === '"') inStr = false;
-    } else {
-      if (ch === '"') inStr = true;
-      else if (ch === '[') depth++;
-      else if (ch === ']') {
-        depth--;
-        if (depth === 0) break;
-      }
-    }
-  }
-  const lit = raw.slice(open, i + 1);
-  return [...lit.matchAll(/"((?:[^"\\]|\\.)*)"/g)]
-    .map((m) => unescapeStr(m[1]))
-    .filter((s) => s.trim());
 }
 
 function read(file) {
@@ -110,7 +68,7 @@ function normalizeVoid(html) {
  * opening tag starts a fresh line, which the JSX parser handles correctly.
  * Whitespace between tags is collapsed by the browser, so output is identical.
  */
-function stripBlankLines(html) {
+function prettifyHtml(html) {
   return html
     .replace(/(?<!\/)>/g, '>\n') // newline after each non-self-closing '>'
     .replace(/(?<!\n)</g, '\n<') // newline before each '<' not already at line start
@@ -118,6 +76,19 @@ function stripBlankLines(html) {
     .map((line) => line.trim())
     .filter((line) => line.trim() !== '')
     .join('\n');
+}
+
+/**
+ * Note listing cards wrap their content in `<div class="note-excerpt">...</div>`.
+ * When that HTML is reused as the card `excerpt` (rendered by `notes.astro`
+ * inside its own `<div class="note-excerpt" set:html=...>`), we must unwrap the
+ * inner divs first — otherwise we get nested `.note-excerpt` blocks and the
+ * CSS `> p:first-child` lead-emphasis wrongly applies to every block instead of
+ * just the first. The note-excerpt blocks are siblings (not nested), so a
+ * non-greedy per-block match safely flattens them to their inner content.
+ */
+function unwrapNoteExcerpt(html) {
+  return html.replace(/<div class="note-excerpt">([\s\S]*?)<\/div>/g, '$1');
 }
 
 function isoFromDotDate(dot) {
@@ -131,16 +102,8 @@ function extractDetail(raw) {
   const title = (raw.match(/title:\s*"([^"]*)"/) || [])[1] || '';
   const description = (raw.match(/description:\s*"([^"]*)"/) || [])[1] || '';
   const ogImage = (raw.match(/ogImage:\s*"([^"]*)"/) || [])[1] || '';
-  // inlineStyles / inlineScripts appear as `inlineStyles: [...]` or
-  // `const inlineScripts = [...]`. Pull out each string literal safely.
-  const inlineStyles = extractArrayItems(raw, 'inlineStyles');
-  const inlineScripts = extractArrayItems(raw, 'inlineScripts');
-
-  inlineStyles.forEach((s) => collectedStyles.add(s.trim()));
-  inlineScripts.forEach((s) => s.includes('note-back-fixed') && collectedBackLift.add(s.trim()));
-
   return {
-    body: stripBlankLines(normalizeVoid(unescapeStr(body))),
+    body: prettifyHtml(normalizeVoid(unescapeStr(body))),
     titleClean: title.split(' | ')[0].trim(),
     description,
     ogImage,
@@ -218,13 +181,31 @@ while ((m = noteStandaloneRe.exec(notesListing)) !== null) {
 }
 console.log(`  found ${noteHasDetail.length} detail-linked cards, ${noteStandalone.length} standalone excerpt cards`);
 
+// Safety guard: if the listing pages no longer contain the old card markup,
+// the site has already been migrated to Content Collections. Running further
+// would extract 0 cards and overwrite all MDX with empty content. Abort.
+if (essayCards.length === 0 && noteHasDetail.length === 0 && noteStandalone.length === 0) {
+  console.error(
+    '\n[ABORT] No essay/note cards found in the listing pages.\n' +
+    '        This usually means the site has already been migrated to Content\n' +
+    '        Collections (the listing pages no longer contain the old card\n' +
+    '        markup). Re-running would overwrite all MDX with empty content.\n' +
+    '        Aborting to protect existing content.\n' +
+    '        To force a re-migration, restore the original listing/detail .astro\n' +
+    '        pages from git first (git checkout HEAD -- site/src/pages/...).'
+  );
+  process.exit(1);
+}
+
 // Standalone cards get stable slugs (they never had detail URLs).
 let extraN = 0;
 for (const card of noteStandalone) {
   const book = (card.inner.match(/<span class="note-book-name">([\s\S]*?)<\/span>/) || [])[1] || '';
   const tag = (card.inner.match(/<span class="note-card-tag">([^<]*)<\/span>/) || [])[1] || '';
   const exStart = card.inner.indexOf('<div class="note-excerpt">');
-  const excerptHtml = exStart >= 0 ? stripBlankLines(normalizeVoid(card.inner.slice(exStart))) : '';
+  // Unwrap the note-excerpt divs so the listing renders a single flat block
+  // (notes.astro wraps the excerpt in its own .note-excerpt container).
+  const excerptHtml = exStart >= 0 ? unwrapNoteExcerpt(prettifyHtml(normalizeVoid(card.inner.slice(exStart)))) : '';
   extraN += 1;
   writeMdx(NOTES_OUT, `extra-${extraN}`, {
     title: stripTags(book),
@@ -246,7 +227,7 @@ for (const card of noteHasDetail) {
   const book = (card.inner.match(/<span class="note-book-name">([\s\S]*?)<\/span>/) || [])[1] || '';
   const tag = (card.inner.match(/<span class="note-card-tag">([^<]*)<\/span>/) || [])[1] || '';
   const exStart = card.inner.indexOf('<div class="note-excerpt">');
-  const excerptHtml = exStart >= 0 ? stripBlankLines(normalizeVoid(card.inner.slice(exStart))) : '';
+  const excerptHtml = exStart >= 0 ? unwrapNoteExcerpt(prettifyHtml(normalizeVoid(card.inner.slice(exStart)))) : '';
   writeMdx(NOTES_OUT, card.slug, {
     title: d.titleClean,
     book: stripTags(book),
@@ -258,16 +239,5 @@ for (const card of noteHasDetail) {
     hasDetail: true,
   }, d.body);
 }
-
-// ---------------------------------------------------------------------------
-// Emit collected per-page assets for manual promotion into shared files.
-// ---------------------------------------------------------------------------
-const stylePath = join(ROOT, 'site', 'collected-inline-styles.css');
-writeFileSync(stylePath, [...collectedStyles].join('\n\n/* --- */\n\n'), 'utf8');
-console.log(`\n[collected] wrote ${stylePath} (${collectedStyles.size} unique style blocks)`);
-
-const liftPath = join(ROOT, 'site', 'collected-back-lift.js');
-writeFileSync(liftPath, [...collectedBackLift].join('\n\n'), 'utf8');
-console.log(`[collected] wrote ${liftPath} (${collectedBackLift.size} back-lift script(s))`);
 
 console.log('\nDONE. Next: review generated MDX, then run the listing/detail route rewrite.');
