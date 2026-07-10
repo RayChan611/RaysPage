@@ -4,7 +4,7 @@
    2) Stagger blur+dim unmatched cards (Phase 1)
    3) JS exact-height collapse hidden cards (Phase 2)
    4) Matched cards reordered to TOP; placeholder forced to bottom
-   5) Clear: staged reverse — restore order (invisible) → expand → fade in
+   5) Clear: FLIP reverse — capture positions, restore order, then animate
    ============================================ */
 
 (function () {
@@ -76,81 +76,13 @@
     }
     list._timers = [];  // always (re)initialise — first call has undefined
 
-    // ====== CLEAR: staged reverse animation (restore order invisible → expand → fade in) ======
+    // ====== CLEAR: FLIP reverse animation (restore order → expand → fade in) ======
     if (!hasQuery) {
-      // Restore original DOM order FIRST — hidden cards are collapsed (opacity:0), so
-      // the reorder is invisible. Visible cards may shift slightly but they stay in the
-      // same viewport area.
-      originalOrder.forEach(function (el) { list.appendChild(el); });
+      noResults && noResults.classList.remove('visible');
+      if (placeholder) placeholder.classList.remove('is-hidden');
 
-      var wasHidden = items.filter(function (el) {
-        return el.classList.contains('is-hidden');
-      });
-
-      if (!reduceMotion && wasHidden.length > 0) {
-        // Pre-measure natural heights: clear inline collapse styles, read offsetHeight,
-        // then snap back to 0. All invisible (is-hidden keeps opacity:0).
-        var sizes = wasHidden.map(function (el) {
-          el.style.height = '';
-          el.style.marginTop = '';
-          el.style.marginBottom = '';
-          el.style.paddingTop = '';
-          el.style.paddingBottom = '';
-          el.style.overflow = '';
-
-          var h = el.offsetHeight;
-          var cs = getComputedStyle(el);
-          var mt = parseFloat(cs.marginTop) || 0;
-          var mb = parseFloat(cs.marginBottom) || 0;
-          var pt = parseFloat(cs.paddingTop) || 0;
-          var pb = parseFloat(cs.paddingBottom) || 0;
-
-          // Snap back to collapsed
-          el.style.height = '0';
-          el.style.marginTop = '0';
-          el.style.marginBottom = '0';
-          el.style.paddingTop = '0';
-          el.style.paddingBottom = '0';
-          el.style.overflow = 'hidden';
-
-          return { el: el, h: h, mt: mt, mb: mb, pt: pt, pb: pb };
-        });
-
-        // Force reflow so browser registers collapsed starting state
-        void list.offsetHeight;
-
-        // Staggered expand + fade in
-        sizes.forEach(function (info, i) {
-          info.el.classList.add('is-restoring');
-
-          // Phase 1: animate height 0 → natural (is-hidden keeps opacity:0 during expand)
-          list._timers.push(setTimeout(function () {
-            info.el.style.height = info.h + 'px';
-            info.el.style.marginTop = info.mt + 'px';
-            info.el.style.marginBottom = info.mb + 'px';
-            info.el.style.paddingTop = info.pt + 'px';
-            info.el.style.paddingBottom = info.pb + 'px';
-          }, i * STAGGER));
-
-          // Phase 2: fade in — remove is-hidden so opacity/filter/transform animate to visible
-          list._timers.push(setTimeout(function () {
-            info.el.classList.remove('is-hidden');
-          }, i * STAGGER + 80));
-
-          // Phase 3: clean up inline styles + is-restoring class
-          list._timers.push(setTimeout(function () {
-            info.el.style.height = '';
-            info.el.style.marginTop = '';
-            info.el.style.marginBottom = '';
-            info.el.style.paddingTop = '';
-            info.el.style.paddingBottom = '';
-            info.el.style.overflow = '';
-            info.el.style.transitionDelay = '';
-            info.el.classList.remove('is-restoring');
-          }, i * STAGGER + 80 + RESTORE_MS));
-        });
-      } else {
-        // Reduced motion or nothing was hidden: instant restore
+      if (reduceMotion) {
+        originalOrder.forEach(function (el) { list.appendChild(el); });
         items.forEach(function (el) {
           el.style.height = '';
           el.style.marginTop = '';
@@ -159,21 +91,142 @@
           el.style.paddingBottom = '';
           el.style.overflow = '';
           el.style.transitionDelay = '';
-          el.classList.remove('is-hidden', 'is-revealing', 'is-restoring');
+          el.style.transform = '';
+          el.style.transition = '';
+          el.classList.remove('is-hidden', 'is-revealing', 'is-restoring', 'is-flipping');
         });
+        prevMatches.clear();
+        items.forEach(function (el) { prevMatches.set(el, true); });
+        return;
       }
 
-      // Clean up already-visible cards (residual classes from filter flow)
+      // 1) Capture current positions BEFORE any DOM change
+      var firstRects = new Map();
       items.forEach(function (el) {
-        if (!el.classList.contains('is-hidden')) {
-          el.classList.remove('is-revealing');
-          el.style.transitionDelay = '';
-        }
-        prevMatches.set(el, true);
+        firstRects.set(el, el.getBoundingClientRect());
       });
 
-      if (placeholder) placeholder.classList.remove('is-hidden');
-      if (noResults) noResults.classList.remove('visible');
+      // 2) Restore original DOM order (visible items may jump; hidden items stay collapsed)
+      originalOrder.forEach(function (el) { list.appendChild(el); });
+
+      // 3) Temporarily expand hidden items to measure FINAL layout, then snap back to 0
+      var hiddenItems = items.filter(function (el) {
+        return el.classList.contains('is-hidden');
+      });
+
+      var hiddenInfo = hiddenItems.map(function (el) {
+        var saved = {
+          h: el.style.height,
+          mt: el.style.marginTop,
+          mb: el.style.marginBottom,
+          pt: el.style.paddingTop,
+          pb: el.style.paddingBottom,
+          overflow: el.style.overflow,
+          td: el.style.transitionDelay
+        };
+        el.style.height = '';
+        el.style.marginTop = '';
+        el.style.marginBottom = '';
+        el.style.paddingTop = '';
+        el.style.paddingBottom = '';
+        el.style.overflow = '';
+        el.style.transitionDelay = '';
+        var cs = getComputedStyle(el);
+        var natural = {
+          h: el.offsetHeight,
+          mt: parseFloat(cs.marginTop) || 0,
+          mb: parseFloat(cs.marginBottom) || 0,
+          pt: parseFloat(cs.paddingTop) || 0,
+          pb: parseFloat(cs.paddingBottom) || 0
+        };
+        // Snap back to collapsed immediately so visible items can be measured
+        el.style.height = '0';
+        el.style.marginTop = '0';
+        el.style.marginBottom = '0';
+        el.style.paddingTop = '0';
+        el.style.paddingBottom = '0';
+        el.style.overflow = 'hidden';
+        el.style.transitionDelay = '';
+        return { el: el, saved: saved, natural: natural };
+      });
+
+      // 4) Measure final positions (hidden items collapsed, but in original order)
+      var lastRects = new Map();
+      items.forEach(function (el) {
+        lastRects.set(el, el.getBoundingClientRect());
+      });
+
+      // 5) Apply FLIP transform to visible items so they start at their old screen position
+      var visibleItems = items.filter(function (el) {
+        return !el.classList.contains('is-hidden');
+      });
+
+      visibleItems.forEach(function (el) {
+        var f = firstRects.get(el);
+        var l = lastRects.get(el);
+        var dx = f.left - l.left;
+        var dy = f.top - l.top;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+          el.style.transition = 'none';
+          el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+          el.classList.add('is-flipping');
+        }
+        el.classList.remove('is-revealing');
+      });
+
+      // 6) Force reflow so the browser registers the inverted starting state
+      void list.offsetHeight;
+
+      // 7) Play: animate visible items to their natural positions, expand hidden items
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          visibleItems.forEach(function (el) {
+            el.style.transition = 'transform 0.42s cubic-bezier(0.16, 1, 0.3, 1)';
+            el.style.transform = '';
+          });
+
+          // Expand hidden items with stagger + fade in
+          hiddenInfo.forEach(function (info, i) {
+            info.el.classList.add('is-restoring');
+
+            list._timers.push(setTimeout(function () {
+              info.el.style.height = info.natural.h + 'px';
+              info.el.style.marginTop = info.natural.mt + 'px';
+              info.el.style.marginBottom = info.natural.mb + 'px';
+              info.el.style.paddingTop = info.natural.pt + 'px';
+              info.el.style.paddingBottom = info.natural.pb + 'px';
+            }, i * STAGGER));
+
+            list._timers.push(setTimeout(function () {
+              info.el.classList.remove('is-hidden');
+            }, i * STAGGER + 80));
+
+            list._timers.push(setTimeout(function () {
+              info.el.style.height = '';
+              info.el.style.marginTop = '';
+              info.el.style.marginBottom = '';
+              info.el.style.paddingTop = '';
+              info.el.style.paddingBottom = '';
+              info.el.style.overflow = '';
+              info.el.style.transitionDelay = '';
+              info.el.classList.remove('is-restoring', 'is-hidden');
+            }, i * STAGGER + 80 + RESTORE_MS));
+          });
+
+          // Cleanup visible items after all animations settle
+          var maxT = 420 + (hiddenInfo.length * STAGGER + 80 + RESTORE_MS);
+          list._timers.push(setTimeout(function () {
+            visibleItems.forEach(function (el) {
+              el.style.transition = '';
+              el.style.transform = '';
+              el.style.transitionDelay = '';
+              el.classList.remove('is-flipping', 'is-revealing');
+            });
+          }, maxT));
+        });
+      });
+
+      items.forEach(function (el) { prevMatches.set(el, true); });
       return;
     }
 

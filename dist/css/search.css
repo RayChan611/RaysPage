@@ -59,6 +59,11 @@
     transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ---- FLIP active state: isolate transform layer during position animation ---- */
+.is-flipping {
+  will-change: transform;
+}
+
 /* ---- Restoring (clear search): expand height + fade in, staggered ---- */
 .is-restoring {
   transition:
