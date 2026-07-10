@@ -153,7 +153,7 @@
         var hidden = wasHidden.get(el);
 
         if (hidden) {
-          el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translateY(-6px) scale(0.96)';
+          el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translateY(-12px) scale(0.96)';
           el.style.opacity = '0';
           el.style.filter = 'blur(4px) brightness(0.3)';
         } else {
@@ -180,7 +180,7 @@
             if (hidden) {
               keyframes = [
                 {
-                  transform: 'translate(' + dx + 'px, ' + dy + 'px) translateY(-6px) scale(0.96)',
+                  transform: 'translate(' + dx + 'px, ' + dy + 'px) translateY(-12px) scale(0.96)',
                   opacity: '0',
                   filter: 'blur(4px) brightness(0.3)'
                 },
@@ -198,13 +198,13 @@
             }
 
             var opts = {
-              duration: hidden ? 380 : 420,
+              duration: hidden ? 720 : 760,
               easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
               fill: 'backwards'
             };
             if (hidden) {
-              // Micro-stagger so hidden cards bloom rather than popping all at once
-              opts.delay = Math.min(i * 12, 120);
+              // Gentle stagger so hidden cards bloom rather than popping all at once
+              opts.delay = Math.min(i * 26, 240);
             }
 
             var anim = el.animate(keyframes, opts);
@@ -219,7 +219,7 @@
           // Safety net: clean up if onfinish ever fails to fire
           list._timers.push(setTimeout(function () {
             items.forEach(cleanupCard);
-          }, 700));
+          }, 1300));
         });
       });
 
