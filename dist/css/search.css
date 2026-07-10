@@ -61,20 +61,7 @@
 
 /* ---- FLIP active state: isolate transform layer during position animation ---- */
 .is-flipping {
-  will-change: transform;
-}
-
-/* ---- Restoring (clear search): expand height + fade in, staggered ---- */
-.is-restoring {
-  transition:
-    opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-    height 0.30s ease,
-    margin-top 0.30s ease,
-    margin-bottom 0.30s ease,
-    padding-top 0.30s ease,
-    padding-bottom 0.30s ease;
+  will-change: transform, opacity;
 }
 
 /* Placeholder: full collapse when hidden during search */
@@ -106,8 +93,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .is-hidden,
-  .is-revealing,
-  .is-restoring {
+  .is-revealing {
     transition: none !important;
     opacity: 0 !important;
     filter: none !important;

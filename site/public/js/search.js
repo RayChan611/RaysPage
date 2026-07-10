@@ -39,6 +39,22 @@
     return score;
   }
 
+  function cleanupCard(el) {
+    el.style.height = '';
+    el.style.marginTop = '';
+    el.style.marginBottom = '';
+    el.style.paddingTop = '';
+    el.style.paddingBottom = '';
+    el.style.overflow = '';
+    el.style.transitionDelay = '';
+    el.style.transition = '';
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.style.filter = '';
+    el.style.pointerEvents = '';
+    el.classList.remove('is-hidden', 'is-revealing', 'is-restoring', 'is-flipping');
+  }
+
   function initSearch(listId, itemSelector) {
     var input = document.getElementById('searchInput');
     var noResults = document.getElementById('searchNoResults');
@@ -76,153 +92,134 @@
     }
     list._timers = [];  // always (re)initialise — first call has undefined
 
-    // ====== CLEAR: FLIP reverse animation (restore order → expand → fade in) ======
+    // ====== CLEAR: WAAPI FLIP reverse animation (no height snapping, no stagger pause) ======
     if (!hasQuery) {
       noResults && noResults.classList.remove('visible');
       if (placeholder) placeholder.classList.remove('is-hidden');
 
-      if (reduceMotion) {
+      // Cancel any pending timers / animations from the previous filter run
+      if (list._timers) list._timers.forEach(function (t) { clearTimeout(t); });
+      list._timers = [];
+
+      items.forEach(function (el) {
+        if (el._searchAnim) { el._searchAnim.cancel(); el._searchAnim = null; }
+        cleanupCard(el);
+      });
+
+      if (reduceMotion || !Element.prototype.animate) {
         originalOrder.forEach(function (el) { list.appendChild(el); });
-        items.forEach(function (el) {
-          el.style.height = '';
-          el.style.marginTop = '';
-          el.style.marginBottom = '';
-          el.style.paddingTop = '';
-          el.style.paddingBottom = '';
-          el.style.overflow = '';
-          el.style.transitionDelay = '';
-          el.style.transform = '';
-          el.style.transition = '';
-          el.classList.remove('is-hidden', 'is-revealing', 'is-restoring', 'is-flipping');
-        });
+        items.forEach(function (el) { cleanupCard(el); });
         prevMatches.clear();
         items.forEach(function (el) { prevMatches.set(el, true); });
         return;
       }
 
-      // 1) Capture current positions BEFORE any DOM change
+      // 1) Capture current positions of every card (visible + hidden)
       var firstRects = new Map();
+      var wasHidden = new Map();
       items.forEach(function (el) {
         firstRects.set(el, el.getBoundingClientRect());
+        wasHidden.set(el, el.classList.contains('is-hidden'));
       });
 
-      // 2) Restore original DOM order (visible items may jump; hidden items stay collapsed)
+      // 2) Reveal hidden cards in the DOM but keep them visually identical to
+      //    the .is-hidden state so there is zero flash while we measure.
+      items.forEach(function (el) {
+        if (!wasHidden.get(el)) return;
+        el.classList.remove('is-hidden');
+        el.style.opacity = '0';
+        el.style.filter = 'blur(4px) brightness(0.3)';
+        el.style.transform = 'translateY(-6px) scale(0.96)';
+        el.style.pointerEvents = 'none';
+        el.style.overflow = 'hidden';
+      });
+
+      // 3) Restore original order
       originalOrder.forEach(function (el) { list.appendChild(el); });
 
-      // 3) Temporarily expand hidden items to measure FINAL layout, then snap back to 0
-      var hiddenItems = items.filter(function (el) {
-        return el.classList.contains('is-hidden');
-      });
-
-      var hiddenInfo = hiddenItems.map(function (el) {
-        var saved = {
-          h: el.style.height,
-          mt: el.style.marginTop,
-          mb: el.style.marginBottom,
-          pt: el.style.paddingTop,
-          pb: el.style.paddingBottom,
-          overflow: el.style.overflow,
-          td: el.style.transitionDelay
-        };
-        el.style.height = '';
-        el.style.marginTop = '';
-        el.style.marginBottom = '';
-        el.style.paddingTop = '';
-        el.style.paddingBottom = '';
-        el.style.overflow = '';
-        el.style.transitionDelay = '';
-        var cs = getComputedStyle(el);
-        var natural = {
-          h: el.offsetHeight,
-          mt: parseFloat(cs.marginTop) || 0,
-          mb: parseFloat(cs.marginBottom) || 0,
-          pt: parseFloat(cs.paddingTop) || 0,
-          pb: parseFloat(cs.paddingBottom) || 0
-        };
-        // Snap back to collapsed immediately so visible items can be measured
-        el.style.height = '0';
-        el.style.marginTop = '0';
-        el.style.marginBottom = '0';
-        el.style.paddingTop = '0';
-        el.style.paddingBottom = '0';
-        el.style.overflow = 'hidden';
-        el.style.transitionDelay = '';
-        return { el: el, saved: saved, natural: natural };
-      });
-
-      // 4) Measure final positions (hidden items collapsed, but in original order)
+      // 4) Measure final layout with all cards at their natural height
+      void list.offsetHeight;
       var lastRects = new Map();
       items.forEach(function (el) {
         lastRects.set(el, el.getBoundingClientRect());
       });
 
-      // 5) Apply FLIP transform to visible items so they start at their old screen position
-      var visibleItems = items.filter(function (el) {
-        return !el.classList.contains('is-hidden');
-      });
-
-      visibleItems.forEach(function (el) {
+      // 5) Snap every card visually back to where it was before the DOM change
+      items.forEach(function (el) {
         var f = firstRects.get(el);
         var l = lastRects.get(el);
         var dx = f.left - l.left;
         var dy = f.top - l.top;
-        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-          el.style.transition = 'none';
+        var hidden = wasHidden.get(el);
+
+        if (hidden) {
+          el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translateY(-6px) scale(0.96)';
+          el.style.opacity = '0';
+          el.style.filter = 'blur(4px) brightness(0.3)';
+        } else {
           el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
-          el.classList.add('is-flipping');
+          el.style.opacity = '';
+          el.style.filter = '';
         }
-        el.classList.remove('is-revealing');
+        el.style.pointerEvents = 'none';
+        el.style.transition = 'none';
+        el.classList.add('is-flipping');
       });
 
-      // 6) Force reflow so the browser registers the inverted starting state
-      void list.offsetHeight;
-
-      // 7) Play: animate visible items to their natural positions, expand hidden items
+      // 6) Play WAAPI animations on the compositor (smooth, no layout thrash)
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
-          visibleItems.forEach(function (el) {
-            el.style.transition = 'transform 0.42s cubic-bezier(0.16, 1, 0.3, 1)';
-            el.style.transform = '';
+          items.forEach(function (el, i) {
+            var hidden = wasHidden.get(el);
+            var f = firstRects.get(el);
+            var l = lastRects.get(el);
+            var dx = f.left - l.left;
+            var dy = f.top - l.top;
+
+            var keyframes;
+            if (hidden) {
+              keyframes = [
+                {
+                  transform: 'translate(' + dx + 'px, ' + dy + 'px) translateY(-6px) scale(0.96)',
+                  opacity: '0',
+                  filter: 'blur(4px) brightness(0.3)'
+                },
+                {
+                  transform: 'translate(0, 0) scale(1)',
+                  opacity: '1',
+                  filter: 'blur(0px) brightness(1)'
+                }
+              ];
+            } else {
+              keyframes = [
+                { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
+                { transform: 'translate(0, 0)' }
+              ];
+            }
+
+            var opts = {
+              duration: hidden ? 380 : 420,
+              easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+              fill: 'backwards'
+            };
+            if (hidden) {
+              // Micro-stagger so hidden cards bloom rather than popping all at once
+              opts.delay = Math.min(i * 12, 120);
+            }
+
+            var anim = el.animate(keyframes, opts);
+            el._searchAnim = anim;
+
+            anim.onfinish = function () {
+              if (el._searchAnim === anim) el._searchAnim = null;
+              cleanupCard(el);
+            };
           });
 
-          // Expand hidden items with stagger + fade in
-          hiddenInfo.forEach(function (info, i) {
-            info.el.classList.add('is-restoring');
-
-            list._timers.push(setTimeout(function () {
-              info.el.style.height = info.natural.h + 'px';
-              info.el.style.marginTop = info.natural.mt + 'px';
-              info.el.style.marginBottom = info.natural.mb + 'px';
-              info.el.style.paddingTop = info.natural.pt + 'px';
-              info.el.style.paddingBottom = info.natural.pb + 'px';
-            }, i * STAGGER));
-
-            list._timers.push(setTimeout(function () {
-              info.el.classList.remove('is-hidden');
-            }, i * STAGGER + 80));
-
-            list._timers.push(setTimeout(function () {
-              info.el.style.height = '';
-              info.el.style.marginTop = '';
-              info.el.style.marginBottom = '';
-              info.el.style.paddingTop = '';
-              info.el.style.paddingBottom = '';
-              info.el.style.overflow = '';
-              info.el.style.transitionDelay = '';
-              info.el.classList.remove('is-restoring', 'is-hidden');
-            }, i * STAGGER + 80 + RESTORE_MS));
-          });
-
-          // Cleanup visible items after all animations settle
-          var maxT = 420 + (hiddenInfo.length * STAGGER + 80 + RESTORE_MS);
+          // Safety net: clean up if onfinish ever fails to fire
           list._timers.push(setTimeout(function () {
-            visibleItems.forEach(function (el) {
-              el.style.transition = '';
-              el.style.transform = '';
-              el.style.transitionDelay = '';
-              el.classList.remove('is-flipping', 'is-revealing');
-            });
-          }, maxT));
+            items.forEach(cleanupCard);
+          }, 700));
         });
       });
 
