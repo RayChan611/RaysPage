@@ -1,12 +1,13 @@
 /* ============================================
-   Custom Cursor — Soft Streamline
-   Head tracks 1:1 (instant, no lag). A soft ribbon trails the
-   ACTUAL path the pointer has taken — built from a short history
-   of positions, smoothed with quadratic beziers, faded from tail
-   (transparent) to head (visible) and softened with a gaussian
-   blur. When the pointer stops, the ribbon retracts into a point.
-   Uses translate3d for the head (GPU-composited) and an SVG path
-   for the trail (vector, crisp at any DPR).
+   Custom Cursor — Soft Streamline (physics chain)
+   The head pins 1:1 to the pointer. The trail is a chain of N
+   nodes, each spring-pulled toward the node AHEAD of it, with a
+   touch of downward GRAVITY and velocity DAMPING. This gives the
+   ribbon real inertia: it lags behind fast motion, follows through
+   when you stop (settling with a gentle sag), and feels weighted
+   rather than a dead echo of the path. Rendered as a smoothed SVG
+   path (tail→head transparent→visible gradient + gaussian blur).
+   The head uses translate3d (GPU-composited).
 
    The RAF loop is started directly here (NOT relying on RayRAF to
    kick it) — RayRAF only pauses/resumes on tab visibility changes.
@@ -21,10 +22,10 @@
   function init() {
     if (window.innerWidth <= 768) return;
 
-    const head  = document.getElementById('cursorComet');
-    const svg   = document.getElementById('cursorStream');
-    const path  = document.getElementById('streamPath');
-    const grad  = document.getElementById('streamGrad');
+    const head = document.getElementById('cursorComet');
+    const svg  = document.getElementById('cursorStream');
+    const path = document.getElementById('streamPath');
+    const grad = document.getElementById('streamGrad');
     if (!head || !svg || !path || !grad) {
       setTimeout(init, 50); // BaseLayout not painted yet
       return;
@@ -32,17 +33,24 @@
 
     document.body.classList.add('custom-cursor-active');
 
-    // --- tunables (ribbon feel) ---
-    const MAX_PTS   = 16;    // history length → ribbon length (shorter = subtler)
-    const SHRINK    = 0.5;   // px/frame below which we treat as idle
-    const FADE_EASE = 0.12;  // global opacity ease for silky in/out (lower = silkier)
+    // --- tunables (ribbon physics) ---
+    const N        = 14;    // number of chain nodes (length of the ribbon)
+    const STIFF    = 0.30;  // spring pull toward the node ahead (lag/flow)
+    const DAMP     = 0.80;  // velocity friction (lower = settles faster)
+    const GRAVITY  = 0.10;  // gentle downward pull on trailing nodes (weight)
+    const SHRINK   = 0.5;   // px/frame below which the head counts as idle
+    const FADE_EASE = 0.10; // global opacity ease (silky in/out)
 
-    // Start off-screen so there is no (0,0) flash before the first move.
-    let mx = -100, my = -100;   // latest pointer position
-    let hx = -100, hy = -100;   // eased head position (1:1 but eased in slightly)
-    const buf = [];             // ring of recent {x,y}
+    // head (1:1 with pointer)
+    let mx = -100, my = -100;
+    let hx = -100, hy = -100;
+
+    // physics chain of nodes; node 0 is pinned to the head each frame
+    const pts = [];
+    for (let i = 0; i < N; i++) pts.push({ x: -100, y: -100, vx: 0, vy: 0 });
+
+    let fade = 0;
     let hasMoved = false;
-    let fade = 0;               // 0..1 global ribbon opacity (silky in/out)
     let animId = null;
 
     head.style.opacity = '0';
@@ -52,8 +60,9 @@
       hasMoved = true;
       mx = e.clientX; my = e.clientY;
       hx = mx; hy = my;
+      for (let i = 0; i < N; i++) { pts[i].x = mx; pts[i].y = my; pts[i].vx = 0; pts[i].vy = 0; }
       head.style.opacity = '1';
-      svg.style.opacity = '1';
+      svg.style.opacity = '0';
     }
 
     document.addEventListener('pointermove', (e) => {
@@ -65,17 +74,17 @@
     // Fallback: light up even if pointermove is not forwarded (embedded previews).
     document.addEventListener('pointerover', reveal, { passive: true });
 
-    // Build a smooth path (quadratic beziers through midpoints) from the buffer.
-    function buildPath(pts) {
-      if (pts.length < 2) return '';
-      let d = 'M ' + pts[0].x.toFixed(1) + ' ' + pts[0].y.toFixed(1);
-      for (let i = 1; i < pts.length - 1; i++) {
-        const xc = (pts[i].x + pts[i + 1].x) / 2;
-        const yc = (pts[i].y + pts[i + 1].y) / 2;
-        d += ' Q ' + pts[i].x.toFixed(1) + ' ' + pts[i].y.toFixed(1) +
+    // Smooth the chain into one continuous curve (quadratic beziers through midpoints).
+    function buildPath(p) {
+      if (p.length < 2) return '';
+      let d = 'M ' + p[0].x.toFixed(1) + ' ' + p[0].y.toFixed(1);
+      for (let i = 1; i < p.length - 1; i++) {
+        const xc = (p[i].x + p[i + 1].x) / 2;
+        const yc = (p[i].y + p[i + 1].y) / 2;
+        d += ' Q ' + p[i].x.toFixed(1) + ' ' + p[i].y.toFixed(1) +
              ' ' + xc.toFixed(1) + ' ' + yc.toFixed(1);
       }
-      const last = pts[pts.length - 1];
+      const last = p[p.length - 1];
       d += ' L ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1);
       return d;
     }
@@ -83,7 +92,6 @@
     function frame() {
       const dx = mx - hx;
       const dy = my - hy;
-      const dist = Math.hypot(dx, dy);
 
       // head: exact 1:1, glued to the pointer
       hx += dx;
@@ -91,25 +99,30 @@
       head.style.transform =
         'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
 
-      const moving = dist > SHRINK;
-
-      // ribbon: extend the history while moving (geometry frozen when idle,
-      // so it fades *in place* instead of eroding from the tail → no gravity feel)
-      if (moving) {
-        buf.push({ x: hx, y: hy });
-        if (buf.length > MAX_PTS) buf.shift();
+      // physics chain: node 0 pinned to head; each node springs toward
+      // the one ahead + subtle gravity + velocity damping → inertia/weight
+      pts[0].x = hx; pts[0].y = hy; pts[0].vx = 0; pts[0].vy = 0;
+      for (let i = 1; i < N; i++) {
+        const p = pts[i];
+        const q = pts[i - 1];
+        p.vx += (q.x - p.x) * STIFF;
+        p.vy += (q.y - p.y) * STIFF + GRAVITY;
+        p.vx *= DAMP;
+        p.vy *= DAMP;
+        p.x += p.vx;
+        p.y += p.vy;
       }
 
-      // silky global fade — eases in on motion, eases out to nothing when still
+      // silky in/out: visible while moving, eases to nothing when still
+      const moving = Math.hypot(dx, dy) > SHRINK;
       const target = moving ? 1 : 0;
       fade += (target - fade) * FADE_EASE;
-      if (!moving && fade < 0.02) buf.length = 0; // reset once fully faded
 
-      if (buf.length >= 2 && fade > 0.001) {
-        path.setAttribute('d', buildPath(buf));
-        // gradient runs tail(transparent) → head(visible), in user space
-        const tail = buf[0];
-        const headP = buf[buf.length - 1];
+      if (fade > 0.001) {
+        path.setAttribute('d', buildPath(pts));
+        // gradient: tail (transparent) → head (visible)
+        const tail = pts[N - 1];
+        const headP = pts[0];
         grad.setAttribute('x1', tail.x);
         grad.setAttribute('y1', tail.y);
         grad.setAttribute('x2', headP.x);
