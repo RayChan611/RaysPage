@@ -15,7 +15,6 @@
   var FADE_MS = 280;          // phase-1 duration
   var COLLAPSE_AT = 160;      // ms after fade before height collapse begins
   var COLLAPSE_MS = 300;      // height collapse animation
-  var RESTORE_MS = 340;       // restore expand+fade duration
 
   var reduceMotion = !!(window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -52,7 +51,8 @@
     el.style.opacity = '';
     el.style.filter = '';
     el.style.pointerEvents = '';
-    el.classList.remove('is-hidden', 'is-revealing', 'is-restoring', 'is-flipping');
+    el._searchAnim = null;
+    el.classList.remove('is-hidden', 'is-revealing', 'is-flipping');
   }
 
   function initSearch(listId, itemSelector) {
@@ -86,6 +86,20 @@
     var hasQuery = query.length > 0;
     var placeholder = list.querySelector('.essay-card-placeholder, .note-card-placeholder');
 
+    // Snapshot hidden state BEFORE we touch any classes — the clear path needs
+    // it to know which cards to float back in (cleanupCard below strips is-hidden).
+    var hiddenSnapshot = new Map();
+    items.forEach(function (el) {
+      hiddenSnapshot.set(el, el.classList.contains('is-hidden'));
+    });
+
+    // Cancel any in-flight FLIP animation + clear residual inline styles so a
+    // quick re-type mid-clear can't leave a card stuck invisible/blurred.
+    items.forEach(function (el) {
+      if (el._searchAnim) { el._searchAnim.cancel(); el._searchAnim = null; }
+      cleanupCard(el);
+    });
+
     // Cancel pending timers from previous run
     if (list._timers) {
       list._timers.forEach(function (t) { clearTimeout(t); });
@@ -97,14 +111,7 @@
       noResults && noResults.classList.remove('visible');
       if (placeholder) placeholder.classList.remove('is-hidden');
 
-      // Cancel any pending timers / animations from the previous filter run
-      if (list._timers) list._timers.forEach(function (t) { clearTimeout(t); });
-      list._timers = [];
-
-      items.forEach(function (el) {
-        if (el._searchAnim) { el._searchAnim.cancel(); el._searchAnim = null; }
-        cleanupCard(el);
-      });
+      // (timers + in-flight WAAPI already cancelled at the top of runFilter)
 
       if (reduceMotion || !Element.prototype.animate) {
         originalOrder.forEach(function (el) { list.appendChild(el); });
@@ -116,16 +123,14 @@
 
       // 1) Capture current positions of every card (visible + hidden)
       var firstRects = new Map();
-      var wasHidden = new Map();
       items.forEach(function (el) {
         firstRects.set(el, el.getBoundingClientRect());
-        wasHidden.set(el, el.classList.contains('is-hidden'));
       });
 
       // 2) Reveal hidden cards in the DOM but keep them visually identical to
       //    the .is-hidden state so there is zero flash while we measure.
       items.forEach(function (el) {
-        if (!wasHidden.get(el)) return;
+        if (!hiddenSnapshot.get(el)) return;
         el.classList.remove('is-hidden');
         el.style.opacity = '0';
         el.style.filter = 'blur(4px) brightness(0.3)';
@@ -150,7 +155,7 @@
         var l = lastRects.get(el);
         var dx = f.left - l.left;
         var dy = f.top - l.top;
-        var hidden = wasHidden.get(el);
+        var hidden = hiddenSnapshot.get(el);
 
         if (hidden) {
           el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translateY(-12px) scale(0.96)';
@@ -170,7 +175,7 @@
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           items.forEach(function (el, i) {
-            var hidden = wasHidden.get(el);
+            var hidden = hiddenSnapshot.get(el);
             var f = firstRects.get(el);
             var l = lastRects.get(el);
             var dx = f.left - l.left;
@@ -249,12 +254,12 @@
         item.style.paddingTop = '';
         item.style.paddingBottom = '';
         item.style.overflow = '';
-        item.classList.remove('is-hidden', 'is-revealing', 'is-restoring');
+        item.classList.remove('is-hidden', 'is-revealing');
         prevMatches.set(item, true);
       } else {
         hiding.push({ el: item });
         item.classList.add('is-hidden');
-        item.classList.remove('is-revealing', 'is-restoring');
+        item.classList.remove('is-revealing');
         prevMatches.set(item, false);
       }
     });

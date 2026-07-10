@@ -150,7 +150,7 @@ rayspage-astro/
 │   │   ├── js/             # 12 个客户端脚本（见 6.4）+ back-lift.js（返回按钮，由 MDX 详情页用）
 │   │   ├── assets/         # og 图（default + 各文章）、ray-photo.webp
 │   │   ├── photos/         # 9 张照片（照片页用）
-│   │   ├── favicon.svg, robots.txt, sitemap.xml, rss.xml, rss-notes.xml
+│   │   ├── favicon.svg, robots.txt, sitemap.xml
 │   └── (一次性迁移脚本 migrate.mjs / migrate-content.mjs 已于审计中移除：内容迁移已完成，正文/详情页均为手写 .astro / .mdx)
 ├── node_modules/           # 依赖（不提交）
 ├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
