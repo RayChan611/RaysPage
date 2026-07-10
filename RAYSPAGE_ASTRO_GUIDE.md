@@ -151,8 +151,7 @@ rayspage-astro/
 │   │   ├── assets/         # og 图（default + 各文章）、ray-photo.webp
 │   │   ├── photos/         # 9 张照片（照片页用）
 │   │   ├── favicon.svg, robots.txt, sitemap.xml, rss.xml, rss-notes.xml
-│   ├── migrate.mjs         # ★ 一次性迁移脚本（旧 RaysPage HTML → astro 页面，非 content）
-│   └── migrate-content.mjs # ★ 一次性迁移脚本（旧 essay/note 详情页 → Content Collections MDX）
+│   └── (一次性迁移脚本 migrate.mjs / migrate-content.mjs 已于审计中移除：内容迁移已完成，正文/详情页均为手写 .astro / .mdx)
 ├── node_modules/           # 依赖（不提交）
 ├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
 └── .astro/                 # Astro 缓存（不提交）
@@ -335,8 +334,8 @@ export default defineConfig({
 - canvas `position:fixed` 满屏，滚动时持续（只在 tab 隐藏时暂停，不随滚动停）。
 - 性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
 
-### 6.7 迁移脚本 `migrate.mjs`（理解来源，非常重要）
-文件：`site/migrate.mjs`（一次性脚本，**不是构建步骤**，只在需要重新从旧站同步内容时跑）。
+### 6.7 迁移脚本 `migrate.mjs`（历史参考，已移除）
+文件：`site/migrate.mjs`（一次性脚本，已于审计中移除；以下内容仅作历史参考，帮助理解内容来源）。
 
 机制：
 - `SRC = '/Users/ray/PersonalProject/RaysPage'`（旧站绝对路径，**硬编码**，换机要改）
@@ -353,7 +352,7 @@ export default defineConfig({
   9. 生成 `*.astro`（404 特殊处理）
 - 生成的页面用 `<Fragment set:html={bodyHtml}>` 注入正文。
 
-**何时重跑**：当旧站 `RaysPage`（或 `RaysPage-legacy`）内容更新、需要同步到 Astro 版时。跑完需 `npm run build` 验证。
+**脚本已移除**：内容迁移已全部完成，正文现为手写 `*.astro` / `*.mdx`，直接编辑源文件即可，无需重跑。
 
 ---
 
@@ -528,7 +527,7 @@ const inlineScripts = [];
 </BaseLayout>
 ```
 2. `current` 设对（导航高亮）；需要额外 CSS 就加 `extraCss` + 在 `public/css/` 建文件；需要脚本就加 `pageScripts`。
-3. 若从旧站迁移内容，直接跑 `migrate.mjs` 重新生成更快（见 6.7），然后微调。
+3. 旧站内容已迁移完成，正文为手写 `.astro` / `*.mdx`，直接编辑即可，无需重跑迁移脚本（脚本已移除）。
 
 ### 11.3 加一个新的客户端效果
 1. 在 `public/js/` 新建 `xxx.js`（IIFE，ES5 风格，无打包）。
@@ -549,12 +548,12 @@ const inlineScripts = [];
   - 正文 HTML 写在 frontmatter 之后，按 10.14 的规则：**void 元素自闭合、每个标签独占一行**。新增笔记若用纯 markdown 书写更省心；沿用旧站 HTML 则注意断行。
   - 改完 `npm run build` 验证（动态路由 `essay-[slug].astro`/`note-[slug].astro` 自动按 slug 生成页面）。
   - ⚠️ `notes` 里 `extra-1..5` 的 `date` 是占位值（`2024-01-0N`），`principles`/`katwu-lenny` 的日期也需按真实阅读时间校正。
-- **其他页面（index / photos / 404）**：正文仍在 `*.astro` 的 `bodyHtml` 字符串里，直接编辑或改旧站后重跑 `migrate.mjs`。
+- **其他页面（index / photos / 404）**：正文仍在 `*.astro` 的 `bodyHtml` 字符串里，直接编辑对应 `*.astro` 即可。
 
 ### 11.6 同步旧站更新
-- 旧站内容在 `RaysPage-legacy`（或本地 `RaysPage` 目录）。
-- **HTML 壳迁移**：改 `migrate.mjs` 的 `SRC`/`OUT` 为正确路径，跑 `node site/migrate.mjs`，再 `npm run build` 验证。重跑会覆盖 `src/pages/*.astro`（非 content 页面），手动微调先备份。
-- **MDX 内容迁移（一次性）**：`site/migrate-content.mjs` 把旧的 `essay-*.astro`/`note-*.astro` 详情页正文抽成 MDX。**前提与步骤见 10.14**（需先从 `git HEAD` 恢复源文件才能重跑）。日常加新文章请直接写 `.mdx`，不要依赖此脚本。
+- 旧站内容已**全部迁移完成**，一次性迁移脚本（`migrate.mjs` / `migrate-content.mjs`）已从仓库移除，日常维护不再依赖它们。
+- **正文编辑**：所有页面正文都是手写 `*.astro`（`bodyHtml` 模式）或 `*.mdx`（Content Collections），直接编辑源文件即可，无需重跑任何迁移脚本。
+- **新增文章/笔记**：直接新建 `site/src/content/essays/*.mdx` 或 `notes/*.mdx`（frontmatter 见 11.5），动态路由会自动生成页面。
 
 ---
 
@@ -569,7 +568,7 @@ const inlineScripts = [];
 - [ ] 读一个动态路由（如 `essay-[slug].astro`）→ 理解 `getStaticPaths` + `render(entry)` + `<Content />`（替代旧 `bodyHtml` 模式）
 - [ ] 读 `site/public/js/site.js` → 理解 `RayRAF`/`RayScroll` 双管理器（性能核心）
 - [ ] 读 `site/public/css/style.css` 的 `:root` → 理解设计系统变量
-- [ ] 读 `migrate.mjs` → 理解内容从哪里来、怎么生成的（改内容/同步旧站的钥匙）
+- [ ] （历史）迁移脚本已移除：内容现已是手写 `*.astro` / `*.mdx`，直接编辑即可（详见 11.5 / 11.6）
 - [ ] 读第 7 节「部署」→ 理解 `dist/` 已提交，改源码后必须 `npm run build` 并 commit 新的 `dist/`
 - [ ] 读第 10 节「踩坑」→ 避免重犯已知错误
 - [ ] 本地 `npm run dev` 起服务，肉眼验收（headless 不能替代肉眼看动效/视觉）
