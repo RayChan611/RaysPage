@@ -33,15 +33,16 @@
     document.body.classList.add('custom-cursor-active');
 
     // --- tunables (ribbon feel) ---
-    const MAX_PTS  = 24;     // history length → ribbon length
-    const SHRINK   = 0.5;    // px/frame below which we treat as idle (retract)
-    const EASE_IN  = 0.18;   // how fast a fresh point eases in (soft, not snappy)
+    const MAX_PTS   = 16;    // history length → ribbon length (shorter = subtler)
+    const SHRINK    = 0.5;   // px/frame below which we treat as idle
+    const FADE_EASE = 0.12;  // global opacity ease for silky in/out (lower = silkier)
 
     // Start off-screen so there is no (0,0) flash before the first move.
     let mx = -100, my = -100;   // latest pointer position
     let hx = -100, hy = -100;   // eased head position (1:1 but eased in slightly)
     const buf = [];             // ring of recent {x,y}
     let hasMoved = false;
+    let fade = 0;               // 0..1 global ribbon opacity (silky in/out)
     let animId = null;
 
     head.style.opacity = '0';
@@ -84,30 +85,36 @@
       const dy = my - hy;
       const dist = Math.hypot(dx, dy);
 
-      // head: eased-in 1:1 (EASE_IN keeps it glued but soft on first motion)
-      hx += dx * (hasMoved ? 1 : 0);
-      hy += dy * (hasMoved ? 1 : 0);
+      // head: exact 1:1, glued to the pointer
+      hx += dx;
+      hy += dy;
       head.style.transform =
         'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
 
-      // ribbon: extend while moving, retract when idle
-      if (dist > SHRINK) {
+      const moving = dist > SHRINK;
+
+      // ribbon: extend the history while moving (geometry frozen when idle,
+      // so it fades *in place* instead of eroding from the tail → no gravity feel)
+      if (moving) {
         buf.push({ x: hx, y: hy });
         if (buf.length > MAX_PTS) buf.shift();
-      } else if (buf.length > 0) {
-        buf.shift(); // retract into the head when still
       }
 
-      if (buf.length >= 2) {
+      // silky global fade — eases in on motion, eases out to nothing when still
+      const target = moving ? 1 : 0;
+      fade += (target - fade) * FADE_EASE;
+      if (!moving && fade < 0.02) buf.length = 0; // reset once fully faded
+
+      if (buf.length >= 2 && fade > 0.001) {
         path.setAttribute('d', buildPath(buf));
-        // gradient runs tail(opaque-0) → head(visible), in user space
+        // gradient runs tail(transparent) → head(visible), in user space
         const tail = buf[0];
         const headP = buf[buf.length - 1];
         grad.setAttribute('x1', tail.x);
         grad.setAttribute('y1', tail.y);
         grad.setAttribute('x2', headP.x);
         grad.setAttribute('y2', headP.y);
-        svg.style.opacity = '1';
+        svg.style.opacity = fade.toFixed(3);
       } else {
         path.setAttribute('d', '');
         svg.style.opacity = '0';

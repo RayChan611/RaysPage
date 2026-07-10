@@ -65,7 +65,6 @@ button { font-family: inherit; }
   pointer-events: none;
   z-index: 11000;
   opacity: 0;
-  transition: opacity 0.25s;
   overflow: visible;
 }
 /* hover: head grows subtly, ribbon brightens */

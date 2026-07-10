@@ -108,7 +108,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 | 通用过渡 | `cubic-bezier(0.4, 0, 0.2, 1)`（Material 标准） |
 | 入场/揭示/高级感 | `cubic-bezier(0.16, 1, 0.3, 1)`（快起慢停，主曲线） |
 | Hero 名字/logo 展开 | `cubic-bezier(0.22, 1, 0.36, 1)` |
-| 光标拖尾丝带 | 记录最近 `MAX_PTS(24)` 个位置，`buildPath` 用二次贝塞尔中点平滑成连续曲线；渐变 `streamGrad` 在 userSpace 中 tail→head（透明→0.5），`streamSoft` 高斯模糊 `stdDeviation 1.1` 柔化；移动时 push、静止时 `shift()` 回缩 |
+| 光标拖尾丝带 | 记录最近 `MAX_PTS(16)` 个位置，`buildPath` 用二次贝塞尔中点平滑成连续曲线；渐变 `streamGrad` 在 userSpace 中 tail→head（透明→0.5），`streamSoft` 高斯模糊 `stdDeviation 1.1` 柔化；移动时 push、静止时**几何冻结 + 全局 `fade`(`FADE_EASE 0.12`) 柔和淡出**（不再逐点 shift，避免重力/滴落感） |
 | 搜索不匹配卡片淡出 | `cubic-bezier(0.4, 0, 0.8, 0.25)`（在 `search.css` 的 `.is-hidden`） |
 
 **新增动画请沿用这几条，不要发明新曲线**，否则会破坏统一调性。
@@ -315,7 +315,7 @@ hasDetail: true
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
 ### 5.4 自定义光标 & 粒子背景
-- **光标（柔软流线）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 立即 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是一个满屏 `SVG`，内部 `<path id="streamPath">` 由 `buildPath()` 用**二次贝塞尔中点平滑**把最近 `MAX_PTS(24)` 个历史位置连成一条连续曲线，`stroke` 走 `url(#streamGrad)`（userSpace 渐变，tail→head 透明→0.5）、`filter="url(#streamSoft)"` 高斯模糊 `stdDeviation 1.1` 柔化；移动时 `buf.push`、静止时 `buf.shift()` 让丝带回缩成一点。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、丝带 `stop:last-child` 增亮至 0.8。
+- **光标（柔软流线）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是满屏 `SVG`，`<path id="streamPath">` 由 `buildPath()` 用**二次贝塞尔中点平滑**把最近 `MAX_PTS(16)` 个历史位置连成连续曲线，`stroke` 走 `url(#streamGrad)`（userSpace 渐变 tail→head 透明→0.5）、`filter="url(#streamSoft)"` 高斯模糊 `stdDeviation 1.1` 柔化；**移动时 `buf.push` 延伸轨迹，静止时几何冻结、用全局 `fade`(`FADE_EASE 0.12`) 柔和淡出到 0 后清空 buffer**（不再逐点 `shift()` 回缩，避免尾巴被"抽走"的重力/滴落感）。SVG 的 `opacity` 完全由 JS 每帧控制，CSS 不加 transition 以免双重缓动。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、丝带 `stop:last-child` 增亮至 0.8。
 - **粒子背景**：出现在 notes/essays/photos 内页的 `#global-bg-effect` 容器内（首页用真实 Hero 背景图，无粒子）。canvas `position:fixed` 满屏，只在 tab 隐藏时暂停。性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
 
 ### 5.5 ★ 搜索过滤动画：WAAPI FLIP（重点代码思路）
