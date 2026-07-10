@@ -47,11 +47,11 @@ button { font-family: inherit; }
   position: fixed;
   top: 0; left: 0;
   width: 9px; height: 9px;
-  background: #fff;
+  background: rgba(255,255,255,0.88);
   border-radius: 50%;
   pointer-events: none;
   z-index: 11001;
-  box-shadow: 0 0 10px rgba(255,255,255,0.65), 0 0 2px rgba(255,255,255,0.9);
+  box-shadow: 0 0 7px rgba(255,255,255,0.32), 0 0 2px rgba(255,255,255,0.55);
   transform: translate3d(-100px,-100px,0);
   will-change: transform;
   opacity: 0;
@@ -60,13 +60,13 @@ button { font-family: inherit; }
 .cursor-comet-tail {
   position: fixed;
   top: 0; left: 0;
-  width: 190px; height: 2.5px;
+  width: 360px; height: 2.5px;
   border-radius: 2.5px;
-  background: linear-gradient(to left, rgba(255,255,255,0.85), rgba(255,255,255,0));
+  background: linear-gradient(to left, rgba(255,255,255,0.5), rgba(255,255,255,0));
   pointer-events: none;
   z-index: 11000;
   transform-origin: 100% 50%;
-  transform: translate3d(-290px,-100px,0) rotate(0deg) scaleX(0);
+  transform: translate3d(-460px,-100px,0) rotate(0deg) scaleX(0);
   will-change: transform;
   opacity: 0;
   transition: opacity 0.25s;
@@ -74,7 +74,7 @@ button { font-family: inherit; }
 /* hover: head grows subtly, streak brightens */
 body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 body.cursor-hover .cursor-comet-tail {
-  background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+  background: linear-gradient(to left, rgba(255,255,255,0.78), rgba(255,255,255,0));
 }
 
 @media (max-width: 768px) {

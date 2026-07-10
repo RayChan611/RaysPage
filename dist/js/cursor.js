@@ -28,9 +28,9 @@
     document.body.classList.add('custom-cursor-active');
 
     // --- tunables (physics feel) ---
-    const TAIL_BASE = 190;   // px, full-length of the streak element
-    const SPEED_K   = 0.55;  // length per px/frame of velocity
-    const TAIL_MAX  = 190;   // cap on streak length
+    const TAIL_BASE = 360;   // px, full-length of the streak element
+    const SPEED_K   = 0.70;  // length per px/frame of velocity
+    const TAIL_MAX  = 360;   // cap on streak length
     const LEN_EASE  = 0.35;  // how fast length eases toward target
     const ANG_EASE  = 0.30;  // how fast angle eases (avoids jitter)
 
