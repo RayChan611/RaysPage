@@ -486,6 +486,24 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* ---- Essay images (e.g. quote screenshots) ---- */
+.essay-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0 48px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  opacity: 0.95;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.essay-image:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
 /* ---- Essay Page Mobile ---- */
 @media (max-width: 768px) {
   .essay-hero {
