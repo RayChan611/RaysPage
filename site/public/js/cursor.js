@@ -31,7 +31,7 @@
     const MAX_PARTICLES = 60;  // hard cap to protect perf
     const EMIT_DIST   = 6.5;   // px the head must travel before shedding a particle
     const DAMP        = 0.92;  // velocity friction (0-1; higher = longer glide)
-    const GRAVITY     = 0.06;  // gentle downward drift (weight, not droop)
+    const GRAVITY     = 0.15;  // heavier downward drift (clear weight/fall)
     const JITTER      = 0.4;   // random velocity spread on emission
     const FADE_EASE   = 0.12;  // global opacity ease in/out
     const SHRINK      = 0.6;   // px/frame threshold for "still"
