@@ -42,7 +42,7 @@ a:hover { color: var(--accent); }
 img { max-width: 100%; display: block; }
 button { font-family: inherit; }
 
-/* ---------- Custom Cursor: Comet Trail ---------- */
+/* ---------- Custom Cursor: Stardust Spray ---------- */
 .cursor-comet {
   position: fixed;
   top: 0; left: 0;
@@ -60,16 +60,12 @@ button { font-family: inherit; }
 .cursor-stream {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
   pointer-events: none;
   z-index: 11000;
   opacity: 0;
-  overflow: visible;
 }
-/* hover: head grows subtly, ribbon brightens */
+/* hover: head grows subtly; stardust brightens via canvas alpha in cursor.js */
 body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
-body.cursor-hover #streamGrad stop:last-child { stop-opacity: 0.62; }
 
 @media (max-width: 768px) {
   .cursor-comet, .cursor-stream { display: none; }

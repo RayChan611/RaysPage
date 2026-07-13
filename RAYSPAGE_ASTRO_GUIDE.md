@@ -51,7 +51,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 - **入场**：元素从 `translateY(18~32px)` + 透明 淡入，缓动 `cubic-bezier(0.16,1,0.3,1)`，约 0.85s。
 - **Hero 名字**：逐词（word）在独立合成层淡入（避免双层 opacity 复合导致的性能问题），用 `translate3d` 强制 GPU 层（`.hero-name-line` 上 `will-change: transform, opacity`）。
 - **导航 logo**：hover 时「Ray Chan」从「RC」展开（clip-path + max-width 动画；展开无宽限期，收起有 220ms 宽限期避免急促——见 `style.css` 的 `.nav-logo-expand` 系列规则）。
-- **光标**：桌面自定义「柔软流线」光标——头部 1:1 实时跟手，拖尾是一条**跟随实际运动轨迹**的 SVG 贝塞尔平滑丝带（首尾透明渐变 + 高斯模糊柔化、停手时回缩成一点），移动端（≤768px）禁用。
+- **光标**：桌面自定义「星尘喷射」光标——头部 1:1 实时跟手，移动时洒落一颗颗**独立发光粒子**（`#cursorStream` 满屏 `canvas` 绘制），粒子继承头部速度、受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.06)` 轻微下沉、随机扰动后渐隐消散；**无连线丝带**，只有疏朗星尘。移动端（≤768px）禁用。
 - **滚动揭示**：`IntersectionObserver`（`nav.js`）给 `.animate-on-scroll` 加 `.visible`。
 - **页面转场**：点击链接 → 全屏遮罩 `#0a0a0a` 淡入 → 跳转 → 新页遮罩淡出。初始 `opacity:1` 防止首屏闪白（见 BaseLayout 的 `#pageTransitionOverlay`）。
 - **搜索过滤**：essays/notes 列表的实时搜索——匹配卡片重排到顶部、不匹配卡片错峰模糊淡出 + 高度折叠；清空时用 **WAAPI FLIP** 让所有卡片平滑归位、隐藏卡片「浮上来」淡入（详见 §5.5）。
@@ -185,7 +185,7 @@ inlineStyles?: string[], // 页专属内联 <style>（来自原站提取，见 9
   1. `site.js`（同步 `<script is:inline>`，最先，定义 `window.RayRAF`/`window.RayScroll`，供后续脚本注册）
   2. 页面自己的 `pageScripts`（defer，由各页面在 `<slot/>` 后注入）
   3. 全局尾部脚本（BaseLayout 末尾）：`lenis.min.js`(CDN) → `smooth-scroll.js` → `cursor.js` → `nav.js`
-- `<body>` 内静态节点：`#pageTransitionOverlay`（初始 `opacity:1` 防闪白）、`#readingProgress`、`#cursorStream`（柔软流线 SVG 光标丝带）/`#cursorComet`（流线头部）、`<nav>`（current 决定高亮）、`<slot/>`（页面正文）、`<footer>`、`#backToTop`。
+- `<body>` 内静态节点：`#pageTransitionOverlay`（初始 `opacity:1` 防闪白）、`#readingProgress`、`#cursorStream`（星尘喷射 canvas）/`#cursorComet`（头部）、`<nav>`（current 决定高亮）、`<slot/>`（页面正文）、`<footer>`、`#backToTop`。
 
 **导航高亮逻辑**：`NAV_ITEMS` 固定 5 项（About/Contact/Photos/Notes/Essays）。首页/about/contact 时 About/Contact 渲染为页内锚点 `#about`/`#contact`，其余渲染为跳转到 `index.html#about` 等；`current` 决定哪个显示 `nav-link-active`。
 
@@ -297,7 +297,7 @@ hasDetail: true
 |---|---|---|---|
 | `site.js` | 运行时管理器 + 转场/进度条/回顶/分析 | — | 全局最先加载 |
 | `smooth-scroll.js` | Lenis 平滑滚动 + 锚点跳转 + hash 定位 | RayRAF | `history.scrollRestoration='manual'`；`window.lenis` 暴露 |
-| `cursor.js` | 自定义光标（头部 1:1 + 粒子流体丝带拖尾） | RayRAF | 仅桌面(>768)、reduced-motion 直接 return、首次移动才显示、translate3d GPU 合成、SVG path 向量丝带 |
+| `cursor.js` | 自定义光标（头部 1:1 + canvas 粒子喷射拖尾） | RayRAF | 仅桌面(>768)、reduced-motion 直接 return、首次移动才显示、translate3d GPU 合成、canvas 绘制粒子 |
 | `nav.js` | nav 滚动态 + 移动端菜单 + IntersectionObserver 揭示 + Hero 入场 | RayScroll | 移动端菜单用事件委托 |
 | `hero-sparkle.js` | canvas 粒子背景（notes/essays/photos 页） | RayRAF | `position:fixed` 满屏；reduced-motion 隐藏；MAX_PARTICLES=80 低端机封顶；inline draw 无 shadowBlur 高性能 |
 | `search.js` | essays/notes 页搜索过滤（WAAPI FLIP） | — | 依赖 `#searchInput`/`#notesList`/`#essaysList` |
@@ -315,7 +315,7 @@ hasDetail: true
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
 ### 5.4 自定义光标 & 粒子背景
-- **光标（柔软流线，粒子流体）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`）；拖尾 `#cursorStream` 是满屏 `SVG`，`<path id="streamPath">` 由 `buildPath()` 用**二次贝塞尔中点平滑**连成连续曲线。与上版不同，拖尾不是历史点也不是 lerp 跟随点，而是**粒子流体**：头部移动时每隔 `EMIT_DIST(3.5px)` 发射一个小光点，粒子继承头部速度 `×0.35` 并叠加 `JITTER(±0.25)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.04)` 轻微下沉，同时 `life` 衰减。最近 `MAX_PTS(14)` 个存活粒子连成可见丝带，尾部因粒子衰老而自然透明、散开、消失。快速移动时粒子密集成线，转弯/急停时因惯性甩出柔和弧线，静止后缓缓消散，整体不再像数学曲线那么"刻意"。`stroke` 走 `url(#streamGrad)`（userSpace 渐变 tail→head 透明→0.5）、`filter="url(#streamSoft)"` 高斯模糊 `stdDeviation 1.1` 柔化；全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（opacity 纯 JS 每帧控制，CSS 无 transition）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、丝带 `stop:last-child` 增亮至 0.8。
+- **光标（星尘喷射，canvas 粒子）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是满屏 `<canvas>`（DPR-aware 缩放），**每个粒子是一颗独立发光圆点**（非连线）。头部移动时每隔 `EMIT_DIST(6.5px)` 发射一个粒子，继承头部速度 `×0.32` 并叠加 `JITTER(±0.4)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.06)` 轻微下沉、`life` 衰减，`MAX_PARTICLES(60)` 封顶保护性能。绘制用 `ctx.arc` + `shadowBlur(4)` 柔光、`rgba(255,255,255,α)` 随 `life` 渐隐，无 SVG 丝带/渐变/滤镜。全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（canvas opacity 纯 JS 每帧控制）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、粒子亮度 `baseA` 由 0.5 升到 0.8（`hover` 缓动）。
 - **粒子背景**：出现在 notes/essays/photos 内页的 `#global-bg-effect` 容器内（首页用真实 Hero 背景图，无粒子）。canvas `position:fixed` 满屏，只在 tab 隐藏时暂停。性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
 
 ### 5.5 ★ 搜索过滤动画：WAAPI FLIP（重点代码思路）

@@ -1,14 +1,11 @@
 /* ============================================
-   Custom Cursor — Soft Fluid Stream (particle trail)
-   The head pins 1:1 to the pointer. The trail is a fluid ribbon made
-   of small particles emitted from the head while moving. Each particle
-   carries inherited velocity, gets damped, and drifts slightly, so the
-   ribbon has its own life: it swirls behind fast motion, softens on
-   curves, and dissolves naturally when you stop.
-
-   The latest particles are connected by a smooth SVG path; older
-   particles fade out and are recycled. The head uses translate3d
-   (GPU-composited). The RAF loop is started directly here.
+   Custom Cursor — Stardust Spray
+   The head pins 1:1 to the pointer. While moving, it sheds small
+   glowing particles that inherit the head's velocity, get damped,
+   drift down under a gentle gravity, and fade out — a loose spray
+   of stardust, not a connected ribbon. Each particle is drawn on a
+   full-screen canvas (GPU-friendly). The RAF loop is started here
+   directly; RayRAF only pauses it when the tab is hidden.
    ============================================ */
 
 (function () {
@@ -21,48 +18,58 @@
     if (window.innerWidth <= 768) return;
 
     const head = document.getElementById('cursorComet');
-    const svg  = document.getElementById('cursorStream');
-    const path = document.getElementById('streamPath');
-    const grad = document.getElementById('streamGrad');
-    if (!head || !svg || !path || !grad) {
+    const canvas = document.getElementById('cursorStream');
+    if (!head || !canvas) {
       setTimeout(init, 50); // BaseLayout not painted yet
       return;
     }
+    const ctx = canvas.getContext('2d');
 
     document.body.classList.add('custom-cursor-active');
 
     // --- tunables (subtle stardust) ---
-    const MAX_PTS    = 9;    // how many particles form the visible ribbon (shorter = subtler)
-    const EMIT_DIST  = 6.5;  // px the head must travel before emitting a particle (wider = fewer)
-    const DAMP       = 0.92; // velocity friction (0-1; higher = longer glide)
-    const GRAVITY    = 0.04; // tiny downward drift (weight, not droop)
-    const JITTER     = 0.25; // random velocity perturbation
-    const FADE_EASE  = 0.12; // global opacity ease in/out
-    const SHRINK     = 0.6;  // px/frame threshold for "still"
-    const RIBBON_WIDTH = 2.5;  // stroke width
+    const MAX_PARTICLES = 60;  // hard cap to protect perf
+    const EMIT_DIST   = 6.5;   // px the head must travel before shedding a particle
+    const DAMP        = 0.92;  // velocity friction (0-1; higher = longer glide)
+    const GRAVITY     = 0.06;  // gentle downward drift (weight, not droop)
+    const JITTER      = 0.4;   // random velocity spread on emission
+    const FADE_EASE   = 0.12;  // global opacity ease in/out
+    const SHRINK      = 0.6;   // px/frame threshold for "still"
+    const HEAD_R      = 4.5;   // half of the 9px head, for centering
 
     // head state
     let mx = -100, my = -100;
     let hx = -100, hy = -100;
-    let hvx = 0, hvy = 0;      // head velocity used to seed particles
+    let hvx = 0, hvy = 0;      // head velocity, seeds particle motion
     let fade = 0;
     let hasMoved = false;
     let animId = null;
+    let hover = 0;             // 0..1 eased hover boost for particle brightness
 
-    // particle pool: newest at end, oldest at start
+    // particle pool (newest pushed to end)
     const particles = [];
-    let emitAcc = 0; // accumulated head travel since last emission
+    let emitAcc = 0;
 
     head.style.opacity = '0';
-    svg.style.opacity = '0';
+    canvas.style.opacity = '0';
+
+    // Size the canvas to the viewport (DPR-aware).
+    function sizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(innerWidth * dpr);
+      canvas.height = Math.floor(innerHeight * dpr);
+      canvas.style.width = innerWidth + 'px';
+      canvas.style.height = innerHeight + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    sizeCanvas();
+    window.addEventListener('resize', sizeCanvas);
 
     function reveal(e) {
       if (hasMoved) return;
       hasMoved = true;
       mx = e.clientX; my = e.clientY;
       hx = mx; hy = my;
-      hvx = 0; hvy = 0;
-      particles.length = 0;
       head.style.opacity = '1';
     }
 
@@ -74,59 +81,48 @@
 
     document.addEventListener('pointerover', reveal, { passive: true });
 
-    // Smooth path through points with quadratic bezier midpoints.
-    function buildPath(p) {
-      if (p.length < 2) return '';
-      let d = 'M ' + p[0].x.toFixed(1) + ' ' + p[0].y.toFixed(1);
-      for (let i = 1; i < p.length - 1; i++) {
-        const xc = (p[i].x + p[i + 1].x) / 2;
-        const yc = (p[i].y + p[i + 1].y) / 2;
-        d += ' Q ' + p[i].x.toFixed(1) + ' ' + p[i].y.toFixed(1) +
-             ' ' + xc.toFixed(1) + ' ' + yc.toFixed(1);
-      }
-      const last = p[p.length - 1];
-      d += ' L ' + last.x.toFixed(1) + ' ' + last.y.toFixed(1);
-      return d;
-    }
-
-    // Age out the oldest particles until we are at MAX_PTS.
-    function trim() {
-      while (particles.length > MAX_PTS) particles.shift();
+    function spawn(x, y, vx, vy) {
+      if (particles.length >= MAX_PARTICLES) particles.shift();
+      particles.push({
+        x: x, y: y,
+        vx: vx, vy: vy,
+        life: 1.0,
+        decay: 0.02 + Math.random() * 0.015,
+        r: 1 + Math.random() * 1.5,
+      });
     }
 
     function frame() {
       const dx = mx - hx;
       const dy = my - hy;
-      const dist = Math.hypot(dx, dy);
 
-      // head: exact 1:1, but remember velocity for particle seeding
+      // head: exact 1:1, remember velocity to seed particles
       hvx = dx;
       hvy = dy;
       hx += dx;
       hy += dy;
       head.style.transform =
-        'translate3d(' + (hx - 4.5) + 'px,' + (hy - 4.5) + 'px,0)';
+        'translate3d(' + (hx - HEAD_R) + 'px,' + (hy - HEAD_R) + 'px,0)';
 
-      // emit particles while moving; keep a minimum spacing for a clean line
+      const dist = Math.hypot(dx, dy);
+
+      // shed particles while moving (minimum spacing for a clean, sparse spray)
       if (hasMoved && dist > 0) {
         emitAcc += dist;
         while (emitAcc >= EMIT_DIST) {
           const t = EMIT_DIST / dist; // lerp fraction for this emission
           const ex = hx - hvx * t;
           const ey = hy - hvy * t;
-          particles.push({
-            x: ex,
-            y: ey,
-            vx: (hvx * 0.35) + (Math.random() - 0.5) * JITTER,
-            vy: (hvy * 0.35) + (Math.random() - 0.5) * JITTER,
-            life: 1.0,
-            decay: 0.022 + Math.random() * 0.012,
-          });
+          spawn(
+            ex, ey,
+            hvx * 0.32 + (Math.random() - 0.5) * JITTER,
+            hvy * 0.32 + (Math.random() - 0.5) * JITTER
+          );
           emitAcc -= EMIT_DIST;
         }
       }
 
-      // evolve particles: drag, gravity, jitter, fade
+      // evolve particles: drag, gravity, fade
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.vx *= DAMP;
@@ -136,28 +132,36 @@
         p.y += p.vy;
         p.life -= p.decay;
       }
-      // drop dead particles
       while (particles.length && particles[0].life <= 0) particles.shift();
-      trim();
 
       // fade in while moving, fade out when still
-      const moving = Math.hypot(dx, dy) > SHRINK;
-      const target = (moving || particles.length > 2) ? 1 : 0;
+      const moving = dist > SHRINK;
+      const target = (moving || particles.length > 0) ? 1 : 0;
       fade += (target - fade) * FADE_EASE;
 
-      if (fade > 0.001 && particles.length >= 2) {
-        path.setAttribute('d', buildPath(particles));
-        const tail = particles[0];
-        const headP = particles[particles.length - 1];
-        grad.setAttribute('x1', tail.x);
-        grad.setAttribute('y1', tail.y);
-        grad.setAttribute('x2', headP.x);
-        grad.setAttribute('y2', headP.y);
-        svg.style.opacity = fade.toFixed(3);
-      } else {
-        path.setAttribute('d', '');
-        svg.style.opacity = '0';
+      // eased hover boost (brightens the spray near interactive elements)
+      const isHover = document.body.classList.contains('cursor-hover') ? 1 : 0;
+      hover += (isHover - hover) * 0.15;
+
+      // draw
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      if (fade > 0.001) {
+        const baseA = 0.5 + hover * 0.3; // dim baseline, brighter on hover
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          const a = Math.max(0, p.life) * baseA * fade;
+          if (a <= 0) continue;
+          const r = p.r * (0.6 + p.life * 0.6);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,255,255,' + a.toFixed(3) + ')';
+          ctx.shadowColor = 'rgba(255,255,255,' + (a * 0.6).toFixed(3) + ')';
+          ctx.shadowBlur = 4;
+          ctx.fill();
+        }
       }
+      ctx.shadowBlur = 0;
+      canvas.style.opacity = fade.toFixed(3);
 
       animId = requestAnimationFrame(frame);
     }
