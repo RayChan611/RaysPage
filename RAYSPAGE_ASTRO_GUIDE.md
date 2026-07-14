@@ -315,7 +315,7 @@ hasDetail: true
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
 ### 5.4 自定义光标 & 粒子背景
-- **光标（星尘喷射，canvas 粒子）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是满屏 `<canvas>`（DPR-aware 缩放），**每个粒子是一颗独立发光圆点**（非连线）。头部移动时每隔 `EMIT_DIST(6.5px)` 发射一个粒子，继承头部速度 `×0.32` 并叠加 `JITTER(±0.4)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.06)` 轻微下沉、`life` 衰减，`MAX_PARTICLES(60)` 封顶保护性能。绘制用 `ctx.arc` + `shadowBlur(4)` 柔光、`rgba(255,255,255,α)` 随 `life` 渐隐，无 SVG 丝带/渐变/滤镜。全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（canvas opacity 纯 JS 每帧控制）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、粒子亮度 `baseA` 由 0.5 升到 0.8（`hover` 缓动）。
+- **光标（星尘喷射，canvas 粒子）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是满屏 `<canvas>`（DPR-aware 缩放），**每个粒子是一颗独立发光圆点**（非连线）。头部移动时每隔 `EMIT_DIST(6.5px)` 发射一个粒子，继承头部速度 `×0.32` 并叠加 `JITTER(±0.4)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.15)` 下沉（`2026-07` 由 `0.06` 加重到 `0.15`，明显下落重量感，commit `568b2d9`）、`life` 衰减，`MAX_PARTICLES(60)` 封顶保护性能。绘制用 `ctx.arc` + `shadowBlur(4)` 柔光、`rgba(255,255,255,α)` 随 `life` 渐隐，无 SVG 丝带/渐变/滤镜。全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（canvas opacity 纯 JS 每帧控制）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、粒子亮度 `baseA` 由 0.5 升到 0.8（`hover` 缓动）。
 - **粒子背景**：出现在 notes/essays/photos 内页的 `#global-bg-effect` 容器内（首页用真实 Hero 背景图，无粒子）。canvas `position:fixed` 满屏，只在 tab 隐藏时暂停。性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
 
 ### 5.5 ★ 搜索过滤动画：WAAPI FLIP（重点代码思路）
@@ -438,6 +438,7 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 - `components.js` 已删除，相关「components.js 注入 DOM」注释已改为「BaseLayout 静态渲染」。
 - `migrate.mjs` / `migrate-content.mjs` 已删除（内容迁移完成）。
 - 搜索逻辑中的 `RESTORE_MS` 常量、`is-restoring` class 已删除（见 9.7）。
+- **2026-07-14 审计确认：无 JS 死代码**。`site/public/js/` 下 13 个脚本全部有引用——`site.js`/`smooth-scroll.js`/`cursor.js`/`nav.js` 经 `BaseLayout`；`hero-sparkle.js`/`back-lift.js` 经 `essay-[slug].astro`/`note-[slug].astro`；`search.js`/`card-tilt.js` 经 `essays.astro`/`notes.astro`；`photos.js`/`photos-data.js` 经 `photos.astro`；`hero-typewriter.js`/`button-effects.js`/`scratch-to-reveal.js` 经 `index.astro`。均采用各页面 `pageScripts` 数组动态加载（路径为 `js/xxx.js` 无前导斜杠，静态 grep `/js/` 会漏判，需注意）。
 
 ### 9.10 验证环境陷阱（headless 测试时）
 - 旧的 static server / 浏览器缓存会在多次验证间造成严重误导（曾误报「readingProgress 消失」）。每次 headless 验证前：**重启 server + 清 Chrome profile + 用 `?cb=` 缓存破坏 URL**。
@@ -451,6 +452,12 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 
 ### 9.13 SSH push 卡顿
 - 用 SSH (`git@github.com:...`) push 曾卡 5 分钟无输出（实际在传，只是缓冲没刷）。改用 **https + gh token**（`gh auth setup-git` 配置 credential helper）稳定快速。
+
+### 9.14 sitemap.xml 需手动维护（SEO 隐患，2026-07-14 已踩）
+- `public/sitemap.xml` 是**手写静态文件**，项目未启用 `@astrojs/sitemap` 自动生成。每次新增页面 / essay / note **必须手动补 `<url>`**，否则该页不在 sitemap，搜索引擎（百度/Google）可能不收录。
+- 已踩：`2026-07-13` 加 `heroism` / `driving` 两篇 essay 后 sitemap 未同步，这两页漏收录；本轮审计发现并已补回两条 `<url>`（commit 待推）。
+- 建议：加内容时同步更新 sitemap；或后续引入 `@astrojs/sitemap` 集成自动生成（需改动 `astro.config.mjs` + `package.json`，属新功能，未擅自加）。
+- **essays 现状（2026-07-14）**：共 10 篇。`heroism`《真正的英雄主义》、`driving`《开车与赛车》为**纯文字引用块**（正文无图，仅保留名言/引用 + 署名；`ogImage` 仍指向 `/images/essays/` 截图仅用于社交分享卡片，文件保留未删）。其余 8 篇（choice/trial/foam/right/pdca/stardust/threethings + 旧文）含图/样式。
 
 ---
 
