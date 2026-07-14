@@ -186,9 +186,13 @@
     cards.forEach(initCard);
   }
 
+  // Initialize on the first animation frame (no artificial delay) so the
+  // scratch cover is painted in place BEFORE the page-transition overlay
+  // fades out. A former 200ms setTimeout let the card content flash through
+  // during the overlay fade when navigating cross-page to #contact.
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(() => initAll(0), 200));
+    document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(() => initAll(0)));
   } else {
-    setTimeout(() => initAll(0), 200);
+    requestAnimationFrame(() => initAll(0));
   }
 })();
