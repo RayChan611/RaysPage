@@ -56,7 +56,7 @@
         // Use scrollY (pageYOffset is deprecated)
         const targetPos = target.getBoundingClientRect().top + window.scrollY - navHeight;
         if (lenis) {
-          lenis.scrollTo(targetPos, { duration: 1.0 });
+          lenis.scrollTo(targetPos, { duration: 0.8 });
         } else {
           window.scrollTo({ top: targetPos, behavior: 'smooth' });
         }
@@ -84,7 +84,7 @@
       const navHeight = navEl ? navEl.offsetHeight : 0;
       const targetPos = target.getBoundingClientRect().top + window.scrollY - navHeight;
       if (lenis) {
-        lenis.scrollTo(targetPos, { duration: 1.2 });
+        lenis.scrollTo(targetPos, { duration: 0.7 });
       } else {
         window.scrollTo({ top: targetPos, behavior: 'smooth' });
       }
