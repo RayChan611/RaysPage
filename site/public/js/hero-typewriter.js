@@ -2,6 +2,9 @@
  * hero-typewriter.js
  * Typewriter effect for hero tagline
  *
+ * Performance: uses createTextNode + appendChild instead of innerHTML
+ * to avoid full HTML re-parse on every character.
+ *
  * IMPORTANT: Waits until name animation fully finishes before starting,
  * to avoid reflow competition with CSS transitions on .hero-name-line.
  */
@@ -27,9 +30,22 @@
     el.setAttribute('aria-label', LINES.join(' '));
     el.classList.add('typing');
 
-    let lineIndex = 0;   // which line we're on
-    let charIndex = 0;    // which char within current line
-    let currentHTML = '';  // accumulated HTML (lines + <br>)
+    // Build DOM structure once: one text node per line, separated by <br>
+    const lineNodes = [];   // Array<Text>
+    const brs = [];         // Array<HTMLElement>
+    LINES.forEach((line, i) => {
+      const tn = document.createTextNode('');
+      el.appendChild(tn);
+      lineNodes.push(tn);
+      if (i < LINES.length - 1) {
+        const br = document.createElement('br');
+        el.appendChild(br);
+        brs.push(br);
+      }
+    });
+
+    let lineIndex = 0;
+    let charIndex = 0;
     let lastTime = 0;
 
     function tick(now) {
@@ -39,28 +55,21 @@
       }
       lastTime = now;
 
-      // Type next character
       const line = LINES[lineIndex];
       charIndex++;
-      currentHTML = LINES.slice(0, lineIndex).map(l => l + '<br>').join('') + line.slice(0, charIndex);
-      el.innerHTML = currentHTML;
+      // Incremental update — only modify the current line's text node
+      lineNodes[lineIndex].nodeValue = line.slice(0, charIndex);
 
-      // If finished current line
       if (charIndex >= line.length) {
-        // If more lines left, add <br> and move to next line
         if (lineIndex < LINES.length - 1) {
-          currentHTML = LINES.slice(0, lineIndex + 1).map(l => l + '<br>').join('');
-          el.innerHTML = currentHTML;
           lineIndex++;
           charIndex = 0;
-          // Pause before typing next line
-          setTimeout(() => {
+          setTimeout(function () {
             lastTime = performance.now();
             requestAnimationFrame(tick);
           }, LINE_PAUSE);
           return;
         } else {
-          // All done
           el.classList.remove('typing');
           return;
         }
@@ -78,11 +87,10 @@
       setTimeout(typewrite, START_AFTER_HERO_LOADED);
       return;
     }
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((m) => {
+    const observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
         if (m.target.classList.contains('hero-loaded')) {
           observer.disconnect();
-          // Wait until name animation fully completes before starting typewriter
           setTimeout(typewrite, START_AFTER_HERO_LOADED);
         }
       });
@@ -90,8 +98,8 @@
     observer.observe(heroText, { attributes: true, attributeFilter: ['class'] });
 
     // Fallback: if hero-loaded never fires, start anyway after 5s
-    setTimeout(() => {
-      const el = document.getElementById(TARGET_ID);
+    setTimeout(function () {
+      var el = document.getElementById(TARGET_ID);
       if (el && !el.textContent) {
         observer.disconnect();
         typewrite();

@@ -60,10 +60,25 @@
     if (lightbox) {
       lightbox.classList.add('active');
       lightbox.setAttribute('aria-hidden', 'false');
-      // Focus the close button for screen readers
       const closeBtn = lightbox.querySelector('.lightbox-close');
       if (closeBtn) closeBtn.focus();
     }
+
+    // Preload adjacent images for smooth navigation
+    preloadAdjacent(idx);
+  }
+
+  // Preload next + prev images so arrow-key / click navigation has no blank flash
+  function preloadAdjacent(idx) {
+    [idx + 1, idx - 1].forEach(function (i) {
+      if (i >= 0 && i < galleryItems.length) {
+        var img = galleryItems[i].querySelector('img');
+        if (img && img.src) {
+          var pre = new Image();
+          pre.src = img.src;
+        }
+      }
+    });
   }
 
   function closeLightbox() {

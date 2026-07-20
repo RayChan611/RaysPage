@@ -90,7 +90,7 @@
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function fadeOut() {
-      overlay.style.transition = 'opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.transition = 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
       overlay.style.opacity = '0';
       overlay.style.pointerEvents = 'none';
     }
@@ -127,11 +127,11 @@
       if (reduceMotion) return;
       e.preventDefault();
 
-      overlay.style.transition = 'opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.transition = 'opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1)';
       overlay.style.opacity = '1';
       overlay.style.pointerEvents = 'auto';
 
-      setTimeout(() => { window.location.href = href; }, 300);
+      setTimeout(() => { window.location.href = href; }, 260);
     });
   }
 
@@ -170,7 +170,11 @@
     });
 
     btn.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.lenis && typeof window.lenis.scrollTo === 'function') {
+        window.lenis.scrollTo(0, { duration: 0.8 });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     });
   }
 
@@ -224,12 +228,27 @@
     }
   }
 
+  // ---- Cmd+K / Ctrl+K to focus search ----
+  function initSearchShortcut() {
+    document.addEventListener('keydown', function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        var input = document.getElementById('searchInput');
+        if (input) {
+          e.preventDefault();
+          input.focus();
+          input.select();
+        }
+      }
+    });
+  }
+
   // ---- Init ----
   function initAll() {
     initBackToTop();
     initReadingProgress();
     initPageTransition();
     initAnalytics();
+    initSearchShortcut();
   }
 
   function boot() { initAll(); }

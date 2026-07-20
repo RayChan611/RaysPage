@@ -2,3 +2,10 @@ node_modules
 .astro
 
 .DS_Store
+
+# Astro SSR build artifacts (static site deploy only needs .html/.css/.js)
+dist/_noop-middleware.mjs
+dist/renderers.mjs
+dist/manifest_*.mjs
+dist/chunks/
+dist/pages/

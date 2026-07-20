@@ -5,6 +5,7 @@
 
 /* ---------- CSS Variables ---------- */
 :root {
+  color-scheme: dark;
   --bg-primary: #0a0a0a;
   --bg-secondary: #111111;
   --bg-card: #1a1a1a;
@@ -211,10 +212,8 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 /* Search entry — pill button aligned with nav links; ⌘K hint on desktop */
 .nav-right { display: flex; align-items: center; gap: 28px; }
 @media (max-width: 768px) {
-  .nav-links { display: none; }
-  .nav-links.open {
+  .nav-links {
     display: flex;
-    flex-direction: column;
     position: absolute;
     top: 100%; left: 0; right: 0;
     background: rgba(10,10,10,0.97);
@@ -222,12 +221,27 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
     padding: 24px 40px;
     gap: 20px;
     border-bottom: 1px solid var(--border);
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0s linear 0.25s;
+  }
+  .nav-links.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0s linear 0s;
+    z-index: 60;
   }
   .nav-mobile-btn { display: block; }
   .nav { padding: 16px 24px; }
   .nav.scrolled { padding: 12px 24px; }
   .nav-right { gap: 14px; }
-  .nav-links.open { z-index: 60; }
 }
 
 /* ---------- Hero ---------- */
@@ -775,6 +789,15 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
   background: rgba(255,255,255,0.15);
   color: #fff;
 }
+
+/* ---------- Focus Visible (keyboard navigation) ---------- */
+:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.4);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+/* Remove outline for mouse clicks on elements that already have visual feedback */
+:focus:not(:focus-visible) { outline: none; }
 
 /* ---------- Reduced Motion (accessibility) ---------- */
 @media (prefers-reduced-motion: reduce) {
