@@ -18,23 +18,9 @@
 
   var DEFAULT_BOTTOM = 32;
   var LIFT_HEIGHT = 78;
-  var currentBottom = DEFAULT_BOTTOM;
-  var targetBottom = DEFAULT_BOTTOM;
-  var animId = null;
 
-  // Slow lerp — smooths the position change over many frames
-  function tick() {
-    var diff = targetBottom - currentBottom;
-    if (Math.abs(diff) < 0.3) {
-      currentBottom = targetBottom;
-      btn.style.bottom = currentBottom + 'px';
-      animId = null;
-      return; // stop RAF loop when stable
-    }
-    currentBottom += diff * 0.055; // 5.5% per frame ≈ 300ms to cross 78px
-    btn.style.bottom = currentBottom + 'px';
-    animId = requestAnimationFrame(tick);
-  }
+  // 由 CSS 的 bottom transition 完成平滑过渡，去掉独立的 RAF lerp 循环
+  btn.style.bottom = DEFAULT_BOTTOM + 'px';
 
   function setupFooterObserver() {
     var footer = document.querySelector('.footer');
@@ -47,12 +33,10 @@
       function (entries) {
         var entry = entries[0];
         if (!entry) return;
-        var ratio = entry.intersectionRatio;
-        var lifted = Math.min(1, ratio * 12);
-        targetBottom = DEFAULT_BOTTOM + LIFT_HEIGHT * lifted;
-        if (!animId) animId = requestAnimationFrame(tick);
+        // footer 进入视口 → 抬起按钮，离开 → 降回；过渡动画交给 CSS
+        btn.style.bottom = (entry.isIntersecting ? DEFAULT_BOTTOM + LIFT_HEIGHT : DEFAULT_BOTTOM) + 'px';
       },
-      { threshold: Array.from({ length: 101 }, function (_, i) { return i / 100; }) }
+      { threshold: 0 }
     );
 
     io.observe(footer);

@@ -20,6 +20,13 @@
       this.el.style.transformStyle = 'preserve-3d';
       this.el.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
       this.el.__tilt = this;
+      // 尺寸在构造时缓存一次，resize 时更新，避免 hover 每帧读取 offsetWidth/Height 触发强制重排
+      this.w = el.offsetWidth;
+      this.h = el.offsetHeight;
+      window.addEventListener('resize', () => {
+        this.w = el.offsetWidth;
+        this.h = el.offsetHeight;
+      }, { passive: true });
       this.bind();
     }
 
@@ -30,8 +37,7 @@
     }
 
     enter() {
-      this.w = this.el.offsetWidth;
-      this.h = this.el.offsetHeight;
+      // 尺寸已在构造函数缓存，hover 时无需再读取
     }
 
     move(e) {

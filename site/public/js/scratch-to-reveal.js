@@ -109,9 +109,11 @@
       if (now - lastCheckTime < CHECK_THROTTLE_MS) return;
       lastCheckTime = now;
 
-      const rect = card.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const cw = canvas.width, ch = canvas.height;
+      // 仅扫描中心 50% 区域即可判定完成度，开销降为约 1/4（避免全画布 getImageData）
+      const sx = Math.floor(cw * 0.25), sy = Math.floor(ch * 0.25);
+      const sw = Math.floor(cw * 0.5), sh = Math.floor(ch * 0.5);
+      const imgData = ctx.getImageData(sx, sy, sw, sh);
       const total = imgData.data.length / 4;
       let cleared = 0;
       // Sample every 8th pixel for performance

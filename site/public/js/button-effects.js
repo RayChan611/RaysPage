@@ -18,18 +18,23 @@
       const btn = wrapper.querySelector('.btn-primary');
       if (!btn) return;
 
+      wrapper.addEventListener('mouseenter', () => {
+        wrapper.classList.add('is-magnetic');
+      });
+
       wrapper.addEventListener('mousemove', (e) => {
         const rect = wrapper.getBoundingClientRect();
         const x = e.clientX - rect.left - rect.width / 2;
         const y = e.clientY - rect.top - rect.height / 2;
-        // 用 CSS var 传递偏移量，避免与 hover transform 冲突
-        wrapper.style.transform = `translate(${x * MAGNETIC_STRENGTH}px, ${y * MAGNETIC_STRENGTH}px)`;
-        wrapper.style.transition = 'transform 0.2s ease-out';
+        // 偏移量通过 CSS 变量传递，transition 交由 CSS 统一管理，mousemove 不再每帧覆写 style.transition
+        wrapper.style.setProperty('--mx', `${x * MAGNETIC_STRENGTH}px`);
+        wrapper.style.setProperty('--my', `${y * MAGNETIC_STRENGTH}px`);
       });
 
       wrapper.addEventListener('mouseleave', () => {
-        wrapper.style.transform = 'translate(0, 0)';
-        wrapper.style.transition = 'transform 0.5s ease-out';
+        wrapper.classList.remove('is-magnetic');
+        wrapper.style.setProperty('--mx', '0px');
+        wrapper.style.setProperty('--my', '0px');
       });
     });
   }

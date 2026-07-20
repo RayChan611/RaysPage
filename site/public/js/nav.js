@@ -73,7 +73,8 @@
   function initHeroAnimation() {
     const heroText = document.querySelector('.hero-text');
     if (heroText) {
-      setTimeout(() => heroText.classList.add('hero-loaded'), 300);
+      // 双 rAF 等待首帧样式就绪后触发，与 CSS 动画时序解耦（替代固定 300ms 魔法数字）
+      requestAnimationFrame(() => requestAnimationFrame(() => heroText.classList.add('hero-loaded')));
     }
   }
 

@@ -13,6 +13,8 @@
 
   // Respect reduced-motion preference → keep the native cursor.
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // 计量网络用户跳过粒子特效
+  if (window.__reducedData) return;
 
   function init() {
     if (window.innerWidth <= 768) return;

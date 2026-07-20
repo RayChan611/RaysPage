@@ -4,6 +4,8 @@
  * Ported from Inspira UI <Sparkles> component.
  */
 (function () {
+  // 计量网络用户跳过粒子特效
+  if (window.__reducedData) return;
   const CANVAS_ID = 'hero-sparkle-canvas';
   const MIN_SIZE   = 0.6;
   const MAX_SIZE   = 1.7;

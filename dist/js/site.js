@@ -9,6 +9,9 @@
 (function () {
   'use strict';
 
+  // 计量网络用户跳过非必要动画（cursor 粒子 / sparkle），由各特效脚本读取
+  window.__reducedData = !!(window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches);
+
   // ---- Shared RAF visibility manager ----
   // A single visibilitychange listener pauses/resumes every registered loop,
   // replacing the 3 separate listeners hero-sparkle / cursor / smooth-scroll
@@ -242,6 +245,73 @@
     });
   }
 
+  // ---- Contact card click-to-copy + toast ----
+  function initContactCopy() {
+    var cards = document.querySelectorAll('.contact-card[data-copy]');
+    if (!cards.length) return;
+
+    cards.forEach(function (card) {
+      var label = (card.querySelector('h4') || {}).textContent || '内容';
+      card.style.cursor = 'pointer';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', '复制' + label.trim());
+
+      var trigger = function () {
+        copyText(card.getAttribute('data-copy'));
+      };
+      card.addEventListener('click', trigger);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trigger(); }
+      });
+    });
+
+    function copyText(text) {
+      var ok = function () { showToast('已复制 ' + text); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok).catch(function () { fallbackCopy(text, ok); });
+      } else {
+        fallbackCopy(text, ok);
+      }
+    }
+    function fallbackCopy(text, ok) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok();
+      } catch (e) {
+        showToast('复制失败，请手动复制');
+      }
+    }
+  }
+
+  // ---- Toast (shared, lazy-created) ----
+  var toastTimer = null;
+  function showToast(msg) {
+    var el = document.getElementById('rayToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rayToast';
+      el.className = 'ray-toast';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    // force reflow so repeated toasts re-trigger the transition
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
+  }
+
   // ---- Init ----
   function initAll() {
     initBackToTop();
@@ -249,6 +319,7 @@
     initPageTransition();
     initAnalytics();
     initSearchShortcut();
+    initContactCopy();
   }
 
   function boot() { initAll(); }
