@@ -24,11 +24,14 @@
     el.setAttribute('aria-label', LINES.join(' '));
     el.classList.add('typing');
 
-    const lineNodes = [];
+    const lineEls = [];
     LINES.forEach((line, i) => {
+      const span = document.createElement('span');
+      span.className = 'hero-tagline-line';
       const tn = document.createTextNode('');
-      el.appendChild(tn);
-      lineNodes.push(tn);
+      span.appendChild(tn);
+      el.appendChild(span);
+      lineEls.push({ span, tn });
       if (i < LINES.length - 1) {
         el.appendChild(document.createElement('br'));
       }
@@ -47,12 +50,14 @@
 
       const line = LINES[lineIndex];
       charIndex++;
-      lineNodes[lineIndex].nodeValue = line.slice(0, charIndex);
+      lineEls[lineIndex].tn.nodeValue = line.slice(0, charIndex);
 
       if (charIndex >= line.length) {
+        lineEls[lineIndex].span.classList.remove('typing');
         if (lineIndex < LINES.length - 1) {
           lineIndex++;
           charIndex = 0;
+          lineEls[lineIndex].span.classList.add('typing');
           setTimeout(function () {
             lastTime = performance.now();
             requestAnimationFrame(tick);
@@ -67,6 +72,7 @@
       requestAnimationFrame(tick);
     }
 
+    lineEls[0].span.classList.add('typing');
     requestAnimationFrame(tick);
   }
 

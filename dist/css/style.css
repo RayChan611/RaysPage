@@ -351,14 +351,17 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
   max-width: 400px;
 }
 
-/* 打字机光标 */
-.hero-tagline.typing::after {
+/* 打字机光标：跟随当前正在输入的行 */
+.hero-tagline-line.typing::after {
   content: '|';
   display: inline-block;
   margin-left: 2px;
   animation: cursor-blink 0.85s step-end infinite;
   font-weight: 300;
   color: var(--text-secondary);
+}
+.hero-tagline-line {
+  display: inline;
 }
 @keyframes cursor-blink {
   0%, 100% { opacity: 1; }
