@@ -261,7 +261,7 @@
       card.setAttribute('aria-label', '复制' + label.trim());
 
       var trigger = function () {
-        copyText(card.getAttribute('data-copy'));
+        copyText(card, card.getAttribute('data-copy'));
       };
       card.addEventListener('click', trigger);
       card.addEventListener('keydown', function (e) {
@@ -269,8 +269,12 @@
       });
     });
 
-    function copyText(text) {
-      var ok = function () { showToast('已复制 ' + text); };
+    function copyText(card, text) {
+      var ok = function () {
+        card.classList.add('copied');
+        clearTimeout(card._copiedTimer);
+        card._copiedTimer = setTimeout(function () { card.classList.remove('copied'); }, 2000);
+      };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(ok).catch(function () { fallbackCopy(text, ok); });
       } else {

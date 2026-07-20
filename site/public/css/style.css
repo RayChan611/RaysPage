@@ -714,6 +714,13 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
   color: rgba(255,255,255,0.38);
   border-color: var(--border-hover);
 }
+.contact-card.copied::after {
+  content: '复制成功';
+  opacity: 1;
+  transform: translateY(0);
+  color: rgba(140, 200, 160, 0.85);
+  border-color: rgba(140, 200, 160, 0.4);
+}
 
 .contact-icon {
   font-size: .4rem;
