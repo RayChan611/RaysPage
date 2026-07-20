@@ -240,6 +240,9 @@
           e.preventDefault();
           input.focus();
           input.select();
+        } else {
+          e.preventDefault();
+          showToast('搜索功能仅在 Essays / Notes 页可用');
         }
       }
     });

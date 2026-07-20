@@ -5,42 +5,32 @@
  * Performance: uses createTextNode + appendChild instead of innerHTML
  * to avoid full HTML re-parse on every character.
  *
- * IMPORTANT: Waits until name animation fully finishes before starting,
- * to avoid reflow competition with CSS transitions on .hero-name-line.
+ * Starts as soon as the hero name entrance animation finishes, driven by
+ * the CSS transitionend event on the last name line. A reduced-motion
+ * check + fallback timeout keeps it robust if transitions are disabled.
  */
 (function () {
   const TARGET_ID = 'hero-tagline';
 
-  // Wait until ALL name-line transitions have finished before starting typewriter.
-  // Name animation timeline (from style.css):
-  //   line 1: delay 0.35s + duration 0.7s  = finishes at 1.05s
-  //   line 2: delay 0.60s + duration 0.7s  = finishes at 1.30s
-  // Add 200ms buffer → start typewriter at 1.50s after .hero-loaded
-  const START_AFTER_HERO_LOADED = 1500;  // ms
-
-  // Lines to type, one per line
   const LINES      = ['Ground-up rebuild.', 'Capabilities. Mindset. Vision.'];
   const SPEED      = 80;    // ms per character
   const LINE_PAUSE = 400;   // ms to pause after finishing a line (before <br>)
+  const FALLBACK_MS = 2500; // safety net if transition events never fire
 
   function typewrite() {
     const el = document.getElementById(TARGET_ID);
-    if (!el) return;
+    if (!el || el.textContent) return;
 
     el.setAttribute('aria-label', LINES.join(' '));
     el.classList.add('typing');
 
-    // Build DOM structure once: one text node per line, separated by <br>
-    const lineNodes = [];   // Array<Text>
-    const brs = [];         // Array<HTMLElement>
+    const lineNodes = [];
     LINES.forEach((line, i) => {
       const tn = document.createTextNode('');
       el.appendChild(tn);
       lineNodes.push(tn);
       if (i < LINES.length - 1) {
-        const br = document.createElement('br');
-        el.appendChild(br);
-        brs.push(br);
+        el.appendChild(document.createElement('br'));
       }
     });
 
@@ -57,7 +47,6 @@
 
       const line = LINES[lineIndex];
       charIndex++;
-      // Incremental update — only modify the current line's text node
       lineNodes[lineIndex].nodeValue = line.slice(0, charIndex);
 
       if (charIndex >= line.length) {
@@ -81,30 +70,67 @@
     requestAnimationFrame(tick);
   }
 
+  function start() {
+    // Short buffer after the name entrance finishes so the tagline settles.
+    setTimeout(typewrite, 120);
+  }
+
+  function isReady(heroText) {
+    // If reduced motion is preferred, CSS transitions are effectively instant — start now.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return true;
+    }
+    // If the hero animation has already completed, the last line is fully opaque.
+    const lastLine = heroText.querySelector('.hero-name-line:last-child');
+    if (lastLine) {
+      const style = window.getComputedStyle(lastLine);
+      const opacity = parseFloat(style.opacity);
+      if (opacity >= 0.99) return true;
+    }
+    return false;
+  }
+
   function init() {
     const heroText = document.querySelector('.hero-text');
-    if (!heroText) {
-      setTimeout(typewrite, START_AFTER_HERO_LOADED);
+    const lines = heroText ? Array.from(heroText.querySelectorAll('.hero-name-line')) : [];
+
+    if (!lines.length) {
+      setTimeout(typewrite, FALLBACK_MS);
       return;
     }
-    const observer = new MutationObserver(function (mutations) {
-      mutations.forEach(function (m) {
-        if (m.target.classList.contains('hero-loaded')) {
-          observer.disconnect();
-          setTimeout(typewrite, START_AFTER_HERO_LOADED);
-        }
-      });
-    });
-    observer.observe(heroText, { attributes: true, attributeFilter: ['class'] });
 
-    // Fallback: if hero-loaded never fires, start anyway after 5s
+    // If already loaded (e.g. reduced motion or cached state), start immediately.
+    if (heroText.classList.contains('hero-loaded') && isReady(heroText)) {
+      start();
+      return;
+    }
+
+    let started = false;
+    const lastLine = lines[lines.length - 1];
+
+    function cleanup() {
+      lines.forEach(function (l) { l.removeEventListener('transitionend', onTransitionEnd); });
+    }
+
+    function onTransitionEnd(e) {
+      if (started) return;
+      // Only fire once, from the last name line.
+      if (e.target !== lastLine) return;
+      started = true;
+      cleanup();
+      start();
+    }
+
+    lines.forEach(function (l) { l.addEventListener('transitionend', onTransitionEnd); });
+
+    // Fallback: if transitions never fire, start after a generous timeout.
     setTimeout(function () {
-      var el = document.getElementById(TARGET_ID);
-      if (el && !el.textContent) {
-        observer.disconnect();
+      if (!started) {
+        started = true;
+        cleanup();
         typewrite();
       }
-    }, 5000);
+    }, FALLBACK_MS);
   }
 
   if (document.readyState === 'loading') {

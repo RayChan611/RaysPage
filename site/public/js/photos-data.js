@@ -65,7 +65,7 @@
     const num = String(globalIdx + 1).padStart(2, '0');
     return `
         <div class="gallery-item animate-on-scroll" data-title="${photo.title}" data-series="${photo.seriesName || ''}" role="button" tabindex="0" aria-label="${photo.title} - 点击查看大图">
-          <img src="${photo.webp}" alt="${photo.alt}" loading="lazy" decoding="async" width="800" height="1067" onerror="this.style.display='none'" />
+          <img src="${photo.webp}" alt="${photo.alt}" loading="lazy" decoding="async" onerror="this.style.display='none'" />
           <div class="gallery-overlay">
             <span class="gallery-number">${num}</span>
             <h3>${photo.title}</h3>

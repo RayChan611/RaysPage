@@ -59,6 +59,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={twitterImage} />
   {canonical && <link rel="canonical" href={canonical} />}
+  <link rel="alternate" type="application/rss+xml" title="Ray Chan" href="/rss.xml" />
   <style>
     html, body { background: #0a0a0a; margin: 0; }
     .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 40px; }
@@ -112,7 +113,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
 
   <footer class="footer">
     <div class="container">
-      <p class="footer-copy">&copy; 2026 Ray Chan. Built with Devotion.</p>
+      <p class="footer-copy">&copy; 2026 Ray Chan. Built with Devotion. · <a class="footer-link" href="/rss.xml" aria-label="RSS 订阅">RSS</a></p>
     </div>
   </footer>
   <button class="back-to-top" id="backToTop" aria-label="Back to top" title="Back to top">
