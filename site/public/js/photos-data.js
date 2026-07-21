@@ -60,12 +60,22 @@
     },
   ];
 
+  // ---- Derive the thumbnail URL from the full-size source.
+  //      photo.webp is the full-res image used by the lightbox; the gallery
+  //      grid renders a smaller -thumb.webp (800px) so the listing page only
+  //      downloads ~30KB per tile instead of the multi-hundred-KB original.
+  function thumbOf(src) {
+    return src.replace(/\.(webp|jpeg|jpg|png)$/i, '-thumb.webp');
+  }
+
   // ---- Render a single gallery item ----
   function renderItem(photo, globalIdx) {
     const num = String(globalIdx + 1).padStart(2, '0');
+    const full = photo.webp;
+    const thumb = thumbOf(full);
     return `
-        <div class="gallery-item animate-on-scroll" data-title="${photo.title}" data-series="${photo.seriesName || ''}" role="button" tabindex="0" aria-label="${photo.title} - 点击查看大图">
-          <img src="${photo.webp}" alt="${photo.alt}" loading="lazy" decoding="async" onerror="this.style.display='none'" />
+        <div class="gallery-item animate-on-scroll" data-title="${photo.title}" data-series="${photo.seriesName || ''}" data-full="${full}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${photo.title} - 点击查看大图">
+          <img src="${thumb}" srcset="${thumb} 800w, ${full} 1600w" sizes="(max-width: 768px) 50vw, 33vw" alt="${photo.alt}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${full}'" />
           <div class="gallery-overlay">
             <span class="gallery-number">${num}</span>
             <h3>${photo.title}</h3>

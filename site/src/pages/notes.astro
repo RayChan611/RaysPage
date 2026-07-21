@@ -51,7 +51,10 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
           const inner = (
             <div class="note-card-header">
               <span class="note-book-name">{n.data.book || n.data.title}</span>
-              <span class="note-card-tag">{n.data.tags[0] || 'Note'}</span>
+              <span class="note-card-tags">
+                {!n.data.hasDetail && <span class="note-card-tag note-card-tag--excerpt">摘录</span>}
+                <span class="note-card-tag">{n.data.tags[0] || 'Note'}</span>
+              </span>
             </div>
             <div class="note-excerpt" set:html={n.data.excerpt || ''}></div>
           );

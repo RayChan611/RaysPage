@@ -103,15 +103,31 @@
     if (animId) cancelAnimationFrame(animId);
     animate();
 
-    // The sparkle canvas is position:fixed and fills the viewport, so it stays
-    // visible while the user scrolls — keep animating. We only pause when the
-    // tab itself is hidden (saves CPU/GPU), never on scroll.
-    // Delegated to the shared manager (window.RayRAF): a single visibilitychange
-    // listener on the page now handles every animation loop.
+    // Pause the particle loop when the hero region scrolls out of view — the
+    // canvas sits behind the hero, so animating it deep down the page is pure
+    // wasted GPU. We resume when the hero is back in view. Tab-hidden pausing
+    // stays delegated to the shared RayRAF manager.
+    let heroVisible = true;
+    function start() { if (heroVisible && !animId) animate(); }
+    function stop()  { if (animId) { cancelAnimationFrame(animId); animId = null; } }
+
+    const heroRegion = canvas.closest('.hero-bg-effect')
+      ? document.querySelector('.essays-hero, .photos-hero, .hero, .essay-hero, .note-hero, .note-title-area')
+      : null;
+    if ('IntersectionObserver' in window && heroRegion) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          heroVisible = entry.isIntersecting;
+          if (entry.isIntersecting) start(); else stop();
+        });
+      }, { rootMargin: '80px 0px 80px 0px' });
+      io.observe(heroRegion);
+    }
+
     if (window.RayRAF) {
       window.RayRAF.register({
-        start: function () { if (!animId) animate(); },
-        stop:  function () { if (animId) { cancelAnimationFrame(animId); animId = null; } },
+        start: start,
+        stop:  stop,
       });
     }
 

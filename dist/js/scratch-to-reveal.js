@@ -178,7 +178,10 @@
 
   function initAll(retryCount) {
     retryCount = retryCount || 0;
-    const cards = document.querySelectorAll('.contact-card');
+    // Only cards that explicitly opt in via data-scratch get the cover.
+    // The Email card stays always-visible so the primary contact channel is
+    // never hidden behind the game; Phone/Location keep the scratch easter egg.
+    const cards = document.querySelectorAll('.contact-card[data-scratch]');
     if (!cards.length) {
       if (retryCount < MAX_RETRY) {
         setTimeout(() => initAll(retryCount + 1), 100);

@@ -41,6 +41,14 @@
     }
 
     move(e) {
+      // Lazy re-measure: if the element was hidden / not yet laid out when the
+      // constructor cached the size (offsetWidth === 0), px/py would be NaN and
+      // the transform would become rotateX(NaNdeg). Refetch on first real hover.
+      if (!this.w || !this.h) {
+        this.w = this.el.offsetWidth;
+        this.h = this.el.offsetHeight;
+        if (!this.w || !this.h) return;
+      }
       const rect = this.el.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;

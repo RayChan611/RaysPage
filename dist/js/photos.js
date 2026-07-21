@@ -46,11 +46,12 @@
     currentIndex = idx;
     lastFocused = document.activeElement;
     const item = galleryItems[idx];
-    const img = item.querySelector('img');
     const title = item.getAttribute('data-title') || '';
     const series = item.getAttribute('data-series') || '';
+    // Lightbox shows the full-resolution image (data-full), not the grid thumbnail.
+    const full = item.getAttribute('data-full');
 
-    if (img) lightboxImg.src = img.src;
+    if (full) lightboxImg.src = full;
     if (lightboxTitle) lightboxTitle.textContent = title;
     if (lightboxCounter) {
       lightboxCounter.textContent = (idx + 1) + ' / ' + galleryItems.length + (series ? '  ·  ' + series : '');
@@ -68,14 +69,14 @@
     preloadAdjacent(idx);
   }
 
-  // Preload next + prev images so arrow-key / click navigation has no blank flash
+  // Preload next + prev FULL images so arrow-key / click navigation has no blank flash
   function preloadAdjacent(idx) {
     [idx + 1, idx - 1].forEach(function (i) {
       if (i >= 0 && i < galleryItems.length) {
-        var img = galleryItems[i].querySelector('img');
-        if (img && img.src) {
+        var full = galleryItems[i].getAttribute('data-full');
+        if (full) {
           var pre = new Image();
-          pre.src = img.src;
+          pre.src = full;
         }
       }
     });

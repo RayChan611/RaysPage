@@ -258,6 +258,24 @@
   transition: all var(--transition);
 }
 
+/* Group the tags on a note card (excerpt marker + topic tag) */
+.note-card-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* "摘录" marker for standalone excerpt cards (hasDetail:false) — distinguishes
+   non-linked quote cards from the clickable full notes. Slightly tinted so it
+   reads as a kind/分类 badge rather than a topic tag. */
+.note-card-tag--excerpt {
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  text-transform: none;
+}
+
 /* Placeholder */
 .essay-card-placeholder {
   border-bottom: none;
