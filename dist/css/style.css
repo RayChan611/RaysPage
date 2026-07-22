@@ -676,7 +676,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 .copy-hint {
   position: absolute;
   top: 14px;
-  right: 14px;
+  left: 14px;
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.05em;
@@ -722,6 +722,28 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
   font-size: 0.9rem;
   color: var(--text-primary);
 }
+
+/* contact-card 铅笔手绘背景变体（花 / 叶子 / 藤蔓） */
+.contact-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: grayscale(1) contrast(1.05);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+  /* 右下角水印区域渐隐（135deg 末端落在右下） */
+  -webkit-mask-image: linear-gradient(135deg, #000 66%, transparent 100%);
+          mask-image: linear-gradient(135deg, #000 66%, transparent 100%);
+}
+.contact-card > * { position: relative; z-index: 1; }
+
+.contact-card--flower::before { background-image: url("/assets/contact/flower.jpg"); }
+.contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-size: contain; background-position: center; }
+.contact-card--vine::before   { background-image: url("/assets/contact/vine.jpg"); opacity: 0.16; }
 
 .social-links { display: flex; gap: 16px; flex-wrap: wrap; }
 .social-link {
