@@ -1,6 +1,7 @@
 /* ============================================
    Card 3D Tilt — Perspective Hover Effect
-   Contact cards, tags, social links
+   Tags, social links (contact cards dropped: kept their
+   own hover micro-motion — lift + sketch brighten + icon anim)
    ============================================ */
 
 (function () {
@@ -9,7 +10,7 @@
   // Skip touch devices
   if ('ontouchstart' in window) return;
 
-  const SELECTOR = '.contact-card, .tag, .social-link';
+  const SELECTOR = '.tag, .social-link';
   const MAX_TILT = 6;
   const PERSPECTIVE = 800;
   const TRANSITION_MS = 150;
