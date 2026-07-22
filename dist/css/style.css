@@ -676,7 +676,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 .copy-hint {
   position: absolute;
   top: 14px;
-  left: 14px;
+  right: 14px;
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.05em;
@@ -742,7 +742,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 .contact-card > * { position: relative; z-index: 1; }
 
 .contact-card--flower::before { background-image: url("/assets/contact/flower.jpg"); }
-.contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-size: contain; background-position: center; }
+.contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-position: center 55%; }
 .contact-card--vine::before   { background-image: url("/assets/contact/vine.jpg"); opacity: 0.16; }
 
 .social-links { display: flex; gap: 16px; flex-wrap: wrap; }
