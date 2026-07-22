@@ -740,6 +740,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
           mask-image: linear-gradient(135deg, #000 66%, transparent 100%);
 }
 .contact-card > * { position: relative; z-index: 1; }
+.contact-card > .copy-hint { position: absolute; }
 
 .contact-card--flower::before { background-image: url("/assets/contact/flower.jpg"); }
 .contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-position: center 55%; }
