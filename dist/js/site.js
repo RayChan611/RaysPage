@@ -248,20 +248,43 @@
     });
   }
 
-  // ---- Contact card click-to-copy + toast ----
+  // ---- Contact card click-to-copy + inline success hint ----
   function initContactCopy() {
     var cards = document.querySelectorAll('.contact-card[data-copy]');
     if (!cards.length) return;
 
     cards.forEach(function (card) {
+      var hint = card.querySelector('.copy-hint');
+      if (!hint) {
+        hint = document.createElement('span');
+        hint.className = 'copy-hint';
+        hint.textContent = '点击复制';
+        card.appendChild(hint);
+      }
       var label = (card.querySelector('h4') || {}).textContent || '内容';
       card.style.cursor = 'pointer';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', '复制' + label.trim());
 
+      // Hover/focus reveals the "点击复制" hint — but never while the success
+      // state is showing, so it can't flip back to "点击复制" mid-copy.
+      function showHint() {
+        if (card.classList.contains('copied')) return;
+        hint.textContent = '点击复制';
+        hint.classList.add('show');
+      }
+      function hideHint() {
+        if (card.classList.contains('copied')) return;
+        hint.classList.remove('show');
+      }
+      card.addEventListener('mouseenter', showHint);
+      card.addEventListener('mouseleave', hideHint);
+      card.addEventListener('focus', showHint);
+      card.addEventListener('blur', hideHint);
+
       var trigger = function () {
-        copyText(card, card.getAttribute('data-copy'));
+        copyText(card, hint, card.getAttribute('data-copy'));
       };
       card.addEventListener('click', trigger);
       card.addEventListener('keydown', function (e) {
@@ -269,12 +292,19 @@
       });
     });
 
-    function copyText(card, text) {
-      var ok = function () {
+    function copyText(card, hint, text) {
+      function ok() {
+        hint.textContent = '复制成功';
+        hint.classList.add('show', 'success');
         card.classList.add('copied');
         clearTimeout(card._copiedTimer);
-        card._copiedTimer = setTimeout(function () { card.classList.remove('copied'); }, 2000);
-      };
+        card._copiedTimer = setTimeout(function () {
+          card.classList.remove('copied');
+          hint.classList.remove('success');
+          // Fade out cleanly — no hover-hint re-show; next hover re-reveals.
+          hint.classList.remove('show');
+        }, 2000);
+      }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(ok).catch(function () { fallbackCopy(text, ok); });
       } else {
