@@ -43,33 +43,39 @@ a:hover { color: var(--accent); }
 img { max-width: 100%; display: block; }
 button { font-family: inherit; }
 
-/* ---------- Custom Cursor: Stardust Spray ---------- */
-.cursor-comet {
+/* ---------- Custom Cursor: minimal SVG ring + dot ---------- */
+.cursor-ring,
+.cursor-dot {
   position: fixed;
   top: 0; left: 0;
-  width: 9px; height: 9px;
-  background: rgba(255,255,255,0.7);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 11001;
-  box-shadow: 0 0 6px rgba(255,255,255,0.22), 0 0 2px rgba(255,255,255,0.4);
-  transform: translate3d(-100px,-100px,0);
-  will-change: transform;
-  opacity: 0;
-  transition: width 0.25s, height 0.25s, opacity 0.3s;
-}
-.cursor-stream {
-  position: fixed;
-  inset: 0;
   pointer-events: none;
   z-index: 11000;
-  opacity: 0;
+  overflow: visible;
+  transform-origin: center;
+  will-change: transform;
 }
-/* hover: head grows subtly; stardust brightens via canvas alpha in cursor.js */
-body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
+.cursor-ring {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.cursor-ring__circle {
+  fill: none;
+  stroke: rgba(255,255,255,0.55);
+  stroke-width: 1.5;
+  transition: stroke 0.25s ease, stroke-width 0.25s ease;
+}
+.cursor-dot__circle {
+  fill: rgba(255,255,255,0.9);
+}
+/* hover: ring brightens + thickens; the bloom + dot fade are driven in
+   cursor.js via transform scale / opacity, this just deepens the stroke */
+body.cursor-hover .cursor-ring__circle {
+  stroke: rgba(255,255,255,0.92);
+  stroke-width: 1.8;
+}
 
 @media (max-width: 768px) {
-  .cursor-comet, .cursor-stream { display: none; }
+  .cursor-ring, .cursor-dot { display: none; }
   body { cursor: auto; }
 }
 
@@ -882,7 +888,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .cursor-comet, .cursor-stream { display: none !important; }
+  .cursor-ring, .cursor-dot { display: none !important; }
   body { cursor: auto !important; }
   button, a { cursor: pointer !important; }
   .animate-on-scroll {
@@ -958,7 +964,7 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
   .custom-cursor-active * {
     cursor: none !important;
   }
-  #cursorComet, #cursorStream {
+  #cursorRing, #cursorDot {
     pointer-events: none !important;
   }
 }
