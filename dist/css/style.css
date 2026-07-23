@@ -757,11 +757,14 @@ body.cursor-hover .cursor-comet { width: 13px; height: 13px; }
 .contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-position: center 55%; }
 .contact-card--vine::before   { background-image: url("/assets/contact/vine.jpg"); opacity: 0.16; }
 
-/* Hover lights up the pencil sketch: brighter, slightly de-saturated toward
-   its natural tone, and more visible — a quiet "wake the card" micro-moment. */
+/* Hover lights up the pencil sketch without washing out the strokes.
+   The sketch is light-gray lines on near-white paper, so a raw brightness()
+   boost lifts the lines toward the paper and kills the texture. Instead we
+   raise opacity (lines read brighter over the dark card) and contrast (keeps
+   the strokes crisp), with only a faint brightness lift for a "wake" feel. */
 .contact-card:hover::before {
-  filter: grayscale(0.5) brightness(1.3) contrast(1.08);
-  opacity: 0.26;
+  filter: grayscale(1) contrast(1.32) brightness(1.05);
+  opacity: 0.3;
 }
 
 .social-links { display: flex; gap: 16px; flex-wrap: wrap; }
