@@ -492,6 +492,16 @@
   margin-top: -8px !important;
 }
 
+/* ---- Lyrics stanza separation (bilingual song essays) ---- */
+/* Groups a verse so the bilingual couplets inside stay tight, while verses
+   get a clear breather between them. */
+.essay-stanza {
+  margin-top: 30px;
+}
+.essay-stanza:first-child {
+  margin-top: 0;
+}
+
 /* === Promoted from per-page inlineStyles (essay/note detail pages) === */
 
 .note-back-fixed {
