@@ -84,13 +84,6 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <!-- Reading progress bar (was injected by the old components.js; now static). -->
   <div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
 
-  <svg class="cursor-ring" id="cursorRing" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
-    <circle class="cursor-ring__circle" cx="22" cy="22" r="16" />
-  </svg>
-  <svg class="cursor-dot" id="cursorDot" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-    <circle class="cursor-dot__circle" cx="7" cy="7" r="2.6" />
-  </svg>
-
   <nav class="nav scrolled" id="nav" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="index.html" class="nav-logo" aria-label="Ray Chan - Home"><span class="nav-logo-c">R</span><span class="nav-logo-expand">ay&nbsp;</span><span class="nav-logo-r">C</span><span class="nav-logo-expand2">han</span></a>
@@ -130,7 +123,6 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <!-- Global client scripts (load order matters: lenis before smooth-scroll). -->
   <script is:inline src="/js/vendor/lenis.min.js"></script>
   <script is:inline src="/js/smooth-scroll.js"></script>
-  <script is:inline src="/js/cursor.js"></script>
   <script is:inline src="/js/nav.js"></script>
 </body>
 </html>

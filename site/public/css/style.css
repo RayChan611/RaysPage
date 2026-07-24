@@ -43,42 +43,6 @@ a:hover { color: var(--accent); }
 img { max-width: 100%; display: block; }
 button { font-family: inherit; }
 
-/* ---------- Custom Cursor: minimal SVG ring + dot ---------- */
-.cursor-ring,
-.cursor-dot {
-  position: fixed;
-  top: 0; left: 0;
-  pointer-events: none;
-  z-index: 11000;
-  overflow: visible;
-  transform-origin: center;
-  will-change: transform;
-}
-.cursor-ring {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.cursor-ring__circle {
-  fill: none;
-  stroke: rgba(255,255,255,0.55);
-  stroke-width: 1.5;
-  transition: stroke 0.25s ease, stroke-width 0.25s ease;
-}
-.cursor-dot__circle {
-  fill: rgba(255,255,255,0.9);
-}
-/* hover: ring brightens + thickens; the bloom + dot fade are driven in
-   cursor.js via transform scale / opacity, this just deepens the stroke */
-body.cursor-hover .cursor-ring__circle {
-  stroke: rgba(255,255,255,0.92);
-  stroke-width: 1.8;
-}
-
-@media (max-width: 768px) {
-  .cursor-ring, .cursor-dot { display: none; }
-  body { cursor: auto; }
-}
-
 /* ---------- Navigation ---------- */
 .nav {
   position: fixed;
@@ -888,7 +852,6 @@ body.cursor-hover .cursor-ring__circle {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .cursor-ring, .cursor-dot { display: none !important; }
   body { cursor: auto !important; }
   button, a { cursor: pointer !important; }
   .animate-on-scroll {
@@ -953,19 +916,6 @@ body.cursor-hover .cursor-ring__circle {
     bottom: 18px;
     right: 18px;
     padding: 2px;
-  }
-}
-
-/* ============================================
-   Custom Cursor - hide default cursor on desktop
-   ============================================ */
-@media (min-width: 769px) {
-  .custom-cursor-active,
-  .custom-cursor-active * {
-    cursor: none !important;
-  }
-  #cursorRing, #cursorDot {
-    pointer-events: none !important;
   }
 }
 
