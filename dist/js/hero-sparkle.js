@@ -86,6 +86,9 @@
     animId = requestAnimationFrame(animate);
   }
 
+  function start() { if (!animId) animate(); }
+  function stop()  { if (animId) { cancelAnimationFrame(animId); animId = null; } }
+
   function init() {
     canvas = document.getElementById(CANVAS_ID);
     if (!canvas) return;
@@ -101,40 +104,19 @@
     createParticles();
 
     if (animId) cancelAnimationFrame(animId);
-    animate();
+    start();
 
-    // Pause the particle loop when the hero region scrolls out of view — the
-    // canvas sits behind the hero, so animating it deep down the page is pure
-    // wasted GPU. We resume when the hero is back in view. Tab-hidden pausing
-    // stays delegated to the shared RayRAF manager.
-    let heroVisible = true;
-    function start() { if (heroVisible && !animId) animate(); }
-    function stop()  { if (animId) { cancelAnimationFrame(animId); animId = null; } }
-
-    const heroRegion = canvas.closest('.hero-bg-effect')
-      ? document.querySelector('.essays-hero, .photos-hero, .hero, .essay-hero, .note-hero, .note-title-area')
-      : null;
-    if ('IntersectionObserver' in window && heroRegion) {
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          heroVisible = entry.isIntersecting;
-          if (entry.isIntersecting) start(); else stop();
-        });
-      }, { rootMargin: '80px 0px 80px 0px' });
-      io.observe(heroRegion);
-    }
-
+    // The hero-bg-effect is `position: fixed; inset: 0` and stays visible
+    // across the whole page, so the particle loop must keep running while the
+    // tab is visible. We only pause for hidden tabs (delegated to RayRAF) —
+    // pausing on scroll-out would freeze the background while it is still on
+    // screen, which reads as a bug.
     if (window.RayRAF) {
-      window.RayRAF.register({
-        start: start,
-        stop:  stop,
-      });
+      window.RayRAF.register({ start, stop });
     }
 
-    // Cleanup on page unload (SPA navigation, bfcache)
-    window.addEventListener('pagehide', () => {
-      if (animId) { cancelAnimationFrame(animId); animId = null; }
-    });
+    // Cleanup on page unload (bfcache)
+    window.addEventListener('pagehide', stop);
   }
 
   /* ---- Boot ---- */
