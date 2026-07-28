@@ -4,8 +4,17 @@
  *
  * The "← Back" button (`.note-back-fixed`) sits fixed at the bottom-left.
  * When the page footer scrolls into view, the button smoothly lifts upward
- * so it never overlaps the footer. Promoted from the per-page `inlineScripts`
- * (was duplicated on every essay/note detail page) into this shared file.
+ * so it never overlaps the footer.
+ *
+ * The lift uses a requestAnimationFrame lerp loop (exponential smoothing
+ * with a 0.055 factor) — this is what gives the subtle inertia / "settles
+ * into place" feel, rather than a hard binary jump. The lift is also
+ * proportional: the button rises gradually as more of the footer comes
+ * into view (intersectionRatio * 12), so it glides up as you reach the
+ * bottom of the page.
+ *
+ * `btn.style.bottom` is driven by JS every frame, so there is intentionally
+ * NO `bottom` transition in CSS — adding one would fight the lerp.
  *
  * Generic: it only acts if a `.note-back-fixed` element exists, so including
  * it on pages without one is a no-op.
@@ -18,9 +27,25 @@
 
   var DEFAULT_BOTTOM = 32;
   var LIFT_HEIGHT = 78;
+  var LERP = 0.055; // smoothing factor — smaller = floatier inertia
 
-  // 由 CSS 的 bottom transition 完成平滑过渡，去掉独立的 RAF lerp 循环
-  btn.style.bottom = DEFAULT_BOTTOM + 'px';
+  var currentBottom = DEFAULT_BOTTOM;
+  var targetBottom = DEFAULT_BOTTOM;
+  var animId = null;
+
+  function tick() {
+    var diff = targetBottom - currentBottom;
+    if (Math.abs(diff) < 0.3) {
+      currentBottom = targetBottom;
+      btn.style.bottom = currentBottom + 'px';
+      animId = null;
+      return;
+    }
+    // exponential smoothing → smooth glide with a little inertia
+    currentBottom += diff * LERP;
+    btn.style.bottom = currentBottom + 'px';
+    animId = requestAnimationFrame(tick);
+  }
 
   function setupFooterObserver() {
     var footer = document.querySelector('.footer');
@@ -33,10 +58,13 @@
       function (entries) {
         var entry = entries[0];
         if (!entry) return;
-        // footer 进入视口 → 抬起按钮，离开 → 降回；过渡动画交给 CSS
-        btn.style.bottom = (entry.isIntersecting ? DEFAULT_BOTTOM + LIFT_HEIGHT : DEFAULT_BOTTOM) + 'px';
+        // proportional lift: rises gradually as the footer scrolls in
+        var lifted = Math.min(1, entry.intersectionRatio * 12);
+        targetBottom = DEFAULT_BOTTOM + LIFT_HEIGHT * lifted;
+        if (!animId) animId = requestAnimationFrame(tick);
       },
-      { threshold: 0 }
+      // dense thresholds → smooth proportional updates as footer enters
+      { threshold: Array.from({ length: 101 }, function (_, i) { return i / 100; }) }
     );
 
     io.observe(footer);
