@@ -652,6 +652,8 @@
 }
 
 .note-page {
+  max-width: 780px;
+  margin: 0 auto;
   padding: 110px 24px 80px;
 }
 
