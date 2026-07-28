@@ -1,49 +1,65 @@
 /* back-lift.js
  * --------------------------------------------------------------------------
- * Shared behaviour for essay/note detail pages.
+ * Shared behaviour for all pages.
  *
- * The "← Back" button (`.note-back-fixed`) sits fixed at the bottom-left.
- * When the page footer scrolls into view, the button smoothly lifts upward
- * so it never overlaps the footer.
+ * Lifts two fixed UI elements upward when the page footer scrolls into
+ * view, so they never overlap the footer's text content:
  *
- * The lift uses a requestAnimationFrame lerp loop (exponential smoothing
- * with a 0.055 factor) — this is what gives the subtle inertia / "settles
- * into place" feel, rather than a hard binary jump. The lift is also
- * proportional: the button rises gradually as more of the footer comes
- * into view (intersectionRatio * 12), so it glides up as you reach the
- * bottom of the page.
+ *   - `.note-back-fixed`  ← Back button on essay/note detail pages
+ *   - `#backToTop`        Back to top arrow (every page)
  *
- * `btn.style.bottom` is driven by JS every frame, so there is intentionally
+ * The lift uses a requestAnimationFrame lerp loop (exponential smoothing,
+ * factor 0.055) — this is what gives the subtle inertia / "settles into
+ * place" feel rather than a hard binary jump. The lift is also proportional
+ * to the footer's intersection ratio (ratio * 12, capped at 1), so the
+ * buttons glide up gradually as you reach the bottom of the page.
+ *
+ * The lift amount is computed from the actual footer height, so each
+ * button lands a fixed gap (GAP) above the divider line (the footer's
+ * border-top). This works for footers of any height and adapts to resize.
+ *
+ * `el.style.bottom` is driven by JS every frame, so there is intentionally
  * NO `bottom` transition in CSS — adding one would fight the lerp.
  *
- * Generic: it only acts if a `.note-back-fixed` element exists, so including
- * it on pages without one is a no-op.
+ * Generic: it only acts if at least one of the two buttons exists, so
+ * including it on pages without either is a no-op.
  */
 (function () {
   var RETRY_MS = 300;
+  var LERP = 0.055;       // smoothing factor — smaller = floatier inertia
+  var GAP = 16;           // px of clearance above the footer's top edge
 
-  var btn = document.querySelector('.note-back-fixed');
-  if (!btn) return;
+  var backBtn = document.querySelector('.note-back-fixed');
+  var topBtn = document.getElementById('backToTop');
+  if (!backBtn && !topBtn) return;
 
-  var DEFAULT_BOTTOM = 32;
-  var LIFT_HEIGHT = 78;
-  var LERP = 0.055; // smoothing factor — smaller = floatier inertia
+  // Each button has its own resting bottom (its CSS-declared position).
+  var buttons = [];
+  if (backBtn) buttons.push({ el: backBtn, def: 32, lift: 0, current: 32, target: 32 });
+  if (topBtn) buttons.push({ el: topBtn, def: 26, lift: 0, current: 26, target: 26 });
 
-  var currentBottom = DEFAULT_BOTTOM;
-  var targetBottom = DEFAULT_BOTTOM;
   var animId = null;
 
   function tick() {
-    var diff = targetBottom - currentBottom;
-    if (Math.abs(diff) < 0.3) {
-      currentBottom = targetBottom;
-      btn.style.bottom = currentBottom + 'px';
+    var maxDiff = 0;
+    for (var i = 0; i < buttons.length; i++) {
+      var d = Math.abs(buttons[i].target - buttons[i].current);
+      if (d > maxDiff) maxDiff = d;
+    }
+    if (maxDiff < 0.3) {
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].current = buttons[i].target;
+        buttons[i].el.style.bottom = buttons[i].current + 'px';
+      }
       animId = null;
       return;
     }
     // exponential smoothing → smooth glide with a little inertia
-    currentBottom += diff * LERP;
-    btn.style.bottom = currentBottom + 'px';
+    for (var i = 0; i < buttons.length; i++) {
+      var b = buttons[i];
+      b.current += (b.target - b.current) * LERP;
+      b.el.style.bottom = b.current + 'px';
+    }
     animId = requestAnimationFrame(tick);
   }
 
@@ -54,13 +70,25 @@
       return;
     }
 
+    // Per-button lift amount, computed from actual footer height.
+    // Target when fully visible = footerHeight + GAP (lands GAP px above divider).
+    function recomputeLifts() {
+      var fh = footer.offsetHeight;
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].lift = fh + GAP - buttons[i].def;
+      }
+    }
+    recomputeLifts();
+
     var io = new IntersectionObserver(
       function (entries) {
         var entry = entries[0];
         if (!entry) return;
         // proportional lift: rises gradually as the footer scrolls in
         var lifted = Math.min(1, entry.intersectionRatio * 12);
-        targetBottom = DEFAULT_BOTTOM + LIFT_HEIGHT * lifted;
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].target = buttons[i].def + buttons[i].lift * lifted;
+        }
         if (!animId) animId = requestAnimationFrame(tick);
       },
       // dense thresholds → smooth proportional updates as footer enters
@@ -68,6 +96,13 @@
     );
 
     io.observe(footer);
+
+    // Recompute lifts when the footer resizes (responsive padding etc.)
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(recomputeLifts, 100);
+    });
   }
 
   if (document.readyState === 'loading') {
