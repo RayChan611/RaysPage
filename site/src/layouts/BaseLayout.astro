@@ -125,5 +125,8 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <script is:inline src="/js/vendor/lenis.min.js"></script>
   <script is:inline src="/js/smooth-scroll.js"></script>
   <script is:inline src="/js/nav.js"></script>
+  <!-- back-lift is global: #backToTop exists on every page and must clear the
+       footer divider everywhere, not just on essay/note detail pages. -->
+  <script is:inline defer src="/js/back-lift.js"></script>
 </body>
 </html>

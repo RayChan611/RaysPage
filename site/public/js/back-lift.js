@@ -33,10 +33,26 @@
   var topBtn = document.getElementById('backToTop');
   if (!backBtn && !topBtn) return;
 
-  // Each button has its own resting bottom (its CSS-declared position).
+  // Resting bottom is read from the *actual computed* style so it respects
+  // responsive media queries — e.g. .back-to-top is 26px on desktop but 18px
+  // on mobile (≤768px). Hardcoding would freeze it at 26px and the lerp would
+  // constantly drag the mobile button 8px lower than the CSS intends, even
+  // across a breakpoint resize.
+  function restingBottom(el, fallback) {
+    var v = parseFloat(getComputedStyle(el).bottom);
+    return isFinite(v) ? v : fallback;
+  }
+
+  // Each button keeps its own resting bottom (its CSS-declared position).
   var buttons = [];
-  if (backBtn) buttons.push({ el: backBtn, def: 32, lift: 0, current: 32, target: 32 });
-  if (topBtn) buttons.push({ el: topBtn, def: 26, lift: 0, current: 26, target: 26 });
+  if (backBtn) {
+    var bd = restingBottom(backBtn, 32);
+    buttons.push({ el: backBtn, def: bd, lift: 0, current: bd, target: bd });
+  }
+  if (topBtn) {
+    var td = restingBottom(topBtn, 26);
+    buttons.push({ el: topBtn, def: td, lift: 0, current: td, target: td });
+  }
 
   var animId = null;
 
@@ -101,7 +117,13 @@
     var resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(recomputeLifts, 100);
+      resizeTimer = setTimeout(function () {
+        // Recompute resting bottoms too, in case a breakpoint changed them.
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].def = restingBottom(buttons[i].el, buttons[i].def);
+        }
+        recomputeLifts();
+      }, 100);
     });
   }
 

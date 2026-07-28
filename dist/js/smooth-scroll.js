@@ -45,7 +45,9 @@
   // Handle URL hash on page load
   function scrollToHashTarget() {
     const hash = window.location.hash;
-    if (!hash) return;
+    // Guard bare "#" / empty — document.querySelector('#') throws a
+    // SyntaxError (invalid selector), e.g. when a URL arrives with a trailing #.
+    if (!hash || hash === '#' || hash.length < 2) return;
     const target = document.querySelector(hash);
     if (!target) return;
     window.scrollTo(0, 0);
