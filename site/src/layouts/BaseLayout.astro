@@ -18,7 +18,11 @@ const {
   canonical = 'https://www.raychan.top/',
   ogType = 'website',
   ogImage = 'https://www.raychan.top/assets/og/default.png',
-  ogUrl = canonical,
+  // Use the real file path (index.html) as og:url instead of "/" so social
+  // platforms (Feishu/WeChat) that dedupe link-preview cards by og:url don't
+  // serve a stale cached card for the root URL. Home/About/Contact all resolve
+  // to index.html, so this stays correct. canonical stays "/" for SEO.
+  ogUrl = 'https://www.raychan.top/index.html',
   twitterImage = ogImage,
   extraCss = [],
   current = 'home',

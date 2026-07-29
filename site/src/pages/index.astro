@@ -6,7 +6,9 @@ const meta = {
   canonical: "https://www.raychan.top/",
   ogType: "website",
   ogImage: "https://www.raychan.top/assets/og/default.png",
-  ogUrl: "https://www.raychan.top/",
+  // Use the real file path so Feishu/WeChat don't dedupe the link-preview card
+  // by og:url="/" and serve a stale no-image cache. Home resolves to index.html.
+  ogUrl: "https://www.raychan.top/index.html",
   twitterImage: "https://www.raychan.top/assets/og/default.png",
   extraCss: [],
   current: "home",
