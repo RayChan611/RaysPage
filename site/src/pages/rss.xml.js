@@ -1,12 +1,14 @@
 import rss from '@astrojs/rss';
-import { getCollection } from 'astro:content';
+import {
+  getPublishedDetailedNotes,
+  getPublishedEssays,
+} from '../lib/content';
 
 export async function GET(context) {
-  const essayEntries = await getCollection('essays', ({ data }) => !data.draft);
-  const noteEntries = await getCollection(
-    'notes',
-    ({ data }) => !data.draft && data.hasDetail !== false
-  );
+  const [essayEntries, noteEntries] = await Promise.all([
+    getPublishedEssays(),
+    getPublishedDetailedNotes(),
+  ]);
 
   const items = [
     ...essayEntries.map((e) => ({

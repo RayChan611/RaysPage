@@ -21,12 +21,17 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.raychan.top/note-katwu-lenny.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.raychan.top/note-principles.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.raychan.top/note-katwu-lenny.html</loc>
+    <loc>https://www.raychan.top/essay-baptized-in-fear.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -36,7 +41,17 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.raychan.top/essay-trial.html</loc>
+    <loc>https://www.raychan.top/essay-count-me-out.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.raychan.top/essay-driving.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.raychan.top/essay-embers-remain.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -46,12 +61,27 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.raychan.top/essay-right.html</loc>
+    <loc>https://www.raychan.top/essay-heroism.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.raychan.top/essay-lonely.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.raychan.top/essay-pdca.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.raychan.top/essay-right.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.raychan.top/essay-snooze.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -66,17 +96,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.raychan.top/essay-heroism.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.raychan.top/essay-driving.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.raychan.top/essay-embers-remain.html</loc>
+    <loc>https://www.raychan.top/essay-trial.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

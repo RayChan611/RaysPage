@@ -145,12 +145,13 @@ rayspage-astro/
 │   │       ├── index.astro / 404.astro / photos.astro   # 正文用 bodyHtml 字符串注入
 │   │       ├── essays.astro / notes.astro               # 列表页，getCollection 渲染卡片
 │   │       ├── essay-[slug].astro / note-[slug].astro   # 动态路由，渲染 <Content />
+│   │       └── sitemap.xml.js                           # 构建期自动生成 sitemap
 │   ├── public/             # ← 原样拷进构建产物根目录的静态资产
 │   │   ├── css/            # style.css（全局设计系统）+ 页专属（essays/notes/photos/reading-progress/search/404）
 │   │   ├── js/             # 12 个客户端脚本（见 5.3）+ back-lift.js（详情页返回按钮）
 │   │   ├── assets/         # og 图（default + 各文章）、ray-photo.webp
 │   │   ├── photos/         # 多个照片系列（qingdao/sanya/f1-2025-shanghai + 6 张 moments）
-│   │   ├── favicon.svg, robots.txt, sitemap.xml
+│   │   ├── favicon.svg, robots.txt
 ├── node_modules/           # 依赖（不提交，被 .gitignore 忽略）
 ├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
 └── .astro/                 # Astro 缓存（不提交）
@@ -453,10 +454,10 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 ### 9.13 SSH push 卡顿
 - 用 SSH (`git@github.com:...`) push 曾卡 5 分钟无输出（实际在传，只是缓冲没刷）。改用 **https + gh token**（`gh auth setup-git` 配置 credential helper）稳定快速。
 
-### 9.14 sitemap.xml 需手动维护（SEO 隐患，2026-07-14 已踩）
-- `public/sitemap.xml` 是**手写静态文件**，项目未启用 `@astrojs/sitemap` 自动生成。每次新增页面 / essay / note **必须手动补 `<url>`**，否则该页不在 sitemap，搜索引擎（百度/Google）可能不收录。
-- 已踩：`2026-07-13` 加 `heroism` / `driving` 两篇 essay 后 sitemap 未同步，这两页漏收录；本轮审计发现并已补回两条 `<url>`（commit 待推）。
-- 建议：加内容时同步更新 sitemap；或后续引入 `@astrojs/sitemap` 集成自动生成（需改动 `astro.config.mjs` + `package.json`，属新功能，未擅自加）。
+### 9.14 sitemap.xml 由构建期自动生成
+- 源文件是 `site/src/pages/sitemap.xml.js`，构建时输出 `dist/sitemap.xml`；不要再在 `site/public/` 下新增同名静态文件。
+- 固定页面在 `STATIC_ROUTES` 中维护；essay 与有详情页的 note 通过 `site/src/lib/content.ts` 的统一发布查询自动收集。
+- `draft: true` 的内容会同时从列表、详情路由、RSS 和 sitemap 排除，新增文章后不再需要手动补 `<url>`。
 - **essays 现状（2026-07-14）**：共 10 篇。`heroism`《真正的英雄主义》、`driving`《开车与赛车》为**纯文字引用块**（正文无图，仅保留名言/引用 + 署名；`ogImage` 仍指向 `/images/essays/` 截图仅用于社交分享卡片，文件保留未删）。其余 8 篇（choice/trial/foam/right/pdca/stardust/threethings + 旧文）含图/样式。
 
 ---

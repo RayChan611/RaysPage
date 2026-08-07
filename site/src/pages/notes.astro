@@ -1,6 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedNotes } from '../lib/content';
 
 const meta = {
   title: "Reading Notes | Ray Chan",
@@ -17,7 +17,7 @@ const meta = {
 
 // Driven by the `notes` Content Collection. Standalone excerpt cards
 // (hasDetail: false) render as non-linked <article>; detailed notes link out.
-const notes = (await getCollection('notes')).sort(
+const notes = (await getPublishedNotes()).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
 
