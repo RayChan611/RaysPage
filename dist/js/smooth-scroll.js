@@ -8,9 +8,10 @@
   let lenis;
   let animId = null;
 
-  // Disable browser native scroll restoration — Lenis takes over
+  // Keep native history restoration. Lenis only owns animated/programmatic
+  // scrolling; forcing manual restoration made Back return every list to top.
   if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
+    history.scrollRestoration = 'auto';
   }
 
   if (window.Lenis) {
@@ -42,13 +43,19 @@
     window.lenis = lenis;
   }
 
+  function getHashTarget(hash) {
+    if (!hash || hash === '#' || hash.length < 2) return null;
+    var id = hash.slice(1);
+    try { id = decodeURIComponent(id); } catch (_) {}
+    return document.getElementById(id);
+  }
+
   // Handle URL hash on page load
   function scrollToHashTarget() {
     const hash = window.location.hash;
-    // Guard bare "#" / empty — document.querySelector('#') throws a
-    // SyntaxError (invalid selector), e.g. when a URL arrives with a trailing #.
-    if (!hash || hash === '#' || hash.length < 2) return;
-    const target = document.querySelector(hash);
+    // Resolve by id instead of treating user-controlled hashes as CSS
+    // selectors; malformed/escaped hashes must never throw on page load.
+    const target = getHashTarget(hash);
     if (!target) return;
     window.scrollTo(0, 0);
     requestAnimationFrame(() => {
@@ -78,8 +85,7 @@
     const anchor = e.target.closest('a[href^="#"]');
     if (!anchor) return;
     const targetId = anchor.getAttribute('href');
-    if (targetId === '#' || targetId.length < 2) return;
-    const target = document.querySelector(targetId);
+    const target = getHashTarget(targetId);
     if (target) {
       e.preventDefault();
       const navEl = document.getElementById('nav');

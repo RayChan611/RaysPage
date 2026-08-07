@@ -3,7 +3,7 @@
 > **目标**：不依赖口口相传，让你快速、准确地理解这个站点的一切——设计理念、设计思路、逻辑、具体样式风格、架构逻辑、代码思路、踩过的坑、各种细节。
 > **阅读顺序建议**：先读 §0–§2 建立心智模型 → §3 看样式 → §4 看架构 → §5 看代码（尤其 search 动画与双管理器）→ §9（坑）必读 → §10–§11 上手干活。
 >
-> *本文档更新日期：2026-07-10。当前状态：search 清空动画已升级为 WAAPI FLIP（含 retype 修复）；笔记日期已校正；迁移脚本与死代码已移除；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
+> *本文档更新日期：2026-08-08。当前状态：search 清空动画已升级为 WAAPI FLIP（含 retype 与可访问性修复）；内容日期按 UTC 稳定解析；EdgeOne HTML 缓存与安全响应头已显式配置；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
 
 ---
 
@@ -130,6 +130,7 @@ rayspage-astro/
 ├── package.json            # 仅 astro 依赖 + dev/build/preview 脚本
 ├── package-lock.json
 ├── astro.config.mjs        # 构建配置（见 4.5）
+├── edgeone.json            # EdgeOne 响应头：HTML 重验证 + 基础安全头
 ├── tsconfig.json
 ├── .gitignore              # 忽略 node_modules / .astro / .DS_Store
 ├── site/                   # ← 用户的网站源码（手写部分）
@@ -366,6 +367,7 @@ hasDetail: true
 - **EdgeOne** 连 GitHub 仓库 **`RayChan611/RaysPage`** 的 `main` 分支，push 触发重新部署。
 - 站点域名 `www.raychan.top`。
 - **策略**：仓库同时提交 Astro 源码 (`site/`) 和构建产物 (`dist/`)。EdgeOne 配置为**直接服务 `dist/` 目录的静态文件**，不依赖 EdgeOne 的 `npm ci` 构建环境。
+- 根目录 `edgeone.json` 为所有响应补充基础安全头，并将根目录 `*.html` 设为 `max-age=0, must-revalidate`；避免文章页和 404 被浏览器按 immutable 长缓存，同时保留图片/CSS/JS 的平台默认静态缓存。
 
 ### 7.2 本地构建与提交流程
 ```bash
@@ -552,4 +554,4 @@ npm run preview       # 预览构建产物
 
 ---
 
-*文档更新日期：2026-07-10。覆盖：设计理念/思路、具体样式、架构逻辑、代码思路（含 search WAAPI FLIP）、部署、踩坑、约定、上手清单。如有代码演进，请以实际文件为准并同步更新本文件。*
+*文档更新日期：2026-08-08。覆盖：设计理念/思路、具体样式、架构逻辑、代码思路（含 search WAAPI FLIP）、部署、踩坑、约定、上手清单。如有代码演进，请以实际文件为准并同步更新本文件。*

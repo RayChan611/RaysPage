@@ -109,6 +109,11 @@
     });
 
     document.addEventListener('click', function (e) {
+      // Leave modified/non-primary clicks to the browser. Intercepting these
+      // breaks expected behaviours such as Cmd/Ctrl+click opening a new tab.
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (!(e.target instanceof Element)) return;
+
       const link = e.target.closest('a[href]');
       if (!link) return;
 
@@ -127,7 +132,12 @@
         overlay.style.opacity = '1';
         overlay.style.pointerEvents = 'auto';
         const fallbackHref = href;
-        const fromSameSite = document.referrer && document.referrer.indexOf(location.hostname) !== -1;
+        let fromSameSite = false;
+        if (document.referrer) {
+          try {
+            fromSameSite = new URL(document.referrer).origin === location.origin;
+          } catch (_) {}
+        }
         setTimeout(function () {
           if (fromSameSite && window.history.length > 1) {
             let navigated = false;
@@ -253,9 +263,12 @@
       var a = ev.target.closest ? ev.target.closest('a') : null;
       if (!a) return;
       var href = a.getAttribute('href') || '';
-      if (/^https?:\/\//i.test(href) && !/raychan\.top/i.test(href)) {
-        _track('outbound_link', { href: href });
-      }
+      try {
+        var url = new URL(href, window.location.href);
+        if (/^https?:$/.test(url.protocol) && url.origin !== window.location.origin) {
+          _track('outbound_link', { href: url.href });
+        }
+      } catch (_) {}
     }, true);
 
     var backBtn = document.querySelector('.note-back-fixed');

@@ -42,7 +42,7 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
     <div class="container">
       <div class="search-container">
         <input type="text" class="search-input" id="searchInput" placeholder="Search essays..." aria-label="Search essays" />
-        <div class="search-no-results" id="searchNoResults">No matching essays found.</div>
+        <div class="search-no-results" id="searchNoResults" role="status" aria-live="polite" aria-atomic="true">No matching essays found.</div>
       </div>
 
       <div class="essays-list" id="essaysList">

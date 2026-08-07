@@ -13,10 +13,30 @@ import { defineCollection, z } from 'astro:content';
  * preserve the exact design/system. Only the *metadata* becomes structured.
  */
 
+const contentDate = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+
+  const match = /^(\d{4})[.-](\d{2})[.-](\d{2})$/.exec(value.trim());
+  if (!match) return value;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  // Date.UTC normalises invalid inputs (e.g. Feb 31); turn those into an
+  // Invalid Date so Zod reports the frontmatter error during the build.
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return new Date(Number.NaN);
+  }
+  return date;
+}, z.date());
+
 const base = z.object({
   title: z.string(),
-  // Accepts '2026-07-01' / '2026.07.01' in frontmatter via coerce.
-  date: z.coerce.date(),
+  // Parse date-only metadata at UTC midnight. This keeps 2026.07.01 from
+  // becoming June 30 when a build runs in a positive-offset timezone.
+  date: contentDate,
   description: z.string().optional(),
   // Listing-card excerpt. May contain a little HTML (notes standalone cards
   // keep their multi-paragraph excerpt markup). Rendered with set:html.
@@ -28,14 +48,21 @@ const base = z.object({
 
 const essays = defineCollection({
   type: 'content',
-  schema: base,
+  schema: base.extend({
+    description: z.string().min(1),
+    excerpt: z.string().min(1),
+    tags: z.array(z.string()).min(1),
+    ogImage: z.string().url(),
+  }),
 });
 
 const notes = defineCollection({
   type: 'content',
   schema: base.extend({
     // Book / source name shown as `note-book-name` on the listing card.
-    book: z.string().optional(),
+    book: z.string().min(1),
+    excerpt: z.string().min(1),
+    tags: z.array(z.string()).min(1),
     // false = listing-only excerpt card with no dedicated detail page.
     hasDetail: z.boolean().default(true),
   }),

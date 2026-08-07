@@ -43,8 +43,11 @@
 
   function openLightbox(idx) {
     if (!lightbox || !lightboxImg || !galleryItems[idx]) return;
+    const wasOpen = lightbox.classList.contains('active');
     currentIndex = idx;
-    lastFocused = document.activeElement;
+    // Arrow navigation reuses this function. Preserve the gallery trigger so
+    // closing the dialog never restores focus to a now-hidden lightbox button.
+    if (!wasOpen) lastFocused = document.activeElement;
     const item = galleryItems[idx];
     const title = item.getAttribute('data-title') || '';
     const series = item.getAttribute('data-series') || '';
@@ -52,6 +55,7 @@
     const full = item.getAttribute('data-full');
 
     if (full) lightboxImg.src = full;
+    lightboxImg.alt = title || 'Photo';
     if (lightboxTitle) lightboxTitle.textContent = title;
     if (lightboxCounter) {
       lightboxCounter.textContent = (idx + 1) + ' / ' + galleryItems.length + (series ? '  ·  ' + series : '');
@@ -88,11 +92,16 @@
       lightbox.setAttribute('aria-hidden', 'true');
     }
     document.body.style.overflow = '';
-    if (lightboxImg) lightboxImg.src = '';
+    if (lightboxImg) {
+      lightboxImg.src = '';
+      lightboxImg.alt = '';
+    }
     currentIndex = -1;
     // Restore focus
-    if (lastFocused && typeof lastFocused.focus === 'function') {
-      lastFocused.focus();
+    const focusTarget = lastFocused;
+    lastFocused = null;
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      focusTarget.focus();
     }
   }
 

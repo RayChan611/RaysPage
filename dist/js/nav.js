@@ -23,26 +23,46 @@
   window.RayScroll.add(handleNavScroll);
 
   // ---- Mobile menu (event delegation, works with BaseLayout-rendered nav) ----
+  function setMobileMenu(open, restoreFocus) {
+    const btn = document.getElementById('navMobileBtn');
+    const links = document.getElementById('navLinks');
+    if (!btn || !links) return;
+
+    btn.classList.toggle('active', open);
+    links.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+    if (!open && restoreFocus) btn.focus();
+  }
+
   document.addEventListener('click', function (e) {
+    if (!(e.target instanceof Element)) return;
     const mobileBtn = e.target.closest('#navMobileBtn');
     if (mobileBtn) {
-      const navLinks = document.getElementById('navLinks');
-      if (!navLinks) return;
-      const isOpen = mobileBtn.classList.toggle('active');
-      navLinks.classList.toggle('open');
-      mobileBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const isOpen = mobileBtn.getAttribute('aria-expanded') !== 'true';
+      setMobileMenu(isOpen, false);
       return;
     }
     // Click on a nav link inside mobile menu — close menu
     const navLink = e.target.closest('#navLinks a');
     if (navLink) {
-      const btn = document.getElementById('navMobileBtn');
-      const links = document.getElementById('navLinks');
-      if (btn && links && btn.classList.contains('active')) {
-        btn.classList.remove('active');
-        links.classList.remove('open');
-        btn.setAttribute('aria-expanded', 'false');
-      }
+      setMobileMenu(false, false);
+      return;
+    }
+
+    // An open dropdown should not linger after the user clicks elsewhere.
+    const btn = document.getElementById('navMobileBtn');
+    if (btn && btn.getAttribute('aria-expanded') === 'true' && !e.target.closest('#nav')) {
+      setMobileMenu(false, false);
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    const btn = document.getElementById('navMobileBtn');
+    if (btn && btn.getAttribute('aria-expanded') === 'true') {
+      e.preventDefault();
+      setMobileMenu(false, true);
     }
   });
 

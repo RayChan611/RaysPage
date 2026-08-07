@@ -53,6 +53,19 @@
     el.style.pointerEvents = '';
     el._searchAnim = null;
     el.classList.remove('is-hidden', 'is-revealing', 'is-flipping');
+    el.removeAttribute('aria-hidden');
+    el.removeAttribute('inert');
+  }
+
+  function setSearchHidden(el, hidden) {
+    if (!el) return;
+    if (hidden) {
+      el.setAttribute('aria-hidden', 'true');
+      el.setAttribute('inert', '');
+    } else {
+      el.removeAttribute('aria-hidden');
+      el.removeAttribute('inert');
+    }
   }
 
   function initSearch(listId, itemSelector) {
@@ -109,7 +122,10 @@
     // ====== CLEAR: WAAPI FLIP reverse animation (no height snapping, no stagger pause) ======
     if (!hasQuery) {
       noResults && noResults.classList.remove('visible');
-      if (placeholder) placeholder.classList.remove('is-hidden');
+      if (placeholder) {
+        placeholder.classList.remove('is-hidden');
+        setSearchHidden(placeholder, false);
+      }
 
       // (timers + in-flight WAAPI already cancelled at the top of runFilter)
 
@@ -255,11 +271,13 @@
         item.style.paddingBottom = '';
         item.style.overflow = '';
         item.classList.remove('is-hidden', 'is-revealing');
+        setSearchHidden(item, false);
         prevMatches.set(item, true);
       } else {
         hiding.push({ el: item });
         item.classList.add('is-hidden');
         item.classList.remove('is-revealing');
+        setSearchHidden(item, true);
         prevMatches.set(item, false);
       }
     });
@@ -272,6 +290,7 @@
     // Hide placeholder + push to very bottom (instant, always)
     if (placeholder) {
       placeholder.classList.add('is-hidden');
+      setSearchHidden(placeholder, true);
       list.appendChild(placeholder);
     }
 
