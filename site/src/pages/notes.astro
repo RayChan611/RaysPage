@@ -59,7 +59,7 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
             <div class="note-excerpt" set:html={n.data.excerpt || ''}></div>
           );
           return n.data.hasDetail ? (
-            <a href={`note-${n.slug}.html`} class="note-card note-card-link animate-on-scroll">{inner}</a>
+            <a href={`note-${n.id}.html`} class="note-card note-card-link animate-on-scroll">{inner}</a>
           ) : (
             <article class="note-card animate-on-scroll">{inner}</article>
           );

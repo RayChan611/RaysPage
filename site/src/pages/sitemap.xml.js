@@ -28,16 +28,16 @@ export async function GET() {
 
   const contentRoutes = [
     ...notes
-      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .sort((a, b) => a.id.localeCompare(b.id))
       .map((entry) => ({
-        path: `/note-${entry.slug}.html`,
+        path: `/note-${entry.id}.html`,
         changefreq: 'monthly',
         priority: '0.6',
       })),
     ...essays
-      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .sort((a, b) => a.id.localeCompare(b.id))
       .map((entry) => ({
-        path: `/essay-${entry.slug}.html`,
+        path: `/essay-${entry.id}.html`,
         changefreq: 'monthly',
         priority: '0.6',
       })),

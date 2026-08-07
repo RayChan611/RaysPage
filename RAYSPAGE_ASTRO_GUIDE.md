@@ -3,13 +3,13 @@
 > **目标**：不依赖口口相传，让你快速、准确地理解这个站点的一切——设计理念、设计思路、逻辑、具体样式风格、架构逻辑、代码思路、踩过的坑、各种细节。
 > **阅读顺序建议**：先读 §0–§2 建立心智模型 → §3 看样式 → §4 看架构 → §5 看代码（尤其 search 动画与双管理器）→ §9（坑）必读 → §10–§11 上手干活。
 >
-> *本文档更新日期：2026-08-08。当前状态：search 清空动画已升级为 WAAPI FLIP（含 retype 与可访问性修复）；内容日期按 UTC 稳定解析；EdgeOne HTML 缓存与安全响应头已显式配置；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
+> *本文档更新日期：2026-08-08。当前状态：已升级至 Astro 7 / Content Layer API，Node 最低版本为 22.12；search 清空动画已升级为 WAAPI FLIP（含 retype 与可访问性修复）；内容日期按 UTC 稳定解析；GitHub Actions 会自动执行安全审计、类型检查、构建与静态产物校验；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
 
 ---
 
 ## 0. 一句话概览 & 关键事实
 
-RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。当前版本用 **Astro 4** 重建，是一个**零运行时、纯静态**站点，100% 保留了原版视觉特效（自定义光标、Hero 满屏背景、粒子背景、刮刮乐联系方式、磁性按钮、滚动揭示动画、页面转场遮罩、阅读进度条、搜索过滤动画等）。所有交互用**原生 JS（IIFE / ES5 风格，无打包）+ 少量 Lenis（CDN 平滑滚动）**实现，没有用任何前端框架（React/Vue 等）。
+RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。当前版本用 **Astro 7** 构建，是一个**零客户端框架运行时、纯静态**站点，100% 保留了原版视觉特效（自定义光标、Hero 满屏背景、粒子背景、刮刮乐联系方式、磁性按钮、滚动揭示动画、页面转场遮罩、阅读进度条、搜索过滤动画等）。所有交互用**原生 JS（IIFE / ES5 风格，无打包）+ 少量 Lenis（CDN 平滑滚动）**实现，没有使用 React/Vue 等客户端框架。
 
 **最重要的前提**：本项目是「原版静态 HTML 站点的逐页 Astro 化」，目标是 **100% 还原原版内容与视觉效果**，不是重写。所以绝大部分「业务逻辑」在 `site/public/js/*.js` 和 `site/public/css/*.css` 里，Astro 只是把这些内容壳子化、组件化、加上构建期优化。**还原优先于创新**——任何视觉/内容改动都要保证与原站等价（除非用户明确要求新设计）。
 
@@ -19,22 +19,23 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 | 作者 | Ray Chan |
 | 新版仓库 | `RayChan611/RaysPage` 的 `main` 分支（Astro 源码在 `site/`，`dist/` 已提交） |
 | 旧版存档 | `RayChan611/RaysPage-legacy`（原版纯 HTML 站，107 commits 完整历史，作参考） |
-| 成功标准 | 14 个页面**内容与视觉效果逐页等价**原站（已逐页 headless 比对验证 100% 一致） |
+| 成功标准 | 当前 21 个生成 HTML 页面内容正确、链接完整，关键页面与交互通过自动化浏览器回归 |
 | 部署方式 | 提交 `dist/` 静态产物 → EdgeOne 直接服务 `dist/`（**不**让 EdgeOne 自己 `npm run build`，详见 §7） |
 
 ---
 
 ## 1. 技术栈
 
-- **Astro 4.15**（`package.json` 中 `astro: ^4.15.0`，唯一构建依赖；`@astrojs/mdx: ^3.1.9` 用于 Content Collections）
+- **Astro 7.2**（`package.json` 中 `astro: ^7.2.0`；`@astrojs/mdx: ^7.0.5` 用于 Content Collections，`@astrojs/rss` 用于 RSS）
+- **Node.js ≥ 22.12.0**（Astro 7 的最低运行版本；仓库 `.nvmrc` 与 CI 固定为 `22.12.0`）
 - **构建输出**：`build.format: 'file'` → 输出 `index.html` / `essays.html` / `essay-choice.html` 等（保持 URL 与原站一致，已有外链零破坏）
 - **客户端 JS**：原生 ES5 风格 IIFE（无打包、无转译，浏览器直接跑），唯一例外是 **Lenis**（CDN 引入的平滑滚动库）
 - **样式**：手写 CSS（`style.css` 全局设计系统 + 各页专属 CSS），无 Tailwind / CSS-in-JS
-- **字体**：Google Fonts — `Inter`（sans，300–700）+ `JetBrains Mono`（mono，400/500），用 preload + `media="print" onload` 异步加载技巧
+- **字体**：Google Fonts — `Inter`（sans，300–700）+ `JetBrains Mono`（mono，400/500），使用 preconnect + 标准 stylesheet 加载
 - **分析**：Umami（`cloud.umami.is`，BaseLayout 中 `<script defer>` 引入）
 - **部署**：EdgeOne（连 GitHub `RayChan611/RaysPage` 仓库触发）
 
-无 TypeScript 框架、无 CSS 预处理器、无组件库。保持极简。
+无客户端 TypeScript 框架、无 CSS 预处理器、无组件库。TypeScript 仅用于 Astro 类型检查。保持极简。
 
 ---
 
@@ -127,22 +128,25 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 ### 4.1 目录结构
 ```
 rayspage-astro/
-├── package.json            # 仅 astro 依赖 + dev/build/preview 脚本
+├── package.json            # 依赖 + 开发、检查、构建、验证脚本
 ├── package-lock.json
+├── .nvmrc                  # 本地与 CI 使用 Node 22.12.0
+├── .github/workflows/ci.yml # main 的 push / PR 自动校验
 ├── astro.config.mjs        # 构建配置（见 4.5）
 ├── edgeone.json            # EdgeOne 响应头：HTML 重验证 + 基础安全头
+├── scripts/validate-dist.mjs # 静态产物、资源引用、响应头配置校验
 ├── tsconfig.json
 ├── .gitignore              # 忽略 node_modules / .astro / .DS_Store
 ├── site/                   # ← 用户的网站源码（手写部分）
 │   ├── src/
 │   │   ├── env.d.ts
+│   │   ├── content.config.ts # Content Layer loaders + essays / notes schema
 │   │   ├── content/        # ★ Content Collections（见 4.6）
-│   │   │   ├── config.ts   #   essays / notes 的 zod schema
-│   │   │   ├── essays/*.mdx   # 7 篇随笔（MDX 内容工程化）
+│   │   │   ├── essays/*.mdx   # 14 篇随笔（MDX 内容工程化）
 │   │   │   └── notes/*.mdx    # 7 条笔记（MDX，2 条 hasDetail）
 │   │   ├── layouts/
 │   │   │   └── BaseLayout.astro   # ★ 全站静态外壳（nav/footer/cursor/转场/进度条/回顶）
-│   │   └── pages/          # ★ 14 个页面
+│   │   └── pages/          # 静态页 + 动态路由 + XML endpoints
 │   │       ├── index.astro / 404.astro / photos.astro   # 正文用 bodyHtml 字符串注入
 │   │       ├── essays.astro / notes.astro               # 列表页，getCollection 渲染卡片
 │   │       ├── essay-[slug].astro / note-[slug].astro   # 动态路由，渲染 <Content />
@@ -198,12 +202,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 const meta = { title, description, canonical, og*, extraCss: [...], current: "photos", preloadPhoto: false };
 const bodyHtml = "<section class=\"section\">...</section>"; // 原站 <body> 正文，JSON 转义字符串
 const pageScripts = ["js/photos.js","js/photos-data.js"];
-const inlineScripts = [];
 ---
 <BaseLayout {...meta}>
   <Fragment set:html={bodyHtml} />
   {pageScripts.map((s) => <script is:inline defer src={'/' + s}></script>)}
-  {inlineScripts.map((c) => <script is:inline set:html={c}></script>)}
 </BaseLayout>
 ```
 **正文是字符串通过 `<Fragment set:html={...}>` 注入**——这是为了保证「内容/效果 100% 等价原站」。改页面正文直接改这个字符串。
@@ -224,16 +226,16 @@ export default defineConfig({
 ```
 - `format: 'file'` 是**硬约束**：保证外部链接（如 `raychan.top/essays.html`）和站内 `href="essays.html"` 不破坏。**不要改成 `directory`**。
 - `publicDir` 内容原样进 `dist/` 根（所以 JS/CSS 用绝对路径 `/js/...` `/css/...` 引用）。
-- `mdx()` 集成用于 Content Collections 的 `*.mdx` 文件（`@astrojs/mdx` v3，兼容 Astro 4）。
+- `mdx()` 集成用于 Content Collections 的 `*.mdx` 文件（`@astrojs/mdx` v7，兼容 Astro 7）。
 
 ### 4.6 内容工程化：Content Collections + MDX（essays / notes）
 随笔与读书笔记已「壳化」迁移到 Content Collections，拿到 MDX 的内容工程化红利（frontmatter 类型约束、构建期校验、`getCollection` 聚合）。
 
-**目录与结构**
+**目录与结构（Astro 6+ Content Layer API）**
 ```
+site/src/content.config.ts # glob loaders + essays / notes 的 zod schema
 site/src/content/
-  config.ts            # defineCollection: essays / notes（zod schema）
-  essays/*.mdx         # 7 篇随笔（choice/foam/pdca/right/stardust/threethings/trial）
+  essays/*.mdx         # 14 篇随笔
   notes/*.mdx          # 7 条笔记（principles/katwu-lenny + extra-1..5）
 site/src/pages/
   essay-[slug].astro   # getStaticPaths → 渲染 <Content />，输出 essay-${slug}.html
@@ -241,9 +243,9 @@ site/src/pages/
   essays.astro         # getCollection('essays') 按 date 倒序渲染卡片
   notes.astro          # getCollection('notes') 渲染卡片（hasDetail 为链接，否则为静态摘录）
 ```
-- `build.format:'file'` 下，动态路由输出文件名 = `essay-${slug}.html` / `note-${slug}.html`，**URL 与旧站完全一致**，SEO/外链零破坏。
+- `build.format:'file'` 下，动态路由使用 Content Layer 的 `entry.id`，输出文件名 = `essay-${id}.html` / `note-${id}.html`，**URL 与旧站完全一致**，SEO/外链零破坏。
 - `notes` 集合有混合结构：2 条有详情页（`hasDetail:true`，`principles`/`katwu-lenny`），5 条只有列表摘录卡片（`hasDetail:false`，`extra-1..5`，原站本就无详情页）。`note-[slug].astro` 用 `getCollection('notes').filter(n=>n.data.hasDetail)` 只生成详情页，避免为摘录卡生成空详情页。
-- **日期已校正**（2026-07 审计中）：7 篇笔记的 `date` 现为合理阅读时间（extra-5 平凡的世界 2024-03-15 / extra-1 股票大作手 2024-05-20 / extra-2 芒格 2024-07-10 / extra-3 AI交易 2024-09-05 / extra-4 精神内耗 2024-11-12 / principles 2025-02-18 / katwu-lenny 2025-06-30）。`date` 仅用于排序不渲染。`config.ts` 用 `z.coerce.date()` 接受 `2026-07-01` 或 `2026.07.01` 格式。
+- **日期已校正**（2026-07 审计中）：7 篇笔记的 `date` 现为合理阅读时间（extra-5 平凡的世界 2024-03-15 / extra-1 股票大作手 2024-05-20 / extra-2 芒格 2024-07-10 / extra-3 AI交易 2024-09-05 / extra-4 精神内耗 2024-11-12 / principles 2025-02-18 / katwu-lenny 2025-06-30）。`date` 仅用于排序不渲染。`content.config.ts` 使用自定义 UTC 解析器，稳定接受 `Date`、`YYYY-MM-DD` 与 `YYYY.MM.DD`。
 
 **MDX 文件长这样**
 ```mdx
@@ -371,7 +373,8 @@ hasDetail: true
 
 ### 7.2 本地构建与提交流程
 ```bash
-npm run build         # 生成 dist/（14 页 + 静态资源）
+npm test              # 类型检查 + 构建 + 静态产物验证
+npm run audit         # 高危依赖安全审计
 git add -A            # 包含 site/ 源码改动 + dist/ 产物更新
 git commit -m "..."
 git push origin main  # 触发 EdgeOne 重新部署
@@ -390,6 +393,11 @@ git push origin main  # 触发 EdgeOne 重新部署
 - **不要只改源码忘记 build**：`dist/` 是 EdgeOne 实际服务的目录。只改 `site/` 没跑 `npm run build`，线上不更新。
 - **不要提交 `node_modules`/`.astro`**：始终被 `.gitignore` 忽略。
 - **不要提交 `.DS_Store`**：macOS 自动文件，已加 `.gitignore`，偶尔需手动清理。
+
+### 7.5 自动化校验
+- `.github/workflows/ci.yml` 在面向 `main` 的 push 与 pull request 上运行，使用 Node 22.12.0。
+- `npm run audit` 阻止 high / critical 级依赖漏洞通过；`npm test` 依次执行 `astro check`、生产构建和 `scripts/validate-dist.mjs`。
+- 产物校验覆盖必需页面、站内 HTML/CSS/JS/图片引用、OG 图片、RSS、sitemap、公共 JS 语法以及 `edgeone.json` 的安全头和 HTML 缓存策略。
 
 ---
 
@@ -460,7 +468,11 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 - 源文件是 `site/src/pages/sitemap.xml.js`，构建时输出 `dist/sitemap.xml`；不要再在 `site/public/` 下新增同名静态文件。
 - 固定页面在 `STATIC_ROUTES` 中维护；essay 与有详情页的 note 通过 `site/src/lib/content.ts` 的统一发布查询自动收集。
 - `draft: true` 的内容会同时从列表、详情路由、RSS 和 sitemap 排除，新增文章后不再需要手动补 `<url>`。
-- **essays 现状（2026-07-14）**：共 10 篇。`heroism`《真正的英雄主义》、`driving`《开车与赛车》为**纯文字引用块**（正文无图，仅保留名言/引用 + 署名；`ogImage` 仍指向 `/images/essays/` 截图仅用于社交分享卡片，文件保留未删）。其余 8 篇（choice/trial/foam/right/pdca/stardust/threethings + 旧文）含图/样式。
+- **essays 现状（2026-08-08）**：共 14 篇。新增内容会由列表、详情路由、RSS 和 sitemap 自动发现。
+
+### 9.15 Astro 6+ Content Layer 约束
+- 旧版 `site/src/content/config.ts`、collection `type: 'content'` 与 `entry.slug` 已被 Astro 移除。配置必须放在 `site/src/content.config.ts`，集合使用 `glob()` loader，zod 从 `astro/zod` 导入，路由标识使用 `entry.id`。
+- 不要把配置迁回 `content/` 目录，也不要恢复 `slug` 访问，否则升级后的构建会失败。
 
 ---
 
@@ -483,14 +495,16 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 
 ### 11.1 本地运行 / 构建 / 验收
 ```bash
-cd /Users/ray/PersonalProject/rayspage-astro
-npm install            # 首次或依赖变更
+cd <RaysPage 仓库目录>
+npm ci                # 按 lockfile 安装；需要 Node >= 22.12.0
 npm run dev           # 开发服务器，默认 http://localhost:4321
-npm run build         # 构建到 dist/（14 页）
+npm run check         # Astro / TypeScript 静态检查
+npm test              # check + build + dist 完整性验证（当前 21 个 HTML 页面）
+npm run audit         # high / critical 依赖漏洞检查
 npm run preview       # 预览构建产物
 ```
 ⚠️ 启动前确认 4321 端口没被旧 dev server 占着（曾累积 3 个残留实例）。用 `lsof -i:4321` 查，必要时杀掉再起。
-⚠️ **动效/视觉效果务必人工肉眼验收**（headless 浏览器对光标、`prefers-reduced-motion`、搜索 input 事件支持有限，易误判）。
+⚠️ **动效/视觉效果务必同时做自动化浏览器回归与人工肉眼验收**；自动化适合检查 DOM、可访问性状态和几何关系，但不能完全替代对光标、粒子、缓动节奏的主观视觉判断。
 
 ### 11.2 加一个新页面
 1. 在 `site/src/pages/` 新建 `xxx.astro`（结构见 §4.4），`current` 设对；需要额外 CSS 就加 `extraCss` + 在 `public/css/` 建文件；需要脚本就加 `pageScripts` 并在 `public/js/` 建文件。
@@ -510,9 +524,9 @@ npm run preview       # 预览构建产物
 
 ### 11.5 改内容
 - **随笔 / 读书笔记（MDX）**：直接编辑 `site/src/content/essays/*.mdx` 或 `site/src/content/notes/*.mdx`。
-  - frontmatter（`title`/`date`/`description`/`excerpt`/`tags`/`ogImage`/`hasDetail`/`book`）受 `site/src/content/config.ts` 的 zod schema 约束，构建期校验，写错类型会构建失败。
+  - frontmatter（`title`/`date`/`description`/`excerpt`/`tags`/`ogImage`/`hasDetail`/`book`）受 `site/src/content.config.ts` 的 zod schema 约束，构建期校验，写错类型会构建失败。
   - 正文 HTML 写在 frontmatter 之后，按 9.8 规则：**void 元素自闭合、每个标签独占一行**。
-  - 改完 `npm run build` 验证（动态路由自动按 slug 生成页面）。
+  - 改完执行 `npm test` 验证（动态路由自动按文件 `id` 生成页面）。
 - **其他页面（index / photos / 404）**：正文仍在 `*.astro` 的 `bodyHtml` 字符串里，直接编辑对应 `*.astro`。
 
 ### 11.6 加一个照片系列
@@ -530,14 +544,14 @@ npm run preview       # 预览构建产物
 - [ ] 读 `astro.config.mjs` → 理解 `format:'file'` 和 `site/` 结构
 - [ ] 读 `site/src/layouts/BaseLayout.astro` → 理解静态外壳 + 脚本加载顺序 + Props
 - [ ] 读一个列表页（如 `notes.astro`）→ 理解 `getCollection('notes')` + 卡片渲染（`note-card`/`note-card-link`）模式
-- [ ] 读 `site/src/content/config.ts` + 一个 `essays/*.mdx` → 理解 Content Collections 的 frontmatter schema 与正文渲染（§4.6）
+- [ ] 读 `site/src/content.config.ts` + 一个 `essays/*.mdx` → 理解 Content Layer loader、frontmatter schema 与正文渲染（§4.6）
 - [ ] 读一个动态路由（如 `essay-[slug].astro`）→ 理解 `getStaticPaths` + `render(entry)` + `<Content />`
 - [ ] 读 `site/public/js/site.js` → 理解 `RayRAF`/`RayScroll` 双管理器（性能核心）
 - [ ] 读 `site/public/js/search.js` + `search.css` → 理解 WAAPI FLIP 清空动画与 retype 修复（§5.5）
 - [ ] 读 `site/public/css/style.css` 的 `:root` → 理解设计系统变量
 - [ ] 读第 7 节「部署」→ 理解 `dist/` 已提交，改源码后必须 `npm run build` 并 commit 新的 `dist/`
 - [ ] 读第 9 节「踩坑」→ 避免重犯已知错误
-- [ ] 本地 `npm run dev` 起服务，**肉眼验收**（headless 不能替代肉眼看动效/视觉）
+- [ ] 本地 `npm test` 后用 `npm run preview` 起服务，执行关键页面浏览器回归并肉眼验收动效
 
 **不要做的事（Don'ts）**：
 - ❌ 不要改 `build.format` 为 `directory`

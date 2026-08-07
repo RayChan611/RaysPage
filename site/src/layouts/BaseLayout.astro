@@ -71,11 +71,11 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
   {extraCss.map((href) => <link rel="stylesheet" href={'/' + href} />)}
   {inlineStyles.map((css) => <style is:inline set:html={css}></style>)}
-  <script defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script>
+  <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script>
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
 </head>
 <body>

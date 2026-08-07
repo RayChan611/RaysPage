@@ -1,16 +1,13 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
 
 /**
- * Content Collections schema.
+ * Content Layer schemas for essays and reading notes.
  *
- * Essays and Notes were previously hard-coded `.astro` pages whose article
- * HTML was passed in as a `bodyHtml` string prop. Moving them into Content
- * Collections unlocks frontmatter metadata, build-time type checking, and
- * `getCollection()` queries — so listing pages are generated from data
- * instead of hand-maintained card markup.
- *
- * The article body itself stays as hand-written HTML (embedded in MDX) to
- * preserve the exact design/system. Only the *metadata* becomes structured.
+ * The glob loaders replace Astro 4's legacy content collections. Entries keep
+ * living under `site/src/content/`, while their generated `id` is the filename
+ * slug used by list links, detail routes, RSS, and the sitemap.
  */
 
 const contentDate = z.preprocess((value) => {
@@ -34,12 +31,11 @@ const contentDate = z.preprocess((value) => {
 
 const base = z.object({
   title: z.string(),
-  // Parse date-only metadata at UTC midnight. This keeps 2026.07.01 from
-  // becoming June 30 when a build runs in a positive-offset timezone.
+  // Parse date-only metadata at UTC midnight so builds are timezone-stable.
   date: contentDate,
   description: z.string().optional(),
-  // Listing-card excerpt. May contain a little HTML (notes standalone cards
-  // keep their multi-paragraph excerpt markup). Rendered with set:html.
+  // Listing-card excerpt. Notes may contain trusted, hand-authored HTML and
+  // are rendered with set:html on the listing page.
   excerpt: z.string().optional(),
   tags: z.array(z.string()).default([]),
   ogImage: z.string().optional(),
@@ -47,17 +43,23 @@ const base = z.object({
 });
 
 const essays = defineCollection({
-  type: 'content',
+  loader: glob({
+    base: './site/src/content/essays',
+    pattern: '**/*.{md,mdx}',
+  }),
   schema: base.extend({
     description: z.string().min(1),
     excerpt: z.string().min(1),
     tags: z.array(z.string()).min(1),
-    ogImage: z.string().url(),
+    ogImage: z.url(),
   }),
 });
 
 const notes = defineCollection({
-  type: 'content',
+  loader: glob({
+    base: './site/src/content/notes',
+    pattern: '**/*.{md,mdx}',
+  }),
   schema: base.extend({
     // Book / source name shown as `note-book-name` on the listing card.
     book: z.string().min(1),
