@@ -304,7 +304,7 @@
           input.select();
         } else {
           e.preventDefault();
-          showToast('搜索功能仅在 Essays / Notes 页可用');
+          showToast('搜索功能仅在 Soul-Searching / Notes 页可用');
         }
       }
     });

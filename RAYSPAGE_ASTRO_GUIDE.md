@@ -193,7 +193,7 @@ inlineStyles?: string[], // 页专属内联 <style>（来自原站提取，见 9
   3. 全局尾部脚本（BaseLayout 末尾）：`lenis.min.js`(CDN) → `smooth-scroll.js` → `cursor.js` → `nav.js`
 - `<body>` 内静态节点：`#pageTransitionOverlay`（初始 `opacity:1` 防闪白）、`#readingProgress`、`#cursorStream`（星尘喷射 canvas）/`#cursorComet`（头部）、`<nav>`（current 决定高亮）、`<slot/>`（页面正文）、`<footer>`、`#backToTop`。
 
-**导航高亮逻辑**：`NAV_ITEMS` 固定 5 项（About/Contact/Photos/Notes/Essays）。首页/about/contact 时 About/Contact 渲染为页内锚点 `#about`/`#contact`，其余渲染为跳转到 `index.html#about` 等；`current` 决定哪个显示 `nav-link-active`。
+**导航高亮逻辑**：`NAV_ITEMS` 固定 5 项（About/Contact/Photos/Notes/Soul-Searching）。首页/about/contact 时 About/Contact 渲染为页内锚点 `#about`/`#contact`，其余渲染为跳转到 `index.html#about` 等；`current` 决定哪个显示 `nav-link-active`。
 
 ### 4.4 页面生成模式（index / photos / 404 等仍用此模式）
 ```astro
