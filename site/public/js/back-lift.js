@@ -39,7 +39,12 @@
   // constantly drag the mobile button 8px lower than the CSS intends, even
   // across a breakpoint resize.
   function restingBottom(el, fallback) {
+    // JS drives an inline bottom while animating. Temporarily remove it so
+    // getComputedStyle can see the CSS value from the active media query.
+    var inlineBottom = el.style.bottom;
+    el.style.removeProperty('bottom');
     var v = parseFloat(getComputedStyle(el).bottom);
+    if (inlineBottom) el.style.bottom = inlineBottom;
     return isFinite(v) ? v : fallback;
   }
 
@@ -88,10 +93,12 @@
 
     // Per-button lift amount, computed from actual footer height.
     // Target when fully visible = footerHeight + GAP (lands GAP px above divider).
+    var liftRatio = 0;
     function recomputeLifts() {
       var fh = footer.offsetHeight;
       for (var i = 0; i < buttons.length; i++) {
         buttons[i].lift = fh + GAP - buttons[i].def;
+        buttons[i].target = buttons[i].def + buttons[i].lift * liftRatio;
       }
     }
     recomputeLifts();
@@ -101,9 +108,9 @@
         var entry = entries[0];
         if (!entry) return;
         // proportional lift: rises gradually as the footer scrolls in
-        var lifted = Math.min(1, entry.intersectionRatio * 12);
+        liftRatio = Math.min(1, entry.intersectionRatio * 12);
         for (var i = 0; i < buttons.length; i++) {
-          buttons[i].target = buttons[i].def + buttons[i].lift * lifted;
+          buttons[i].target = buttons[i].def + buttons[i].lift * liftRatio;
         }
         if (!animId) animId = requestAnimationFrame(tick);
       },
@@ -120,9 +127,14 @@
       resizeTimer = setTimeout(function () {
         // Recompute resting bottoms too, in case a breakpoint changed them.
         for (var i = 0; i < buttons.length; i++) {
-          buttons[i].def = restingBottom(buttons[i].el, buttons[i].def);
+          var button = buttons[i];
+          var nextDef = restingBottom(button.el, button.def);
+          button.current += nextDef - button.def;
+          button.def = nextDef;
+          button.el.style.bottom = button.current + 'px';
         }
         recomputeLifts();
+        if (!animId) animId = requestAnimationFrame(tick);
       }, 100);
     });
   }

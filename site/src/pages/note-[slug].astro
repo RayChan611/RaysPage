@@ -1,12 +1,13 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedDetailedNotes } from '../lib/content';
 
 // One route generates every detailed note page (note-principles.html, ...).
 // Standalone excerpt cards (hasDetail: false) have no detail page, so they
 // are filtered out here. Output filename = `note-${slug}.html`.
 export async function getStaticPaths() {
-  const notes = (await getCollection('notes')).filter((n) => n.data.hasDetail);
+  const notes = await getPublishedDetailedNotes();
   return notes.map((entry) => ({
     params: { slug: entry.slug },
     props: { entry },

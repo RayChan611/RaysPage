@@ -1,6 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatContentDate, getPublishedEssays } from '../lib/content';
 
 const meta = {
   title: "Essays | Ray Chan",
@@ -16,16 +16,9 @@ const meta = {
 };
 
 // Driven by the `essays` Content Collection — no more hand-maintained cards.
-const essays = (await getCollection('essays')).sort(
+const essays = (await getPublishedEssays()).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
-
-const fmtDate = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}.${m}.${day}`;
-};
 
 const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 ---
@@ -55,7 +48,7 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
       <div class="essays-list" id="essaysList">
         {essays.map((e) => (
           <a href={`essay-${e.slug}.html`} class="essay-card animate-on-scroll">
-            <span class="essay-date">{fmtDate(e.data.date)}</span>
+            <span class="essay-date">{formatContentDate(e.data.date)}</span>
             <div class="essay-card-body">
               <h3 class="essay-card-title">{e.data.title}</h3>
               <p class="essay-card-excerpt">{e.data.excerpt}</p>

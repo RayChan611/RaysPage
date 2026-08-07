@@ -210,21 +210,43 @@
 
   // ---- Analytics: Umami custom events (centralised, runs on every page) ----
   function initAnalytics() {
+    var Q = [];
+
+    function _send(name, data) {
+      if (!window.umami || typeof window.umami.track !== 'function') return false;
+      try {
+        window.umami.track(name, data);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function _track(name, data) {
+      data = data || {};
+      if (!_send(name, data)) Q.push({ name: name, data: data });
+    }
+
+    function _flush() {
+      if (!window.umami || typeof window.umami.track !== 'function') return;
+      var queued = Q.splice(0, Q.length);
+      for (var i = 0; i < queued.length; i++) {
+        if (!_send(queued[i].name, queued[i].data)) {
+          Q = queued.slice(i).concat(Q);
+          break;
+        }
+      }
+    }
+
     if (!window.umami) {
       var tries = 0, timer = setInterval(function () {
-        if (window.umami || ++tries > 40) { clearInterval(timer); _flush(); }
+        if (window.umami) {
+          clearInterval(timer);
+          _flush();
+        } else if (++tries > 40) {
+          clearInterval(timer);
+        }
       }, 150);
-    }
-    var Q = [];
-    function _track(name, data) { data = data || {};
-      try { window.umami && window.umami.track(name, data); return; } catch (_) {}
-      Q.push({ name: name, data: data });
-    }
-    function _flush() {
-      while (Q.length) {
-        var e = Q.shift();
-        try { window.umami && window.umami.track(e.name, e.data); } catch (_) {}
-      }
     }
 
     document.addEventListener('click', function (ev) {
