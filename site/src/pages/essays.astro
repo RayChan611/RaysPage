@@ -3,8 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatContentDate, getPublishedEssays } from '../lib/content';
 
 const meta = {
-  title: "Essays | Ray Chan",
-  description: "Personal essays and thoughts by Ray Chan.",
+  title: "Soul-Searching | Ray Chan",
+  description: "Personal reflections and thoughts by Ray Chan.",
   canonical: "https://www.raychan.top/essays.html",
   ogType: "website",
   ogImage: "https://www.raychan.top/assets/og/default.png",
@@ -33,16 +33,16 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 
   <section class="essays-hero">
     <div class="container">
-      <h1 class="essays-title">Essays</h1>
+      <h1 class="essays-title">Soul-Searching</h1>
       <p class="essays-subtitle">Thoughts, notes, and scattered ideas.</p>
     </div>
   </section>
 
-  <section class="essays-section section" aria-label="Personal essays">
+  <section class="essays-section section" aria-label="Soul-Searching entries">
     <div class="container">
       <div class="search-container">
-        <input type="text" class="search-input" id="searchInput" placeholder="Search essays..." aria-label="Search essays" />
-        <div class="search-no-results" id="searchNoResults" role="status" aria-live="polite" aria-atomic="true">No matching essays found.</div>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search Soul-Searching..." aria-label="Search Soul-Searching" />
+        <div class="search-no-results" id="searchNoResults" role="status" aria-live="polite" aria-atomic="true">No matching entries found.</div>
       </div>
 
       <div class="essays-list" id="essaysList">

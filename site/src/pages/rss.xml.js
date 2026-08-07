@@ -27,7 +27,7 @@ export async function GET(context) {
 
   return rss({
     title: 'Ray Chan',
-    description: 'Essays & Notes — Ray Chan 的个人随笔与读书笔记',
+    description: 'Soul-Searching & Notes — Ray Chan 的个人思考与读书笔记',
     site: context.site,
     items,
   });
