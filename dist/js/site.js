@@ -382,7 +382,11 @@
         ta.style.top = '-9999px';
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand('copy');
+        // Keep the deprecated API isolated behind a narrow local type: it is
+        // only a fallback for browsers without the asynchronous Clipboard API.
+        /** @type {{ execCommand(commandId: string): boolean }} */
+        var legacyDocument = document;
+        legacyDocument.execCommand('copy');
         document.body.removeChild(ta);
         ok();
       } catch (e) {

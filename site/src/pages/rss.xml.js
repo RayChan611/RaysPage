@@ -15,13 +15,13 @@ export async function GET(context) {
       title: e.data.title,
       pubDate: e.data.date,
       description: e.data.description || e.data.excerpt || '',
-      link: `/essay-${e.slug}.html`,
+      link: `/essay-${e.id}.html`,
     })),
     ...noteEntries.map((n) => ({
       title: n.data.title,
       pubDate: n.data.date,
       description: n.data.description || n.data.excerpt || '',
-      link: `/note-${n.slug}.html`,
+      link: `/note-${n.id}.html`,
     })),
   ].sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 

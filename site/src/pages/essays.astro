@@ -47,7 +47,7 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 
       <div class="essays-list" id="essaysList">
         {essays.map((e) => (
-          <a href={`essay-${e.slug}.html`} class="essay-card animate-on-scroll">
+          <a href={`essay-${e.id}.html`} class="essay-card animate-on-scroll">
             <span class="essay-date">{formatContentDate(e.data.date)}</span>
             <div class="essay-card-body">
               <h3 class="essay-card-title">{e.data.title}</h3>

@@ -25,7 +25,7 @@
     el.classList.add('typing');
 
     const lineEls = [];
-    LINES.forEach((line, i) => {
+    LINES.forEach((_, i) => {
       const span = document.createElement('span');
       span.className = 'hero-tagline-line';
       const tn = document.createTextNode('');
