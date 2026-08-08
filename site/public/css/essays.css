@@ -82,6 +82,7 @@
   position: relative;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--border);
+  scroll-margin-top: 96px;
 }
 .note-card:last-child { border-bottom: none; }
 
@@ -93,6 +94,7 @@
 }
 
 .note-book-name {
+  font-family: var(--font-serif-cn);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -284,6 +286,7 @@
 }
 
 .essay-card-title {
+  font-family: var(--font-serif-cn);
   font-size: 1.15rem;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -314,8 +317,8 @@
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 .essay-card:hover .essay-card-tag {
-  border-color: var(--border-hover);
-  color: var(--text-secondary);
+  border-color: rgba(var(--ember-rgb), 0.46);
+  color: var(--ember);
 }
 
 /* Note card tag chip — mirrors .essay-card-tag (was previously unstyled) */
@@ -439,6 +442,7 @@
 }
 
 .essay-hero-title {
+  font-family: var(--font-serif-cn);
   font-size: clamp(2.2rem, 5.5vw, 3.8rem);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -463,6 +467,13 @@
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.essay-tag:hover {
+  color: var(--ember);
+  border-color: rgba(var(--ember-rgb), 0.48);
+  background: var(--ember-soft);
 }
 
 /* ---- Essay Body Content ---- */
@@ -477,6 +488,7 @@
 }
 
 .essay-body {
+  font-family: var(--font-serif-cn);
   line-height: 1.85;
   color: rgba(255,255,255,0.84);
   font-size: 1rem;
@@ -619,6 +631,7 @@
 }
 
 .note-title {
+  font-family: var(--font-serif-cn);
   font-size: clamp(1.6rem, 4vw, 2.2rem);
    font-weight: 700;
    letter-spacing: -0.02em;
@@ -741,6 +754,7 @@
 }
 
 .note-body {
+  font-family: var(--font-serif-cn);
   font-size: 0.95rem;
    line-height: 1.85;
    color: rgba(255,255,255,0.8);
@@ -837,6 +851,12 @@
   background: rgba(255,255,255,0.07);
 }
 
+.reading-mode-toggle[aria-pressed="true"] {
+  color: var(--ember);
+  border-color: rgba(var(--ember-rgb), 0.54);
+  background: var(--ember-soft);
+}
+
 .reading-mode-icon {
   width: 10px;
   height: 10px;
@@ -873,6 +893,11 @@
 .article-pagination-link:focus-visible {
   color: var(--text-primary);
   transform: translateY(-2px);
+}
+
+.article-pagination-link:hover .article-pagination-direction,
+.article-pagination-link:focus-visible .article-pagination-direction {
+  color: var(--ember);
 }
 
 .article-pagination-direction {

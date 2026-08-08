@@ -115,6 +115,7 @@ if (!existsSync(distRoot)) {
     'essays.html',
     'notes.html',
     'photos.html',
+    'search-index.json',
     'rss.xml',
     'sitemap.xml',
   ];
