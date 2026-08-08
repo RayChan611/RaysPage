@@ -13,8 +13,26 @@
   let currentIndex = -1;
   let galleryItems = [];
   let lastFocused = null;
+  const backgroundAriaState = new Map();
 
   const MAX_RETRY = 20; // max retries for initGallery
+
+  function setBackgroundInert(enabled) {
+    if (!lightbox) return;
+    Array.from(document.body.children).forEach((element) => {
+      if (element === lightbox || element.tagName === 'SCRIPT') return;
+      element.toggleAttribute('inert', enabled);
+      if (enabled) {
+        backgroundAriaState.set(element, element.getAttribute('aria-hidden'));
+        element.setAttribute('aria-hidden', 'true');
+      } else if (backgroundAriaState.has(element)) {
+        const previous = backgroundAriaState.get(element);
+        if (previous === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', previous);
+        backgroundAriaState.delete(element);
+      }
+    });
+  }
 
   function initGallery() {
     // Retry until photos-data.js has rendered gallery items
@@ -62,6 +80,7 @@
     }
 
     document.body.style.overflow = 'hidden';
+    if (!wasOpen) setBackgroundInert(true);
     if (lightbox) {
       lightbox.classList.add('active');
       lightbox.setAttribute('aria-hidden', 'false');
@@ -92,6 +111,7 @@
       lightbox.setAttribute('aria-hidden', 'true');
     }
     document.body.style.overflow = '';
+    setBackgroundInert(false);
     if (lightboxImg) {
       lightboxImg.src = '';
       lightboxImg.alt = '';

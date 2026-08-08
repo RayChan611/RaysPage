@@ -11,6 +11,7 @@ interface Props {
   current?: string;
   preloadPhoto?: boolean;
   inlineStyles?: string[];
+  pageScripts?: string[];
 }
 const {
   title = 'Ray Chan',
@@ -28,6 +29,7 @@ const {
   current = 'home',
   preloadPhoto = false,
   inlineStyles = [],
+  pageScripts = [],
 } = Astro.props;
 
 const NAV_ITEMS = [
@@ -79,11 +81,16 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
 </head>
 <body>
-  <!-- RayRAF + page behaviours. Loaded synchronously BEFORE page scripts so
-       window.RayRAF exists when hero-sparkle / cursor / smooth-scroll register. -->
-  <script is:inline src="/js/site.js"></script>
+  <!-- Hidden by default so content remains usable without JavaScript. The
+       temporary class supplies a CSS-only failsafe if site.js cannot boot. -->
+  <div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true"></div>
+  <script is:inline>
+    document.getElementById('pageTransitionOverlay')?.classList.add('page-transition-overlay--entering');
+  </script>
 
-  <div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true" style="opacity:1;pointer-events:auto;transition:none;"></div>
+  <!-- RayRAF + page behaviours. Loaded synchronously before page scripts so
+       window.RayRAF exists when their animation loops register. -->
+  <script is:inline src="/js/site.js"></script>
 
   <!-- Reading progress bar (was injected by the old components.js; now static). -->
   <div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
@@ -132,5 +139,6 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <!-- back-lift is global: #backToTop exists on every page and must clear the
        footer divider everywhere, not just on essay/note detail pages. -->
   <script is:inline defer src="/js/back-lift.js"></script>
+  {pageScripts.map((src) => <script is:inline defer src={'/' + src}></script>)}
 </body>
 </html>

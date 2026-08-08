@@ -22,7 +22,7 @@ const essays = (await getPublishedEssays()).sort(
 
 const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 ---
-<BaseLayout {...meta}>
+<BaseLayout {...meta} pageScripts={pageScripts}>
   <div id="global-bg-effect" class="hero-bg-effect">
     <div class="hero-glow-line hero-glow-line--indigo-blur"></div>
     <div class="hero-glow-line hero-glow-line--indigo"></div>
@@ -60,4 +60,3 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
     </div>
   </section>
 </BaseLayout>
-{pageScripts.map((s) => <script is:inline defer src={'/' + s}></script>)}

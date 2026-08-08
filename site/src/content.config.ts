@@ -63,6 +63,11 @@ const notes = defineCollection({
   schema: base.extend({
     // Book / source name shown as `note-book-name` on the listing card.
     book: z.string().min(1),
+    // Optional detail-page presentation metadata. Keeping it in frontmatter
+    // prevents titles/authors/tags from being duplicated in the MDX body.
+    author: z.string().min(1).optional(),
+    detailTitle: z.string().min(1).optional(),
+    detailTags: z.array(z.string()).min(1).optional(),
     excerpt: z.string().min(1),
     tags: z.array(z.string()).min(1),
     // false = listing-only excerpt card with no dedicated detail page.
