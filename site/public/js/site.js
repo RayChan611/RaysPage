@@ -23,10 +23,17 @@
     function bind() {
       if (bound) return;
       bound = true;
-      document.addEventListener('visibilitychange', function () {
+      function updateLoops(shouldStop) {
         loops.forEach(function (l) {
-          try { document.hidden ? l.stop() : l.start(); } catch (e) {}
+          try { shouldStop ? l.stop() : l.start(); } catch (e) {}
         });
+      }
+      document.addEventListener('visibilitychange', function () {
+        updateLoops(document.hidden);
+      });
+      window.addEventListener('pagehide', function () { updateLoops(true); });
+      window.addEventListener('pageshow', function () {
+        if (!document.hidden) updateLoops(false);
       });
     }
 
@@ -91,6 +98,14 @@
     if (!overlay) return;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Take over from the short CSS failsafe animation now that the full
+    // transition runtime is known to be healthy.
+    overlay.classList.remove('page-transition-overlay--entering');
+    overlay.style.animation = 'none';
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    overlay.style.transition = 'none';
 
     function fadeOut() {
       overlay.style.transition = 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)';

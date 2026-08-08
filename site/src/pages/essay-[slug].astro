@@ -1,7 +1,8 @@
 ---
 import { render } from 'astro:content';
+import AmbientBackground from '../components/AmbientBackground.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublishedEssays } from '../lib/content';
+import { formatContentDate, getPublishedEssays } from '../lib/content';
 
 // One route generates every essay detail page (essay-choice.html, ...).
 // `build.format: 'file'` keeps the output filename = `essay-${slug}.html`,
@@ -16,7 +17,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const { title, description, ogImage } = entry.data;
+const { title, description, ogImage, date, tags } = entry.data;
 const pageUrl = `https://www.raychan.top/essay-${entry.id}.html`;
 ---
 <BaseLayout
@@ -29,7 +30,22 @@ const pageUrl = `https://www.raychan.top/essay-${entry.id}.html`;
   twitterImage={ogImage}
   extraCss={["css/essays.css", "css/reading-progress.css"]}
   current="other"
+  pageScripts={["js/hero-sparkle.js"]}
 >
-  <Content />
+  <AmbientBackground />
+  <a href="essays.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
+  <section class="essay-hero">
+    <div class="container">
+      <h1 class="essay-hero-title">{title}</h1>
+      <div class="essay-meta">
+        <span class="essay-date">{formatContentDate(date)}</span>
+        {tags.map((tag) => <span class="essay-tag">{tag}</span>)}
+      </div>
+    </div>
+  </section>
+  <article class="essay-content section">
+    <div class="container">
+      <div class="essay-body"><Content /></div>
+    </div>
+  </article>
 </BaseLayout>
-<script is:inline defer src="/js/hero-sparkle.js"></script>

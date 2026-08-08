@@ -115,8 +115,8 @@
       window.RayRAF.register({ start, stop });
     }
 
-    // Cleanup on page unload (bfcache)
-    window.addEventListener('pagehide', stop);
+    // RayRAF pauses on hidden/pagehide and restarts on visible/pageshow,
+    // including restoration from the browser back-forward cache.
   }
 
   /* ---- Boot ---- */

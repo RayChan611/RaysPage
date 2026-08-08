@@ -15,6 +15,66 @@ function walk(directory) {
   });
 }
 
+function attributeValues(markup, attributePattern) {
+  const values = [];
+  const pattern = new RegExp(`\\b(?:${attributePattern})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'gi');
+  for (const match of markup.matchAll(pattern)) values.push(match[1] ?? match[2] ?? '');
+  return values;
+}
+
+function parseAttributes(tag) {
+  return Object.fromEntries(
+    [...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)]
+      .map((item) => [item[1], item[2] ?? item[3] ?? ''])
+  );
+}
+
+function validateHtmlStructure(file, html) {
+  const source = relative(repoRoot, file);
+  const count = (pattern) => [...html.matchAll(pattern)].length;
+  const requiredPairs = [
+    ['html', /<html\b/gi, /<\/html\s*>/gi],
+    ['head', /<head\b/gi, /<\/head\s*>/gi],
+    ['body', /<body\b/gi, /<\/body\s*>/gi],
+  ];
+
+  if (!/^\s*<!doctype html>/i.test(html)) failures.push(`${source} -> missing HTML doctype`);
+  for (const [name, opening, closing] of requiredPairs) {
+    if (count(opening) !== 1 || count(closing) !== 1) {
+      failures.push(`${source} -> expected exactly one <${name}> element`);
+    }
+  }
+
+  const htmlClose = /<\/html\s*>/i.exec(html);
+  const bodyClose = /<\/body\s*>/i.exec(html);
+  if (htmlClose && html.slice(htmlClose.index + htmlClose[0].length).trim()) {
+    failures.push(`${source} -> content appears after </html>`);
+  }
+  if (htmlClose && bodyClose && bodyClose.index > htmlClose.index) {
+    failures.push(`${source} -> </body> appears after </html>`);
+  }
+
+  const seenIds = new Set();
+  for (const id of attributeValues(html, 'id')) {
+    if (seenIds.has(id)) failures.push(`${source} -> duplicate id="${id}"`);
+    seenIds.add(id);
+  }
+
+  const blockElement = 'address|article|aside|blockquote|div|dl|fieldset|footer|form|h[1-6]|header|hr|main|nav|ol|p|pre|section|table|ul';
+  const invalidBlockNesting = new RegExp(`<(p|h[1-6])\\b[^>]*>\\s*<(${blockElement})\\b`, 'gi');
+  for (const match of html.matchAll(invalidBlockNesting)) {
+    failures.push(`${source} -> invalid <${match[2]}> inside <${match[1]}>`);
+  }
+}
+
+function validateSrcset(file, srcset, pagePath) {
+  if (!srcset || srcset.trim().startsWith('data:')) return;
+  for (const candidate of srcset.split(',')) {
+    const reference = candidate.trim().split(/\s+/, 1)[0];
+    if (reference) validateLocalReference(file, reference, pagePath);
+  }
+}
+
 function validateLocalReference(sourceFile, reference, pagePath) {
   if (!reference || reference.startsWith('#')) return;
 
@@ -67,19 +127,30 @@ if (!existsSync(distRoot)) {
   for (const file of htmlFiles) {
     const pagePath = relative(distRoot, file).split('\\').join('/');
     const html = readFileSync(file, 'utf8');
+    validateHtmlStructure(file, html);
 
-    for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
-      validateLocalReference(file, match[1], pagePath);
+    for (const reference of attributeValues(html, 'href|src|poster')) {
+      validateLocalReference(file, reference, pagePath);
+    }
+    for (const srcset of attributeValues(html, 'srcset|imagesrcset')) {
+      validateSrcset(file, srcset, pagePath);
     }
 
     for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
-      const attributes = Object.fromEntries(
-        [...match[0].matchAll(/([\w:-]+)="([^"]*)"/g)].map((item) => [item[1], item[2]])
-      );
+      const attributes = parseAttributes(match[0]);
       const key = attributes.property || attributes.name;
       if (key === 'og:image' || key === 'twitter:image') {
         validateLocalReference(file, attributes.content, pagePath);
       }
+    }
+  }
+
+  const cssFiles = walk(distRoot).filter((file) => file.endsWith('.css'));
+  for (const file of cssFiles) {
+    const pagePath = relative(distRoot, file).split('\\').join('/');
+    const css = readFileSync(file, 'utf8');
+    for (const match of css.matchAll(/url\(\s*(?:"([^"]+)"|'([^']+)'|([^)'"\s]+))\s*\)/gi)) {
+      validateLocalReference(file, match[1] ?? match[2] ?? match[3], pagePath);
     }
   }
 
@@ -101,6 +172,21 @@ if (!existsSync(distRoot)) {
   }
 
   console.log(`Validated ${htmlFiles.length} HTML pages and ${requiredOutputs.length} required outputs.`);
+}
+
+const repositoryFiles = spawnSync(
+  'git',
+  ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+  { cwd: repoRoot, encoding: 'utf8' }
+);
+if (repositoryFiles.status !== 0) {
+  failures.push('could not inspect repository filenames for conflict copies');
+} else {
+  const conflictCopies = repositoryFiles.stdout
+    .split('\0')
+    .filter(Boolean)
+    .filter((name) => /(?:^|\/)[^/]+ [2-9]\d*(?:\.[^/]+)?$/.test(name));
+  for (const name of conflictCopies) failures.push(`${name} -> probable sync conflict copy`);
 }
 
 try {

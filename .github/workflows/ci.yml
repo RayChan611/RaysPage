@@ -41,3 +41,8 @@ jobs:
 
       - name: Type-check, build, and validate output
         run: npm test
+
+      # EdgeOne publishes the committed dist/ directory. A source-only change
+      # must therefore fail CI until its freshly generated output is committed.
+      - name: Verify committed site output is current
+        run: git diff --exit-code -- dist

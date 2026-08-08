@@ -1,5 +1,6 @@
 ---
 import { render } from 'astro:content';
+import AmbientBackground from '../components/AmbientBackground.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getPublishedDetailedNotes } from '../lib/content';
 
@@ -16,7 +17,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const { title, description, ogImage } = entry.data;
+const { title, description, ogImage, book, author, detailTitle, detailTags, tags } = entry.data;
 const pageUrl = `https://www.raychan.top/note-${entry.id}.html`;
 ---
 <BaseLayout
@@ -29,7 +30,19 @@ const pageUrl = `https://www.raychan.top/note-${entry.id}.html`;
   twitterImage={ogImage}
   extraCss={["css/essays.css", "css/reading-progress.css"]}
   current="other"
+  pageScripts={["js/hero-sparkle.js"]}
 >
-  <Content />
+  <AmbientBackground />
+  <a href="notes.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
+  <main class="note-page">
+    <div class="note-title-area">
+      <h1 class="note-title">{detailTitle || title}</h1>
+      <div class="note-meta-row">
+        <span class="note-author">{author || book}</span>
+        <span class="note-sep">&middot;</span>
+        <span class="note-tag">{(detailTags || tags).join(' · ')}</span>
+      </div>
+    </div>
+    <article class="note-body"><Content /></article>
+  </main>
 </BaseLayout>
-<script is:inline defer src="/js/hero-sparkle.js"></script>
