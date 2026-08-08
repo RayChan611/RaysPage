@@ -24,11 +24,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22.12.0
+          node-version-file: .nvmrc
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      # Node 22.12 ships npm 10.9.0, which can terminate `npm ci` with the
+      # The bundled npm 10 release can terminate `npm ci` with the
       # internal "Exit handler never called" error on GitHub-hosted runners.
       - name: Set up npm
         run: npm install --global npm@11.19.0
