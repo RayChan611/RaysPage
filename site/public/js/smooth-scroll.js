@@ -18,10 +18,10 @@
     lenis = new Lenis({
       duration: 1.0,
       easing: (t) => 1 - Math.pow(1 - t, 3),
-      smooth: true,
-      direction: 'vertical',
-      gestureDirection: 'vertical',
-      smoothTouch: false,
+      smoothWheel: true,
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      syncTouch: false,
       touchMultiplier: 2,
     });
 
@@ -88,6 +88,9 @@
     const target = getHashTarget(targetId);
     if (target) {
       e.preventDefault();
+      if (anchor.classList.contains('skip-link')) {
+        try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+      }
       const navEl = document.getElementById('nav');
       const navHeight = navEl ? navEl.offsetHeight : 0;
       const targetPos = target.getBoundingClientRect().top + window.scrollY - navHeight;

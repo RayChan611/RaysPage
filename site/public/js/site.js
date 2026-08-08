@@ -308,23 +308,6 @@
     }
   }
 
-  // ---- Cmd+K / Ctrl+K to focus search ----
-  function initSearchShortcut() {
-    document.addEventListener('keydown', function (e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        var input = document.getElementById('searchInput');
-        if (input) {
-          e.preventDefault();
-          input.focus();
-          input.select();
-        } else {
-          e.preventDefault();
-          showToast('搜索功能仅在 Soul-Searching / Notes 页可用');
-        }
-      }
-    });
-  }
-
   // ---- Contact card click-to-copy + inline success hint ----
   function initContactCopy() {
     var cards = document.querySelectorAll('.contact-card[data-copy]');
@@ -436,7 +419,6 @@
     initReadingProgress();
     initPageTransition();
     initAnalytics();
-    initSearchShortcut();
     initContactCopy();
   }
 

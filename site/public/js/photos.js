@@ -16,6 +16,8 @@
   let horizontalWheelDelta = 0;
   let horizontalWheelLocked = false;
   let horizontalWheelTimer = null;
+  let lightboxHideTimer = null;
+  let previousBodyOverflow = '';
   const backgroundAriaState = new Map();
 
   const MAX_RETRY = 20; // max retries for initGallery
@@ -24,14 +26,21 @@
     if (!lightbox) return;
     Array.from(document.body.children).forEach((element) => {
       if (element === lightbox || element.tagName === 'SCRIPT') return;
-      element.toggleAttribute('inert', enabled);
       if (enabled) {
-        backgroundAriaState.set(element, element.getAttribute('aria-hidden'));
+        if (!backgroundAriaState.has(element)) {
+          backgroundAriaState.set(element, {
+            ariaHidden: element.getAttribute('aria-hidden'),
+            inert: element.hasAttribute('inert'),
+          });
+        }
+        element.setAttribute('inert', '');
         element.setAttribute('aria-hidden', 'true');
       } else if (backgroundAriaState.has(element)) {
         const previous = backgroundAriaState.get(element);
-        if (previous === null) element.removeAttribute('aria-hidden');
-        else element.setAttribute('aria-hidden', previous);
+        if (previous.inert) element.setAttribute('inert', '');
+        else element.removeAttribute('inert');
+        if (previous.ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', previous.ariaHidden);
         backgroundAriaState.delete(element);
       }
     });
@@ -65,6 +74,10 @@
   function openLightbox(idx) {
     if (!lightbox || !lightboxImg || !galleryItems[idx]) return;
     const wasOpen = lightbox.classList.contains('active');
+    if (lightboxHideTimer) {
+      clearTimeout(lightboxHideTimer);
+      lightboxHideTimer = null;
+    }
     currentIndex = idx;
     // Arrow navigation reuses this function. Preserve the gallery trigger so
     // closing the dialog never restores focus to a now-hidden lightbox button.
@@ -82,9 +95,15 @@
       lightboxCounter.textContent = (idx + 1) + ' / ' + galleryItems.length + (series ? '  ·  ' + series : '');
     }
 
+    if (!wasOpen) {
+      previousBodyOverflow = document.body.style.overflow;
+      setBackgroundInert(true);
+    }
     document.body.style.overflow = 'hidden';
-    if (!wasOpen) setBackgroundInert(true);
     if (lightbox) {
+      lightbox.hidden = false;
+      lightbox.removeAttribute('inert');
+      lightbox.getBoundingClientRect();
       lightbox.classList.add('active');
       lightbox.setAttribute('aria-hidden', 'false');
       const closeBtn = lightbox.querySelector('.lightbox-close');
@@ -109,16 +128,12 @@
   }
 
   function closeLightbox() {
-    if (lightbox) {
-      lightbox.classList.remove('active');
-      lightbox.setAttribute('aria-hidden', 'true');
-    }
-    document.body.style.overflow = '';
+    if (!lightbox || !lightbox.classList.contains('active')) return;
+    lightbox.classList.remove('active');
+    lightbox.setAttribute('aria-hidden', 'true');
+    lightbox.setAttribute('inert', '');
+    document.body.style.overflow = previousBodyOverflow;
     setBackgroundInert(false);
-    if (lightboxImg) {
-      lightboxImg.src = '';
-      lightboxImg.alt = '';
-    }
     currentIndex = -1;
     horizontalWheelDelta = 0;
     horizontalWheelLocked = false;
@@ -129,6 +144,15 @@
     if (focusTarget && typeof focusTarget.focus === 'function') {
       focusTarget.focus();
     }
+    lightboxHideTimer = setTimeout(() => {
+      if (lightbox.classList.contains('active')) return;
+      lightbox.hidden = true;
+      if (lightboxImg) {
+        lightboxImg.removeAttribute('src');
+        lightboxImg.alt = '';
+      }
+      lightboxHideTimer = null;
+    }, 360);
   }
 
   function goNext() {

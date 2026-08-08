@@ -30,14 +30,21 @@
     Array.prototype.forEach.call(document.body.children, function (element) {
       if (element === root || element.id === 'pageTransitionOverlay' || element.tagName === 'SCRIPT') return;
       if (enabled) {
-        if (!backgroundState.has(element)) backgroundState.set(element, element.getAttribute('aria-hidden'));
+        if (!backgroundState.has(element)) {
+          backgroundState.set(element, {
+            ariaHidden: element.getAttribute('aria-hidden'),
+            inert: element.hasAttribute('inert'),
+          });
+        }
         element.setAttribute('inert', '');
         element.setAttribute('aria-hidden', 'true');
       } else {
-        element.removeAttribute('inert');
         var previous = backgroundState.get(element);
-        if (previous === null || previous === undefined) element.removeAttribute('aria-hidden');
-        else element.setAttribute('aria-hidden', previous);
+        if (!previous) return;
+        if (previous.inert) element.setAttribute('inert', '');
+        else element.removeAttribute('inert');
+        if (previous.ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', previous.ariaHidden);
       }
     });
     if (!enabled) backgroundState.clear();
@@ -66,9 +73,10 @@
         return searchIndex;
       })
       .catch(function () {
+        loadingPromise = null;
         status.textContent = 'Search is temporarily unavailable.';
         renderEmpty('暂时无法载入搜索索引。');
-        return [];
+        return null;
       });
     return loadingPromise;
   }
@@ -181,7 +189,8 @@
 
   function updateResults() {
     var query = input.value;
-    loadIndex().then(function () {
+    loadIndex().then(function (loaded) {
+      if (!loaded) return;
       render(getMatches(query), query.trim());
     });
   }
@@ -189,6 +198,7 @@
   function openSearch() {
     clearTimeout(closeTimer);
     if (!root.hidden) return;
+    if (document.querySelector('.lightbox.active')) return;
     lastFocused = document.activeElement;
     root.hidden = false;
     root.setAttribute('aria-hidden', 'false');
@@ -225,6 +235,7 @@
   document.addEventListener('keydown', function (event) {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
+      event.stopImmediatePropagation();
       if (root.hidden) openSearch();
       else closeSearch();
       return;
@@ -232,6 +243,7 @@
     if (root.hidden) return;
     if (event.key === 'Escape') {
       event.preventDefault();
+      event.stopImmediatePropagation();
       closeSearch();
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();

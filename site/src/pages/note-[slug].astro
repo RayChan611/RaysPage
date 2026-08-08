@@ -45,7 +45,7 @@ const nextLink = next ? { href: `note-${next.id}.html`, title: noteTitle(next) }
 >
   <AmbientBackground />
   <a href="notes.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
-  <main class="note-page">
+  <div class="note-page">
     <div class="note-title-area">
       <h1 class="note-title">{detailTitle || title}</h1>
       <div class="note-meta-row">
@@ -57,5 +57,5 @@ const nextLink = next ? { href: `note-${next.id}.html`, title: noteTitle(next) }
     </div>
     <article class="note-body"><Content /></article>
     <ArticleNavigation previous={previousLink} next={nextLink} label="Reading Notes 上一篇与下一篇" />
-  </main>
+  </div>
 </BaseLayout>

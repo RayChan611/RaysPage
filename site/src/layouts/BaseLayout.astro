@@ -82,6 +82,8 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
   <!-- Hidden by default so content remains usable without JavaScript. The
        temporary class supplies a CSS-only failsafe if site.js cannot boot. -->
   <div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true"></div>
@@ -133,7 +135,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
     </div>
   </nav>
 
-  <div class="quick-search" id="quickSearch" hidden aria-hidden="true">
+  <div class="quick-search" id="quickSearch" hidden aria-hidden="true" data-lenis-prevent>
     <div class="quick-search-backdrop" data-search-close aria-hidden="true"></div>
     <section class="quick-search-panel" role="dialog" aria-modal="true" aria-labelledby="quickSearchTitle">
       <header class="quick-search-header">
@@ -170,7 +172,10 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
     </section>
   </div>
 
-  <slot />
+  <main class="site-main" id="main-content" tabindex="-1">
+    <slot />
+  </main>
+  <slot name="overlay" />
 
   <footer class="footer">
     <div class="container">
