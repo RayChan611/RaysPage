@@ -44,6 +44,9 @@ function validateHtmlStructure(file, html) {
       failures.push(`${source} -> expected exactly one <${name}> element`);
     }
   }
+  if (count(/<main\b/gi) !== 1 || count(/<\/main\s*>/gi) !== 1) {
+    failures.push(`${source} -> expected exactly one <main> landmark`);
+  }
 
   const htmlClose = /<\/html\s*>/i.exec(html);
   const bodyClose = /<\/body\s*>/i.exec(html);
@@ -58,6 +61,11 @@ function validateHtmlStructure(file, html) {
   for (const id of attributeValues(html, 'id')) {
     if (seenIds.has(id)) failures.push(`${source} -> duplicate id="${id}"`);
     seenIds.add(id);
+  }
+
+  for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
+    const attributes = parseAttributes(match[0]);
+    if (attributes.src === '') failures.push(`${source} -> image has an empty src attribute`);
   }
 
   const blockElement = 'address|article|aside|blockquote|div|dl|fieldset|footer|form|h[1-6]|header|hr|main|nav|ol|p|pre|section|table|ul';
@@ -208,6 +216,13 @@ try {
   const cacheControl = htmlHeaders.find((header) => header.key.toLowerCase() === 'cache-control');
   if (!cacheControl?.value.includes('max-age=0')) {
     failures.push('edgeone.json HTML cache rule must include max-age=0');
+  }
+  for (const source of ['/js/*', '/search-index.json']) {
+    const headers = edgeConfig.headers?.find((rule) => rule.source === source)?.headers || [];
+    const value = headers.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
+    if (!value.includes('max-age=0') || value.includes('immutable')) {
+      failures.push(`edgeone.json ${source} cache rule must revalidate stable URLs`);
+    }
   }
 } catch (error) {
   failures.push(`edgeone.json is invalid: ${error.message}`);

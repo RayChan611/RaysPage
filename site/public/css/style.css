@@ -15,8 +15,8 @@
   --text-muted: #7c7c7c;
   --accent: #ffffff;
   --accent-subtle: rgba(255,255,255,0.08);
-  --ember: #c6533f;
-  --ember-rgb: 198, 83, 63;
+  --ember: #d0624e;
+  --ember-rgb: 208, 98, 78;
   --ember-soft: rgba(var(--ember-rgb), 0.12);
   --border: rgba(255,255,255,0.08);
   --border-hover: rgba(255,255,255,0.18);
@@ -50,6 +50,30 @@ a { color: var(--text-primary); text-decoration: none; transition: color var(--t
 a:hover { color: var(--accent); }
 img { max-width: 100%; display: block; }
 button { font-family: inherit; }
+
+/* ---------- Keyboard skip link ---------- */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 100001;
+  padding: 10px 14px;
+  border: 1px solid rgba(var(--ember-rgb), 0.62);
+  border-radius: 6px;
+  background: #111;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  transform: translateY(-160%);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.site-main:focus {
+  outline: none;
+}
 
 /* ---------- Navigation ---------- */
 .nav {
