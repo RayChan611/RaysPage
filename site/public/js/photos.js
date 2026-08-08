@@ -13,6 +13,9 @@
   let currentIndex = -1;
   let galleryItems = [];
   let lastFocused = null;
+  let horizontalWheelDelta = 0;
+  let horizontalWheelLocked = false;
+  let horizontalWheelTimer = null;
   const backgroundAriaState = new Map();
 
   const MAX_RETRY = 20; // max retries for initGallery
@@ -117,6 +120,9 @@
       lightboxImg.alt = '';
     }
     currentIndex = -1;
+    horizontalWheelDelta = 0;
+    horizontalWheelLocked = false;
+    if (horizontalWheelTimer) clearTimeout(horizontalWheelTimer);
     // Restore focus
     const focusTarget = lastFocused;
     lastFocused = null;
@@ -135,6 +141,30 @@
     if (galleryItems.length === 0) return;
     const prev = currentIndex > 0 ? currentIndex - 1 : galleryItems.length - 1;
     openLightbox(prev);
+  }
+
+  // Trackpad horizontal gestures behave like a carousel. Momentum wheel
+  // events stay locked until the gesture settles, so one swipe advances once.
+  function handleHorizontalWheel(e) {
+    if (!lightbox || !lightbox.classList.contains('active')) return;
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 2) return;
+
+    e.preventDefault();
+    if (horizontalWheelTimer) clearTimeout(horizontalWheelTimer);
+    horizontalWheelTimer = setTimeout(() => {
+      horizontalWheelDelta = 0;
+      horizontalWheelLocked = false;
+    }, 220);
+
+    if (horizontalWheelLocked) return;
+    const deltaScale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerWidth : 1;
+    horizontalWheelDelta += e.deltaX * deltaScale;
+    if (Math.abs(horizontalWheelDelta) < 44) return;
+
+    horizontalWheelLocked = true;
+    if (horizontalWheelDelta > 0) goNext();
+    else goPrev();
+    horizontalWheelDelta = 0;
   }
 
   // ---- Focus trap inside lightbox ----
@@ -214,11 +244,15 @@
     // Focus trap
     document.addEventListener('keydown', trapFocus);
 
-    // Click backdrop to close
+    // Click anywhere outside the image, caption, or controls to close. The
+    // content wrapper includes the visible blank area around portrait photos.
     if (lightbox) {
       lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) closeLightbox();
+        if (!e.target.closest('#lightboxImg, .lightbox-info, .lightbox-close, .lightbox-prev, .lightbox-next')) {
+          closeLightbox();
+        }
       });
+      lightbox.addEventListener('wheel', handleHorizontalWheel, { passive: false });
     }
   });
 
