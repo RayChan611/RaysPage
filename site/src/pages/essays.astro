@@ -20,7 +20,7 @@ const essays = (await getPublishedEssays()).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
 
-const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
+const pageScripts = ["js/search.js", "js/hero-sparkle.js"];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
   <div id="global-bg-effect" class="hero-bg-effect">

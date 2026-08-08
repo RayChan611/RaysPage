@@ -4,7 +4,7 @@
 
 /* ---- Essays Hero ---- */
 .essays-hero {
-  padding: 160px 40px 80px;
+  padding: 132px 40px 44px;
   position: relative;
   z-index: 1;
 }
@@ -34,6 +34,7 @@
 .essays-section {
   position: relative;
   z-index: 1;
+  padding: 28px 40px 100px;
 }
 .essays-section-header {
   display: flex;
@@ -69,14 +70,17 @@
 .notes-list {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 32px;
   max-width: 760px;
   margin: 0 auto;
 }
 
 /* ---- Note Card (Book) ---- */
 .note-card {
-  padding-bottom: 48px;
+  --note-collapsed-height: 9.25rem;
+  display: block;
+  position: relative;
+  padding-bottom: 32px;
   border-bottom: 1px solid var(--border);
 }
 .note-card:last-child { border-bottom: none; }
@@ -85,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .note-book-name {
@@ -96,9 +100,31 @@
 }
 
 .note-excerpt {
-  margin-bottom: 20px;
+  position: relative;
+  max-height: var(--note-collapsed-height);
+  margin-bottom: 14px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  transition: max-height var(--transition);
 }
 .note-excerpt:last-child { margin-bottom: 0; }
+
+.note-card-link .note-excerpt {
+  --note-collapsed-height: 8.25rem;
+}
+
+.note-card.is-expanded .note-excerpt {
+  max-height: var(--note-expanded-height, 80rem);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.note-card--complete .note-excerpt {
+  max-height: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 
 .note-excerpt > p:first-child,
 .note-excerpt strong {
@@ -112,7 +138,7 @@
 .note-quote {
   font-size: 0.92rem;
   line-height: 1.8;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.74);
   position: relative;
   padding-left: 16px;
   border-left: 1px solid rgba(255,255,255,0.12);
@@ -142,13 +168,60 @@
 /* Note card link (clickable) */
 .note-card-link {
   cursor: pointer;
-  transition: all var(--transition);
+  transition: transform var(--transition), border-color var(--transition);
 }
 .note-card-link:hover {
   transform: translateY(-2px);
 }
 .note-card-link:hover .note-book-name {
   color: var(--accent);
+}
+
+.note-card-action,
+.note-expand-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.note-card-action {
+  transition: color var(--transition), transform var(--transition);
+}
+
+.note-card-link:hover .note-card-action {
+  color: var(--text-primary);
+  transform: translateX(3px);
+}
+
+.note-expand-button {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.note-expand-button[hidden] {
+  display: none;
+}
+
+.note-expand-button:hover,
+.note-expand-button:focus-visible {
+  color: var(--text-primary);
+}
+
+.note-expand-button [aria-hidden="true"] {
+  display: inline-block;
+  transition: transform var(--transition);
+}
+
+.note-card.is-expanded .note-expand-button [aria-hidden="true"] {
+  transform: rotate(180deg);
 }
 
 /* ---- Essays List ---- */
@@ -165,11 +238,11 @@
   display: flex;
   align-items: baseline;
   gap: 28px;
-  padding: 32px 0;
+  padding: 26px 0;
   border-bottom: 1px solid var(--border);
   text-decoration: none;
   color: var(--text-primary);
-  transition: all var(--transition);
+  transition: transform var(--transition), border-color var(--transition);
   position: relative;
 }
 
@@ -238,7 +311,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 .essay-card:hover .essay-card-tag {
   border-color: var(--border-hover);
@@ -255,7 +328,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
 /* Group the tags on a note card (excerpt marker + topic tag) */
@@ -309,7 +382,8 @@
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .essays-hero { padding: 120px 24px 48px; }
+  .essays-hero { padding: 104px 24px 32px; }
+  .essays-section { padding: 20px 24px 72px; }
   .essays-section-header {
     flex-wrap: wrap;
     gap: 6px;
@@ -330,6 +404,8 @@
   .note-card-header { flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 16px; }
   .note-excerpt { margin-bottom: 16px; }
   .note-quote { padding-left: 12px; font-size: 0.88rem; }
+  .notes-list { gap: 26px; }
+  .note-card { padding-bottom: 26px; }
 }
 
 /* ============================================
@@ -340,7 +416,7 @@
 .essay-hero {
   position: relative;
   z-index: 1;
-  padding: 140px 40px 60px;
+  padding: 124px 40px 44px;
 }
 .essay-hero .container {
   max-width: 780px;
@@ -393,6 +469,7 @@
 .essay-content {
   position: relative;
   z-index: 1;
+  padding: 52px 40px 96px;
 }
 .essay-content .container {
   max-width: 720px;
@@ -401,7 +478,7 @@
 
 .essay-body {
   line-height: 1.85;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.84);
   font-size: 1rem;
   letter-spacing: 0.01em;
 }
@@ -486,7 +563,7 @@
 /* Moved here from the deleted essay-detail.css so essay pages keep the
    muted translation row even though essay-detail.css is gone. */
 .meta-line {
-  opacity: 0.4;
+  opacity: 0.58;
   font-size: 0.9em;
   letter-spacing: 0.02em;
   margin-top: -8px !important;
@@ -654,19 +731,19 @@
 .note-page {
   max-width: 780px;
   margin: 0 auto;
-  padding: 110px 24px 80px;
+  padding: 104px 24px 80px;
 }
 
 .note-title-area {
-  margin-bottom: 56px;
-   padding-bottom: 44px;
+  margin-bottom: 44px;
+   padding-bottom: 34px;
    border-bottom: 1px solid var(--border);
 }
 
 .note-body {
   font-size: 0.95rem;
    line-height: 1.85;
-   color: var(--text-secondary);
+   color: rgba(255,255,255,0.8);
 }
 
 .dialogue {
@@ -714,4 +791,176 @@
   margin-bottom: 8px;
    font-size: 0.93rem;
    line-height: 1.7;
+}
+
+/* ============================================
+   Article navigation and focused reading mode
+   ============================================ */
+
+.note-back-fixed:hover,
+.note-back-fixed:focus-visible {
+  color: var(--text-primary);
+  transform: translateX(-3px);
+}
+
+.article-tools {
+  display: flex;
+  align-items: center;
+  min-height: 31px;
+  margin-top: 22px;
+}
+
+.reading-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(10,10,10,0.46);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: color var(--transition), border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.reading-mode-toggle:hover,
+.reading-mode-toggle:focus-visible,
+.reading-mode-toggle[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: rgba(255,255,255,0.07);
+}
+
+.reading-mode-icon {
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px #0a0a0a;
+  background: currentColor;
+}
+
+.article-pagination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  margin-top: 80px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.article-pagination-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-secondary);
+  transition: color var(--transition), transform var(--transition);
+}
+
+.article-pagination-link--next {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.article-pagination-link:hover,
+.article-pagination-link:focus-visible {
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.article-pagination-direction {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.article-pagination-title {
+  max-width: 290px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.essay-content .container,
+.note-page,
+.essay-body,
+.note-body {
+  transition: max-width var(--transition), color var(--transition), font-size var(--transition), line-height var(--transition);
+}
+
+body.reading-mode-active .nav {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+body.reading-mode-active .note-back-fixed,
+body.reading-mode-active .back-to-top {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.reading-mode-active .hero-bg-effect {
+  opacity: 0.14;
+}
+
+body.reading-mode-active .hero-glow-line {
+  animation-play-state: paused;
+}
+
+body.reading-mode-active .reading-mode-toggle {
+  position: fixed;
+  top: 22px;
+  right: 24px;
+  z-index: 120;
+  background: rgba(10,10,10,0.82);
+}
+
+body.reading-mode-active .reading-progress {
+  height: 3px;
+}
+
+body.reading-mode-active .essay-content .container {
+  max-width: 680px;
+}
+
+body.reading-mode-active .essay-body {
+  color: rgba(255,255,255,0.92);
+  font-size: 1.04rem;
+  line-height: 1.95;
+}
+
+body.reading-mode-active .note-page {
+  max-width: 720px;
+}
+
+body.reading-mode-active .note-body {
+  color: rgba(255,255,255,0.88);
+  font-size: 1rem;
+  line-height: 1.95;
+}
+
+@media (max-width: 768px) {
+  .essay-content { padding: 36px 20px 72px; }
+  .note-page { padding: 94px 20px 64px; }
+  .note-title-area { margin-bottom: 36px; padding-bottom: 28px; }
+  .note-back-fixed { left: 18px; bottom: 18px; }
+  .article-pagination { gap: 18px; margin-top: 56px; padding-top: 24px; }
+  .article-pagination-title { font-size: 0.86rem; }
+  body.reading-mode-active .reading-mode-toggle { top: 14px; right: 16px; }
+  body.reading-mode-active .essay-body,
+  body.reading-mode-active .note-body { font-size: 0.98rem; }
 }

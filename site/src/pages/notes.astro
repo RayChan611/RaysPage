@@ -21,7 +21,7 @@ const notes = (await getPublishedNotes()).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
 
-const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
+const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
   <div id="global-bg-effect" class="hero-bg-effect">
@@ -48,6 +48,10 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
 
       <div class="notes-list" id="notesList">
         {notes.map((n) => {
+          const excerptHtml = (n.data.excerpt || '').replace(
+            /<div[^>]*>\s*READ NOTES\s*&rarr;\s*<\/div>\s*$/i,
+            ''
+          );
           const inner = (
             <div class="note-card-header">
               <span class="note-book-name">{n.data.book || n.data.title}</span>
@@ -56,12 +60,31 @@ const pageScripts = ["js/search.js", "js/card-tilt.js", "js/hero-sparkle.js"];
                 <span class="note-card-tag">{n.data.tags[0] || 'Note'}</span>
               </span>
             </div>
-            <div class="note-excerpt" set:html={n.data.excerpt || ''}></div>
+            <div
+              class="note-excerpt"
+              id={`note-summary-${n.id}`}
+              set:html={excerptHtml}
+            ></div>
           );
           return n.data.hasDetail ? (
-            <a href={`note-${n.id}.html`} class="note-card note-card-link animate-on-scroll">{inner}</a>
+            <a href={`note-${n.id}.html`} class="note-card note-card-link animate-on-scroll">
+              {inner}
+              <span class="note-card-action">Read notes <span aria-hidden="true">&rarr;</span></span>
+            </a>
           ) : (
-            <article class="note-card animate-on-scroll">{inner}</article>
+            <article class="note-card note-card-excerpt animate-on-scroll">
+              {inner}
+              <button
+                class="note-expand-button"
+                type="button"
+                data-note-expand
+                aria-expanded="false"
+                aria-controls={`note-summary-${n.id}`}
+              >
+                <span data-note-expand-label>展开全部</span>
+                <span aria-hidden="true">&darr;</span>
+              </button>
+            </article>
           );
         })}
       </div>
