@@ -1,6 +1,8 @@
 ---
 import { render } from 'astro:content';
 import AmbientBackground from '../components/AmbientBackground.astro';
+import ArticleNavigation from '../components/ArticleNavigation.astro';
+import ReadingModeToggle from '../components/ReadingModeToggle.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatContentDate, getPublishedEssays } from '../lib/content';
 
@@ -8,17 +10,25 @@ import { formatContentDate, getPublishedEssays } from '../lib/content';
 // `build.format: 'file'` keeps the output filename = `essay-${slug}.html`,
 // so existing links / SEO are preserved.
 export async function getStaticPaths() {
-  const essays = await getPublishedEssays();
-  return essays.map((entry) => ({
+  const essays = (await getPublishedEssays()).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+  );
+  return essays.map((entry, index) => ({
     params: { slug: entry.id },
-    props: { entry },
+    props: {
+      entry,
+      previous: essays[index + 1] || null,
+      next: essays[index - 1] || null,
+    },
   }));
 }
 
-const { entry } = Astro.props;
+const { entry, previous, next } = Astro.props;
 const { Content } = await render(entry);
 const { title, description, ogImage, date, tags } = entry.data;
 const pageUrl = `https://www.raychan.top/essay-${entry.id}.html`;
+const previousLink = previous ? { href: `essay-${previous.id}.html`, title: previous.data.title } : null;
+const nextLink = next ? { href: `essay-${next.id}.html`, title: next.data.title } : null;
 ---
 <BaseLayout
   title={`${title} | Ray Chan`}
@@ -30,7 +40,7 @@ const pageUrl = `https://www.raychan.top/essay-${entry.id}.html`;
   twitterImage={ogImage}
   extraCss={["css/essays.css", "css/reading-progress.css"]}
   current="other"
-  pageScripts={["js/hero-sparkle.js"]}
+  pageScripts={["js/hero-sparkle.js", "js/reading-mode.js"]}
 >
   <AmbientBackground />
   <a href="essays.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
@@ -41,11 +51,13 @@ const pageUrl = `https://www.raychan.top/essay-${entry.id}.html`;
         <span class="essay-date">{formatContentDate(date)}</span>
         {tags.map((tag) => <span class="essay-tag">{tag}</span>)}
       </div>
+      <div class="article-tools"><ReadingModeToggle /></div>
     </div>
   </section>
   <article class="essay-content section">
     <div class="container">
       <div class="essay-body"><Content /></div>
+      <ArticleNavigation previous={previousLink} next={nextLink} label="Soul-Searching 上一篇与下一篇" />
     </div>
   </article>
 </BaseLayout>

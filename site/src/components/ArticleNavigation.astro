@@ -1,0 +1,28 @@
+---
+interface NavigationItem {
+  href: string;
+  title: string;
+}
+
+interface Props {
+  previous?: NavigationItem | null;
+  next?: NavigationItem | null;
+  label?: string;
+}
+
+const { previous = null, next = null, label = 'Article navigation' } = Astro.props;
+---
+<nav class="article-pagination" aria-label={label}>
+  {previous ? (
+    <a class="article-pagination-link article-pagination-link--previous" href={previous.href}>
+      <span class="article-pagination-direction">&larr; 上一篇</span>
+      <span class="article-pagination-title">{previous.title}</span>
+    </a>
+  ) : <span class="article-pagination-spacer" aria-hidden="true"></span>}
+  {next ? (
+    <a class="article-pagination-link article-pagination-link--next" href={next.href}>
+      <span class="article-pagination-direction">下一篇 &rarr;</span>
+      <span class="article-pagination-title">{next.title}</span>
+    </a>
+  ) : <span class="article-pagination-spacer" aria-hidden="true"></span>}
+</nav>
