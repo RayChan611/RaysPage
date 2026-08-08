@@ -386,11 +386,13 @@ git push origin main  # 触发 EdgeOne 重新部署
 安装命令: （留空）
 构建命令: （留空）
 输出目录: dist
+Node.js 版本: 22.17.1（必须与根目录 `.nvmrc` 一致）
 ```
 > 如果 EdgeOne 强制要求填写构建命令，填 `echo "static dist"` 之类 no-op。
 
 ### 7.4 ⚠️ 关键部署陷阱
 - **不要只改源码忘记 build**：`dist/` 是 EdgeOne 实际服务的目录。只改 `site/` 没跑 `npm run build`，线上不更新。
+- **`.nvmrc` 只能使用 EdgeOne 预装的精确版本**：当前固定为 `22.17.1`。即使构建命令是 no-op，EdgeOne 仍会先切换 Node；填写平台未预装的版本会在构建开始前以返回码 14 失败。
 - **不要提交 `node_modules`/`.astro`**：始终被 `.gitignore` 忽略。
 - **不要提交 `.DS_Store`**：macOS 自动文件，已加 `.gitignore`，偶尔需手动清理。
 
