@@ -197,10 +197,11 @@
 
   function openSearch() {
     clearTimeout(closeTimer);
-    if (!root.hidden) return;
+    if (root.classList.contains('is-active')) return;
     if (document.querySelector('.lightbox.active')) return;
     lastFocused = document.activeElement;
     root.hidden = false;
+    root.removeAttribute('inert');
     root.setAttribute('aria-hidden', 'false');
     trigger.setAttribute('aria-expanded', 'true');
     input.setAttribute('aria-expanded', 'true');
@@ -218,6 +219,9 @@
     if (root.hidden) return;
     root.classList.remove('is-active');
     root.setAttribute('aria-hidden', 'true');
+    // Remove the fading dialog from the focus/accessibility tree immediately;
+    // `hidden` follows after the opacity transition finishes.
+    root.setAttribute('inert', '');
     trigger.setAttribute('aria-expanded', 'false');
     input.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('quick-search-open');
@@ -236,8 +240,8 @@
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (root.hidden) openSearch();
-      else closeSearch();
+      if (root.classList.contains('is-active')) closeSearch();
+      else openSearch();
       return;
     }
     if (root.hidden) return;

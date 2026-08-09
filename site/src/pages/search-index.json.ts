@@ -3,6 +3,7 @@ import {
   getPublishedEssays,
   getPublishedNotes,
 } from '../lib/content';
+import { photoCount, photoSeries } from '../data/photos';
 
 export const prerender = true;
 
@@ -58,24 +59,19 @@ export async function GET() {
       title: 'Photography',
       description: 'Moments captured in monochrome, grouped by series.',
       href: '/photos.html',
-      meta: '39 frames',
+      meta: `${photoCount} frames`,
       keywords: ['photography', 'photos', '摄影', '照片'],
       featured: true,
     },
   ];
 
-  const photoSeries = [
-    ['青岛 Qingdao', '海风、老街与日落。', '/photos.html#series-qingdao', '18 photos'],
-    ['三亚 Sanya', '热带的海，南国的光。', '/photos.html#series-sanya', '7 photos'],
-    ['F1 2025 上海', '引擎轰鸣，赛道与速度。', '/photos.html#series-f1-2025', '8 photos'],
-    ['Moments', '散落的瞬间，赛道、雨后、花季与海。', '/photos.html#series-moments', '6 photos'],
-  ].map(([title, description, href, meta]) => ({
+  const photoItems = photoSeries.map((series) => ({
     type: 'photo',
-    title,
-    description,
-    href,
-    meta,
-    keywords: ['photography', '摄影', title],
+    title: series.nav,
+    description: series.description,
+    href: `/photos.html#series-${series.id}`,
+    meta: `${series.photos.length} photos`,
+    keywords: ['photography', '摄影', series.name, series.nameEn],
     featured: false,
   }));
 
@@ -101,7 +97,7 @@ export async function GET() {
     featured: false,
   }));
 
-  return new Response(JSON.stringify([...pages, ...photoSeries, ...essayItems, ...noteItems]), {
+  return new Response(JSON.stringify([...pages, ...photoItems, ...essayItems, ...noteItems]), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=300',

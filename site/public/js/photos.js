@@ -20,8 +20,6 @@
   let previousBodyOverflow = '';
   const backgroundAriaState = new Map();
 
-  const MAX_RETRY = 20; // max retries for initGallery
-
   function setBackgroundInert(enabled) {
     if (!lightbox) return;
     Array.from(document.body.children).forEach((element) => {
@@ -47,28 +45,17 @@
   }
 
   function initGallery() {
-    // Retry until photos-data.js has rendered gallery items
-    function tryInit(retryCount) {
-      retryCount = retryCount || 0;
-      galleryItems = Array.from(document.querySelectorAll('.gallery-item:not(.gallery-placeholder)'));
-      if (!galleryItems.length) {
-        if (retryCount < MAX_RETRY) {
-          setTimeout(() => tryInit(retryCount + 1), 50);
+    galleryItems = Array.from(document.querySelectorAll('.gallery-item:not(.gallery-placeholder)'));
+    galleryItems.forEach((item, idx) => {
+      item.addEventListener('click', () => openLightbox(idx));
+      // 键盘支持：Enter / Space 触发
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLightbox(idx);
         }
-        return;
-      }
-      galleryItems.forEach((item, idx) => {
-        item.addEventListener('click', () => openLightbox(idx));
-        // 键盘支持：Enter / Space 触发
-        item.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openLightbox(idx);
-          }
-        });
       });
-    }
-    setTimeout(tryInit, 50);
+    });
   }
 
   function openLightbox(idx) {

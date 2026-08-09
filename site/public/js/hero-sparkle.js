@@ -56,6 +56,7 @@
 
   /* ---- Init ---- */
   function resize() {
+    if (!canvas || !ctx || !canvas.parentElement) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = canvas.parentElement.getBoundingClientRect();
     w = rect.width;
@@ -91,15 +92,16 @@
 
   function init() {
     canvas = document.getElementById(CANVAS_ID);
-    if (!canvas) return;
+    if (!canvas) return false;
 
     // Skip on reduced motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       canvas.style.display = 'none';
-      return;
+      return false;
     }
 
     ctx = canvas.getContext('2d');
+    if (!ctx) return false;
     resize();
     createParticles();
 
@@ -122,24 +124,29 @@
 
     // RayRAF pauses on hidden/pagehide and restarts on visible/pageshow,
     // including restoration from the browser back-forward cache.
+    return true;
   }
 
   /* ---- Boot ---- */
   function boot() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
+    function startEffect() {
+      // Only install listeners after a canvas context exists. In reduced-motion
+      // mode init() intentionally stops before context creation.
+      if (!init()) return;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          resize();
+          createParticles();
+        }, RESIZE_DEBOUNCE);
+      });
     }
 
-    // Debounced resize
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        resize();
-        createParticles();
-      }, RESIZE_DEBOUNCE);
-    });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startEffect, { once: true });
+    } else {
+      startEffect();
+    }
   }
 
   boot();

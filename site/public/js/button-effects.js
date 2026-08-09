@@ -4,6 +4,8 @@
  */
 
 (function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   const MAGNETIC_STRENGTH = 0.3; // 磁吸强度（0-1）
   const RIPPLE_DURATION = 650; // 涟漪动画时长 ms
 

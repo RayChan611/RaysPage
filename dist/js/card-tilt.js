@@ -7,8 +7,8 @@
 (function () {
   'use strict';
 
-  // Skip touch devices
-  if ('ontouchstart' in window) return;
+  // Skip touch devices and respect the user's motion preference.
+  if ('ontouchstart' in window || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const SELECTOR = '.tag, .social-link';
   const MAX_TILT = 6;
