@@ -50,7 +50,7 @@ const pageScripts = ["js/search.js", "js/hero-sparkle.js"];
           <a href={`essay-${e.id}.html`} class="essay-card animate-on-scroll">
             <span class="essay-date">{formatContentDate(e.data.date)}</span>
             <div class="essay-card-body">
-              <h3 class="essay-card-title">{e.data.title}</h3>
+              <h2 class="essay-card-title">{e.data.title}</h2>
               <p class="essay-card-excerpt">{e.data.excerpt}</p>
             </div>
             <span class="essay-card-tag">{e.data.tags[0] || 'Essay'}</span>

@@ -17,6 +17,19 @@
   const LINE_PAUSE = 400;   // ms to pause after finishing a line (before <br>)
   const FALLBACK_MS = 2500; // safety net if transition events never fire
 
+  function renderFinalText() {
+    const el = document.getElementById(TARGET_ID);
+    if (!el || el.textContent) return;
+    el.setAttribute('aria-label', LINES.join(' '));
+    LINES.forEach((line, index) => {
+      const span = document.createElement('span');
+      span.className = 'hero-tagline-line';
+      span.textContent = line;
+      el.appendChild(span);
+      if (index < LINES.length - 1) el.appendChild(document.createElement('br'));
+    });
+  }
+
   function typewrite() {
     const el = document.getElementById(TARGET_ID);
     if (!el || el.textContent) return;
@@ -82,10 +95,6 @@
   }
 
   function isReady(heroText) {
-    // If reduced motion is preferred, CSS transitions are effectively instant — start now.
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return true;
-    }
     // If the hero animation has already completed, the last line is fully opaque.
     const lastLine = heroText.querySelector('.hero-name-line:last-child');
     if (lastLine) {
@@ -97,6 +106,11 @@
   }
 
   function init() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      renderFinalText();
+      return;
+    }
+
     const heroText = document.querySelector('.hero-text');
     const lines = heroText ? Array.from(heroText.querySelectorAll('.hero-name-line')) : [];
 

@@ -1,6 +1,7 @@
 ---
 import AmbientBackground from '../components/AmbientBackground.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { photoSeries } from '../data/photos';
 
 const meta = {
   title: 'Photography | Ray Chan',
@@ -15,38 +16,7 @@ const meta = {
   preloadPhoto: false,
 };
 
-const series = [
-  {
-    id: 'qingdao',
-    name: '青岛',
-    nav: '青岛 Qingdao',
-    meta: 'Qingdao · 18 photos',
-    description: '海风、老街与日落。沿着海岸线走过的那些午后。',
-  },
-  {
-    id: 'sanya',
-    name: '三亚',
-    nav: '三亚 Sanya',
-    meta: 'Sanya · 7 photos',
-    description: '热带的海，南国的光。',
-  },
-  {
-    id: 'f1-2025',
-    name: 'F1 2025 上海',
-    nav: 'F1 2025',
-    meta: 'F1 2025 Shanghai · 8 photos',
-    description: '引擎轰鸣，赛道与速度。',
-  },
-  {
-    id: 'moments',
-    name: 'Moments',
-    nav: 'Moments',
-    meta: 'Miscellaneous · 6 photos',
-    description: '散落的瞬间，赛道、雨后、花季与海。',
-  },
-];
-
-const pageScripts = ['js/hero-sparkle.js', 'js/photos-data.js', 'js/photos.js'];
+const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
   <AmbientBackground />
@@ -60,7 +30,7 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos-data.js', 'js/photos.js'];
 
   <nav class="series-nav" id="seriesNav" aria-label="Photo series">
     <div class="container">
-      {series.map((item, index) => (
+      {photoSeries.map((item, index) => (
         <>
           {index > 0 && <span class="series-nav-divider" aria-hidden="true">/</span>}
           <a
@@ -75,19 +45,56 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos-data.js', 'js/photos.js'];
     </div>
   </nav>
 
-  {series.map((item) => (
+  {photoSeries.map((item) => (
     <section class="series-section" id={`series-${item.id}`} aria-labelledby={`${item.id}-title`}>
       <div class="container">
         <div class="series-header animate-on-scroll">
           <div class="series-header-left">
             <div class="series-title-block">
               <h2 class="series-name" id={`${item.id}-title`}>{item.name}</h2>
-              <span class="series-meta">{item.meta}</span>
+              <span class="series-meta">{item.nameEn} · {item.photos.length} photos</span>
             </div>
           </div>
           <p class="series-desc">{item.description}</p>
         </div>
-        <div class="gallery-grid" id={`gallery-${item.id}`}></div>
+        <div class="gallery-grid" id={`gallery-${item.id}`}>
+          {item.photos.map((photo) => {
+            const wide = photo.layout.includes('wide') || photo.layout === 'feature';
+            const sizes = wide ? '(max-width: 768px) 100vw, 55vw' : '(max-width: 768px) 50vw, 25vw';
+            const srcset = photo.width > photo.thumbWidth
+              ? `${photo.thumb} ${photo.thumbWidth}w, ${photo.src} ${photo.width}w`
+              : undefined;
+            return (
+              <div
+                class={`gallery-item gallery-item--${photo.layout} animate-on-scroll`}
+                data-layout={photo.layout}
+                data-title={photo.title}
+                data-series={item.name}
+                data-full={photo.src}
+                role="button"
+                tabindex="0"
+                aria-haspopup="dialog"
+                aria-label={`${photo.title} - 点击查看大图`}
+              >
+                <img
+                  src={photo.thumb}
+                  srcset={srcset}
+                  sizes={sizes}
+                  width={photo.thumbWidth}
+                  height={photo.thumbHeight}
+                  alt={photo.alt}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="gallery-overlay">
+                  <span class="gallery-number">{String(photo.index + 1).padStart(2, '0')}</span>
+                  <h3>{photo.title}</h3>
+                  <p>{photo.description}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   ))}

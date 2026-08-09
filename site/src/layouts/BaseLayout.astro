@@ -5,6 +5,7 @@ interface Props {
   canonical?: string;
   ogType?: string;
   ogImage?: string;
+  ogImageAlt?: string;
   ogUrl?: string;
   twitterImage?: string;
   extraCss?: string[];
@@ -19,6 +20,7 @@ const {
   canonical = 'https://www.raychan.top/',
   ogType = 'website',
   ogImage = 'https://www.raychan.top/assets/og/default.png',
+  ogImageAlt,
   // Use the real file path (index.html) as og:url instead of "/" so social
   // platforms (Feishu/WeChat) that dedupe link-preview cards by og:url don't
   // serve a stale cached card for the root URL. Home/About/Contact all resolve
@@ -40,6 +42,7 @@ const NAV_ITEMS = [
   { href: 'essays.html', label: 'Soul-Searching', key: 'essays' },
 ];
 const onIndex = current === 'home' || current === 'about' || current === 'contact';
+const resolvedOgImageAlt = ogImageAlt || title;
 ---
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -54,9 +57,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:image" content={ogImage} />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Ray Chan" />
+  <meta property="og:image:alt" content={resolvedOgImageAlt} />
   <meta property="og:site_name" content="Ray Chan" />
   <meta property="og:url" content={ogUrl} />
   <meta property="og:type" content={ogType} />
@@ -64,11 +65,12 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={twitterImage} />
+  <meta name="twitter:image:alt" content={resolvedOgImageAlt} />
   {canonical && <link rel="canonical" href={canonical} />}
   <link rel="alternate" type="application/rss+xml" title="Ray Chan" href="/rss.xml" />
   <style>
     html, body { background: #0a0a0a; margin: 0; }
-    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 40px; }
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -81,7 +83,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
   <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script>
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
 </head>
-<body>
+<body class:list={{ 'page-home': onIndex }}>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
   <!-- Hidden by default so content remains usable without JavaScript. The
@@ -135,7 +137,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
     </div>
   </nav>
 
-  <div class="quick-search" id="quickSearch" hidden aria-hidden="true" data-lenis-prevent>
+  <div class="quick-search" id="quickSearch" hidden inert aria-hidden="true" data-lenis-prevent>
     <div class="quick-search-backdrop" data-search-close aria-hidden="true"></div>
     <section class="quick-search-panel" role="dialog" aria-modal="true" aria-labelledby="quickSearchTitle">
       <header class="quick-search-header">

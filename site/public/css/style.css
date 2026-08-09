@@ -682,9 +682,9 @@ button { font-family: inherit; }
   top: 14px;
   right: 14px;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   letter-spacing: 0.05em;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.58);
   padding: 3px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -696,7 +696,7 @@ button { font-family: inherit; }
 .copy-hint.show {
   opacity: 1;
   transform: translateY(0);
-  color: rgba(255,255,255,0.38);
+  color: rgba(255,255,255,0.72);
   border-color: var(--border-hover);
 }
 .copy-hint.success {
@@ -724,7 +724,7 @@ button { font-family: inherit; }
 .contact-card:hover .contact-icon--mail svg  { transform: translateY(-2px) rotate(-4deg); }
 .contact-card:hover .contact-icon--phone svg { transform: rotate(-12deg); }
 .contact-card:hover .contact-icon--pin svg   { transform: translateY(2px); }
-.contact-card h4 {
+.contact-card h3 {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -795,6 +795,9 @@ button { font-family: inherit; }
 .footer {
   padding: 52px 40px;
   border-top: 1px solid var(--border);
+  /* Keep the global footer visually identical on pages that use the fixed
+     ambient background and on the plain home page. */
+  background: var(--bg-primary);
   position: relative;
   z-index: 1;
 }
@@ -828,13 +831,14 @@ button { font-family: inherit; }
 }
 .footer-sign-sub a {
   color: var(--text-secondary);
-  text-decoration: none;
-  transition: color var(--transition);
-  border-bottom: 1px solid transparent;
+  text-decoration: underline;
+  text-decoration-color: rgba(181,181,181,0.55);
+  text-underline-offset: 3px;
+  transition: color var(--transition), text-decoration-color var(--transition);
 }
 .footer-sign-sub a:hover {
   color: var(--text-primary);
-  border-bottom-color: var(--border-hover);
+  text-decoration-color: currentColor;
 }
 
 @media (max-width: 768px) {

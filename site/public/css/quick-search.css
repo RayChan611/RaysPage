@@ -15,6 +15,25 @@
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
+/* The home navigation sits on top of a bright photograph. Give the compact
+   search control its own contrast surface instead of relying on the image. */
+.page-home .quick-search-trigger {
+  border-color: rgba(255,255,255,0.24);
+  background: rgba(8,8,8,0.58);
+  color: rgba(255,255,255,0.88);
+  box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.page-home .quick-search-trigger:hover,
+.page-home .quick-search-trigger:focus-visible,
+.page-home .quick-search-trigger[aria-expanded="true"] {
+  border-color: rgba(var(--ember-rgb), 0.7);
+  background: rgba(8,8,8,0.76);
+  color: #fff;
+}
+
 .quick-search-trigger:hover,
 .quick-search-trigger:focus-visible,
 .quick-search-trigger[aria-expanded="true"] {

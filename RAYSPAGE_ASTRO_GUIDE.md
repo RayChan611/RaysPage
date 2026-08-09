@@ -3,13 +3,13 @@
 > **目标**：不依赖口口相传，让你快速、准确地理解这个站点的一切——设计理念、设计思路、逻辑、具体样式风格、架构逻辑、代码思路、踩过的坑、各种细节。
 > **阅读顺序建议**：先读 §0–§2 建立心智模型 → §3 看样式 → §4 看架构 → §5 看代码（尤其 search 动画与双管理器）→ §9（坑）必读 → §10–§11 上手干活。
 >
-> *本文档更新日期：2026-08-08。当前状态：已升级至 Astro 7 / Content Layer API，Node 最低版本为 22.12；search 清空动画已升级为 WAAPI FLIP（含 retype 与可访问性修复）；内容日期按 UTC 稳定解析；GitHub Actions 会自动执行安全审计、类型检查、构建与静态产物校验；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
+> *本文档更新日期：2026-08-09。当前状态：已升级至 Astro 7 / Content Layer API，Node 最低版本为 22.12；内容日期按 UTC 稳定解析；照片数据由构建期 TypeScript 单一来源驱动；GitHub Actions 会自动执行安全审计、类型检查、构建、静态产物校验，以及桌面/移动端 Playwright + Axe 回归；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
 
 ---
 
 ## 0. 一句话概览 & 关键事实
 
-RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。当前版本用 **Astro 7** 构建，是一个**零客户端框架运行时、纯静态**站点，100% 保留了原版视觉特效（自定义光标、Hero 满屏背景、粒子背景、刮刮乐联系方式、磁性按钮、滚动揭示动画、页面转场遮罩、阅读进度条、搜索过滤动画等）。所有交互用**原生 JS（IIFE / ES5 风格，无打包）+ 少量 Lenis（CDN 平滑滚动）**实现，没有使用 React/Vue 等客户端框架。
+RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。当前版本用 **Astro 7** 构建，是一个**零客户端框架运行时、纯静态**站点。交互使用原生 JS（无打包）与仓库内固定版本的 Lenis，实现 Hero、粒子背景、磁性按钮、滚动揭示、页面转场、阅读进度、搜索与照片灯箱等效果，没有使用 React/Vue 等客户端框架。
 
 **最重要的前提**：本项目是「原版静态 HTML 站点的逐页 Astro 化」，目标是 **100% 还原原版内容与视觉效果**，不是重写。所以绝大部分「业务逻辑」在 `site/public/js/*.js` 和 `site/public/css/*.css` 里，Astro 只是把这些内容壳子化、组件化、加上构建期优化。**还原优先于创新**——任何视觉/内容改动都要保证与原站等价（除非用户明确要求新设计）。
 
@@ -29,7 +29,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 - **Astro 7.2**（`package.json` 中 `astro: ^7.2.0`；`@astrojs/mdx: ^7.0.5` 用于 Content Collections，`@astrojs/rss` 用于 RSS）
 - **Node.js ≥ 22.12.0**（Astro 7 的最低运行版本；仓库 `.nvmrc` 与 CI 固定为 `22.12.0`）
 - **构建输出**：`build.format: 'file'` → 输出 `index.html` / `essays.html` / `essay-choice.html` 等（保持 URL 与原站一致，已有外链零破坏）
-- **客户端 JS**：原生 ES5 风格 IIFE（无打包、无转译，浏览器直接跑），唯一例外是 **Lenis**（CDN 引入的平滑滚动库）
+- **客户端 JS**：原生 IIFE（无打包、无转译，浏览器直接跑）+ 仓库内固定版本的 **Lenis 1.1.18**
 - **样式**：手写 CSS（`style.css` 全局设计系统 + 各页专属 CSS），无 Tailwind / CSS-in-JS
 - **字体**：Google Fonts — `Inter`（sans，300–700）+ `JetBrains Mono`（mono，400/500），使用 preconnect + 标准 stylesheet 加载
 - **分析**：Umami（`cloud.umami.is`，BaseLayout 中 `<script defer>` 引入）
@@ -58,7 +58,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 - **搜索过滤**：essays/notes 列表的实时搜索——匹配卡片重排到顶部、不匹配卡片错峰模糊淡出 + 高度折叠；清空时用 **WAAPI FLIP** 让所有卡片平滑归位、隐藏卡片「浮上来」淡入（详见 §5.5）。
 
 ### 2.3 无障碍 (Accessibility)
-- **`prefers-reduced-motion`**：全局把所有动画时长压到 `0.01ms`、隐藏自定义光标、`animate-on-scroll` 直接显示。每个效果脚本（`cursor.js` / `hero-sparkle.js` / `search.js`）也单独判断 reduced-motion 直接 return 或走无动画分支。
+- **`prefers-reduced-motion`**：全局压缩动画时长并让 `animate-on-scroll` 直接显示；`hero-sparkle.js`、`hero-typewriter.js`、`button-effects.js`、`card-tilt.js` 与搜索效果各自提供无动态分支。
 - 选区、焦点、ARIA（nav `aria-label`、button `aria-label`/`aria-expanded`、卡片 `role="button" tabindex="0"`）都有。
 
 ### 2.4 设计来源
@@ -147,7 +147,7 @@ rayspage-astro/
 │   │   ├── layouts/
 │   │   │   └── BaseLayout.astro   # ★ 全站静态外壳（nav/footer/cursor/转场/进度条/回顶）
 │   │   └── pages/          # 静态页 + 动态路由 + XML endpoints
-│   │       ├── index.astro / 404.astro / photos.astro   # 正文用 bodyHtml 字符串注入
+│   │       ├── index.astro / 404.astro / photos.astro   # 原生 Astro 模板
 │   │       ├── essays.astro / notes.astro               # 列表页，getCollection 渲染卡片
 │   │       ├── essay-[slug].astro / note-[slug].astro   # 动态路由，渲染 <Content />
 │   │       └── sitemap.xml.js                           # 构建期自动生成 sitemap
@@ -168,7 +168,7 @@ rayspage-astro/
 | 层 | 文件 | 职责 |
 |---|---|---|
 | 外壳层 | `BaseLayout.astro` | 渲染所有页面共享的 chrome（head meta/OG、nav、footer、cursor、转场遮罩、进度条、回顶按钮），按依赖顺序引入全局脚本 |
-| 页面层 | `src/pages/*.astro` | 每个页面 = `BaseLayout` + 一段 `bodyHtml`（正文，字符串注入）+ 页专属 `extraCss`/`pageScripts`/`inlineStyles` |
+| 页面层 | `src/pages/*.astro` | 每个页面 = `BaseLayout` + 原生 Astro 模板/Content Collection + 页专属 `extraCss`/`pageScripts` |
 | 样式层 | `public/css/style.css` + 页专属 css | 全局设计系统 + 局部样式 |
 | 运行时层 | `public/js/site.js` | 共享管理器（`RayRAF`/`RayScroll`）+ 转场/进度条/回顶/分析初始化 |
 | 效果层 | `public/js/*.js`（nav/cursor/smooth-scroll/hero-sparkle/search/...） | 各自独立效果，注册到共享管理器 |
@@ -190,25 +190,23 @@ inlineStyles?: string[], // 页专属内联 <style>（来自原站提取，见 9
 - 脚本加载顺序（**顺序很重要**）：
   1. `site.js`（同步 `<script is:inline>`，最先，定义 `window.RayRAF`/`window.RayScroll`，供后续脚本注册）
   2. 页面自己的 `pageScripts`（defer，由各页面在 `<slot/>` 后注入）
-  3. 全局尾部脚本（BaseLayout 末尾）：`lenis.min.js`(CDN) → `smooth-scroll.js` → `cursor.js` → `nav.js`
-- `<body>` 内静态节点：`#pageTransitionOverlay`（初始 `opacity:1` 防闪白）、`#readingProgress`、`#cursorStream`（星尘喷射 canvas）/`#cursorComet`（头部）、`<nav>`（current 决定高亮）、`<slot/>`（页面正文）、`<footer>`、`#backToTop`。
+  3. 全局尾部脚本（BaseLayout 末尾）：仓库内 `lenis.min.js` → `smooth-scroll.js` → `nav.js` → `quick-search.js` → `back-lift.js`
+- `<body>` 内静态节点：`#pageTransitionOverlay`、`#readingProgress`、`<nav>`、全站快捷搜索、`<slot/>`、`<footer>` 与 `#backToTop`。
 
 **导航高亮逻辑**：`NAV_ITEMS` 固定 5 项（About/Contact/Photos/Notes/Soul-Searching）。首页/about/contact 时 About/Contact 渲染为页内锚点 `#about`/`#contact`，其余渲染为跳转到 `index.html#about` 等；`current` 决定哪个显示 `nav-link-active`。
 
-### 4.4 页面生成模式（index / photos / 404 等仍用此模式）
+### 4.4 页面生成模式（静态页）
 ```astro
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 const meta = { title, description, canonical, og*, extraCss: [...], current: "photos", preloadPhoto: false };
-const bodyHtml = "<section class=\"section\">...</section>"; // 原站 <body> 正文，JSON 转义字符串
-const pageScripts = ["js/photos.js","js/photos-data.js"];
+const pageScripts = ['js/photos.js'];
 ---
-<BaseLayout {...meta}>
-  <Fragment set:html={bodyHtml} />
-  {pageScripts.map((s) => <script is:inline defer src={'/' + s}></script>)}
+<BaseLayout {...meta} pageScripts={pageScripts}>
+  <section class="section">...</section>
 </BaseLayout>
 ```
-**正文是字符串通过 `<Fragment set:html={...}>` 注入**——这是为了保证「内容/效果 100% 等价原站」。改页面正文直接改这个字符串。
+静态页使用原生 Astro 模板；照片页还会从 `src/data/photos.ts` 在构建期生成完整网格 HTML。
 
 > ⚠️ 随笔（essays）与读书笔记（notes）已迁移到 **Astro Content Collections + MDX**（见 4.6），不再用 `bodyHtml` 模式，而是写在 `site/src/content/essays/*.mdx`、`site/src/content/notes/*.mdx`，由动态路由渲染。
 
@@ -305,7 +303,7 @@ hasDetail: true
 | `nav.js` | nav 滚动态 + 移动端菜单 + IntersectionObserver 揭示 + Hero 入场 | RayScroll | 移动端菜单用事件委托 |
 | `hero-sparkle.js` | canvas 粒子背景（notes/essays/photos 页） | RayRAF | `position:fixed` 满屏；reduced-motion 隐藏；MAX_PARTICLES=80 低端机封顶；inline draw 无 shadowBlur 高性能 |
 | `search.js` | essays/notes 页搜索过滤（WAAPI FLIP） | — | 依赖 `#searchInput`/`#notesList`/`#essaysList` |
-| `photos.js` + `photos-data.js` | 照片页网格渲染 + 数据 | — | `photos-data.js` 是单一数据源（PHOTO_SERIES 数组），`photos.js` 渲染灯箱 |
+| `photos.js` | 照片灯箱、键盘/触控板导航与系列定位 | — | 网格由 Astro 构建期输出，数据在 `src/data/photos.ts` |
 | `card-tilt.js` | 卡片 3D 倾斜 hover | — | essay/note 卡片 |
 | `button-effects.js` | 磁性按钮效果 | — | |
 | `hero-typewriter.js` | Hero 打字机标语 | — | 首页 |
@@ -314,7 +312,7 @@ hasDetail: true
 | `components.js` | **已删除**（原版注入 nav/footer/cursor 的脚本，新架构改 BaseLayout 静态渲染） | — | 不要恢复它 |
 
 ### 5.3 平滑滚动 (Lenis)
-- CDN 引入 `unpkg.com/lenis@1.1.18/dist/lenis.min.js`（BaseLayout 末尾）。
+- `site/public/js/vendor/lenis.min.js` 固定为 1.1.18，由 BaseLayout 在站内加载。
 - `smooth-scroll.js` 实例化 Lenis（`duration:1.0`，`smoothTouch:false` 触屏不平滑，避免移动端怪异）。
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
@@ -358,8 +356,8 @@ hasDetail: true
 
 ---
 
-## 6. 照片页数据模式（PHOTO_SERIES）
-文件：`site/public/js/photos-data.js` 是单一数据源——`PHOTO_SERIES` 数组，每个系列含 `id/galleryId/name/photos[]`。`renderGalleries()` 把每个系列的 `photos` 渲染进对应 `galleryId` 容器（带 `animate-on-scroll`、`loading="lazy"`、`role="button" tabindex="0"` 灯箱交互）。新增照片系列只需往数组追加一项，无需改 HTML。
+## 6. 照片页数据模式
+文件：`site/src/data/photos.ts` 是照片系列、说明、布局、真实尺寸与缩略图尺寸的单一数据源。`photos.astro` 在构建期输出完整网格，`search-index.json.ts` 从同一数据派生数量和系列入口；因此即使客户端 JavaScript 失败，39 张照片仍可浏览。`photos.js` 只负责灯箱与交互。
 
 ---
 
@@ -451,7 +449,7 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 - `components.js` 已删除，相关「components.js 注入 DOM」注释已改为「BaseLayout 静态渲染」。
 - `migrate.mjs` / `migrate-content.mjs` 已删除（内容迁移完成）。
 - 搜索逻辑中的 `RESTORE_MS` 常量、`is-restoring` class 已删除（见 9.7）。
-- **2026-07-14 审计确认：无 JS 死代码**。`site/public/js/` 下 13 个脚本全部有引用——`site.js`/`smooth-scroll.js`/`cursor.js`/`nav.js` 经 `BaseLayout`；`hero-sparkle.js`/`back-lift.js` 经 `essay-[slug].astro`/`note-[slug].astro`；`search.js`/`card-tilt.js` 经 `essays.astro`/`notes.astro`；`photos.js`/`photos-data.js` 经 `photos.astro`；`hero-typewriter.js`/`button-effects.js`/`scratch-to-reveal.js` 经 `index.astro`。均采用各页面 `pageScripts` 数组动态加载（路径为 `js/xxx.js` 无前导斜杠，静态 grep `/js/` 会漏判，需注意）。
+- **2026-08-09 审计确认**：照片数据已移到构建期模块，`photos-data.js` 已删除；客户端 `photos.js` 只增强 Astro 已输出的静态网格。页面脚本统一通过 `pageScripts` 加载。
 
 ### 9.10 验证环境陷阱（headless 测试时）
 - 旧的 static server / 浏览器缓存会在多次验证间造成严重误导（曾误报「readingProgress 消失」）。每次 headless 验证前：**重启 server + 清 Chrome profile + 用 `?cb=` 缓存破坏 URL**。
@@ -502,6 +500,7 @@ npm ci                # 按 lockfile 安装；需要 Node >= 22.12.0
 npm run dev           # 开发服务器，默认 http://localhost:4321
 npm run check         # Astro / TypeScript 静态检查
 npm test              # check + build + dist 完整性验证（当前 21 个 HTML 页面）
+npm run test:e2e      # Playwright 桌面/移动端交互、布局与 Axe 无障碍回归
 npm run audit         # high / critical 依赖漏洞检查
 npm run preview       # 预览构建产物
 ```
@@ -510,7 +509,7 @@ npm run preview       # 预览构建产物
 
 ### 11.2 加一个新页面
 1. 在 `site/src/pages/` 新建 `xxx.astro`（结构见 §4.4），`current` 设对；需要额外 CSS 就加 `extraCss` + 在 `public/css/` 建文件；需要脚本就加 `pageScripts` 并在 `public/js/` 建文件。
-2. 正文直接编辑 `bodyHtml` 字符串（index/photos/404 等模式）。
+2. 正文直接写原生 Astro 模板；需要动态数据时放到 `site/src/data/` 并在构建期导入。
 
 ### 11.3 加一个新的客户端效果
 1. 在 `public/js/` 新建 `xxx.js`（IIFE，ES5 风格，无打包）。
@@ -529,13 +528,13 @@ npm run preview       # 预览构建产物
   - frontmatter（`title`/`date`/`description`/`excerpt`/`tags`/`ogImage`/`hasDetail`/`book`）受 `site/src/content.config.ts` 的 zod schema 约束，构建期校验，写错类型会构建失败。
   - 正文 HTML 写在 frontmatter 之后，按 9.8 规则：**void 元素自闭合、每个标签独占一行**。
   - 改完执行 `npm test` 验证（动态路由自动按文件 `id` 生成页面）。
-- **其他页面（index / photos / 404）**：正文仍在 `*.astro` 的 `bodyHtml` 字符串里，直接编辑对应 `*.astro`。
+- **其他页面（index / photos / 404）**：直接编辑对应的原生 `*.astro` 模板。
 
 ### 11.6 加一个照片系列
-- 编辑 `site/public/js/photos-data.js`，往 `PHOTO_SERIES` 数组追加一项（`id`/`galleryId`/`name`/`photos[]`），图片放到 `site/public/photos/<id>/`。无需改 HTML（渲染由 `photos.js` 完成）。
+- 编辑 `site/src/data/photos.ts`，新增系列与照片元数据（含真实宽高、缩略图宽高和网格布局），图片放到 `site/public/photos/<id>/`。`photos.astro` 和搜索索引会在构建期自动同步。
 
 ### 11.7 同步旧站更新
-- 旧站内容已**全部迁移完成**，一次性迁移脚本已从仓库移除。正文编辑直接改源文件（`*.astro` 的 `bodyHtml` 或 `*.mdx`），无需重跑任何迁移脚本。新增文章/笔记直接新建 `site/src/content/essays/*.mdx` 或 `notes/*.mdx`，动态路由自动生成页面。
+- 旧站内容已**全部迁移完成**，一次性迁移脚本已从仓库移除。正文编辑直接改原生 `*.astro` 或 `*.mdx`，无需重跑任何迁移脚本。新增文章/笔记直接新建 `site/src/content/essays/*.mdx` 或 `notes/*.mdx`，动态路由自动生成页面。
 
 ---
 
