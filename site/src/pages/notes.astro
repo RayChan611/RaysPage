@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AmbientBackground from '../components/AmbientBackground.astro';
 import { getPublishedNotes } from '../lib/content';
 
 const meta = {
@@ -12,7 +13,6 @@ const meta = {
   twitterImage: "https://www.raychan.top/assets/og/default.png",
   extraCss: ["css/essays.css", "css/reading-progress.css", "css/search.css"],
   current: "notes",
-  preloadPhoto: false,
 };
 
 // Driven by the `notes` Content Collection. Standalone excerpt cards
@@ -24,13 +24,7 @@ const notes = (await getPublishedNotes()).sort(
 const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
-  <div id="global-bg-effect" class="hero-bg-effect">
-    <div class="hero-glow-line hero-glow-line--indigo-blur"></div>
-    <div class="hero-glow-line hero-glow-line--indigo"></div>
-    <div class="hero-glow-line hero-glow-line--sky-blur"></div>
-    <div class="hero-glow-line hero-glow-line--sky"></div>
-    <canvas id="hero-sparkle-canvas"></canvas>
-  </div>
+  <AmbientBackground />
 
   <section class="essays-hero">
     <div class="container">

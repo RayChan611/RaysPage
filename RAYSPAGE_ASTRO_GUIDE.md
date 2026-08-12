@@ -52,17 +52,16 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 - **入场**：元素从 `translateY(18~32px)` + 透明 淡入，缓动 `cubic-bezier(0.16,1,0.3,1)`，约 0.85s。
 - **Hero 名字**：逐词（word）在独立合成层淡入（避免双层 opacity 复合导致的性能问题），用 `translate3d` 强制 GPU 层（`.hero-name-line` 上 `will-change: transform, opacity`）。
 - **导航 logo**：hover 时「Ray Chan」从「RC」展开（clip-path + max-width 动画；展开无宽限期，收起有 220ms 宽限期避免急促——见 `style.css` 的 `.nav-logo-expand` 系列规则）。
-- **光标**：桌面自定义「星尘喷射」光标——头部 1:1 实时跟手，移动时洒落一颗颗**独立发光粒子**（`#cursorStream` 满屏 `canvas` 绘制），粒子继承头部速度、受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.06)` 轻微下沉、随机扰动后渐隐消散；**无连线丝带**，只有疏朗星尘。移动端（≤768px）禁用。
 - **滚动揭示**：`IntersectionObserver`（`nav.js`）给 `.animate-on-scroll` 加 `.visible`。
 - **页面转场**：点击链接 → 全屏遮罩 `#0a0a0a` 淡入 → 跳转 → 新页遮罩淡出。初始 `opacity:1` 防止首屏闪白（见 BaseLayout 的 `#pageTransitionOverlay`）。
 - **搜索过滤**：essays/notes 列表的实时搜索——匹配卡片重排到顶部、不匹配卡片错峰模糊淡出 + 高度折叠；清空时用 **WAAPI FLIP** 让所有卡片平滑归位、隐藏卡片「浮上来」淡入（详见 §5.5）。
 
 ### 2.3 无障碍 (Accessibility)
-- **`prefers-reduced-motion`**：全局压缩动画时长并让 `animate-on-scroll` 直接显示；`hero-sparkle.js`、`hero-typewriter.js`、`button-effects.js`、`card-tilt.js` 与搜索效果各自提供无动态分支。
+- **`prefers-reduced-motion`**：全局压缩动画时长并让 `animate-on-scroll` 直接显示；Lenis、浮动按钮惯性、页面转场、粒子、打字机、卡片与搜索效果均提供无动态分支，同时保持相同的导航语义。
 - 选区、焦点、ARIA（nav `aria-label`、button `aria-label`/`aria-expanded`、卡片 `role="button" tabindex="0"`）都有。
 
 ### 2.4 设计来源
-视觉灵感来自 **Inspira UI**（光标、刮刮乐、粒子 Sparkles 均从那里移植），黑白调性参考 Inspira 的 minimal 风格。原版还有一份更详尽的 `DESIGN.md`（在旧版 `RaysPage-legacy` 仓库根，约 35KB），如需深究某组件的设计意图可去翻。
+视觉灵感来自 **Inspira UI** 的粒子 Sparkles 与 minimal 风格；旧版曾使用过自定义光标和刮刮乐，现版已经移除。原版还有一份更详尽的 `DESIGN.md`（在旧版 `RaysPage-legacy` 仓库根，约 35KB），如需深究历史设计意图可去翻。
 
 ---
 
@@ -142,10 +141,12 @@ rayspage-astro/
 │   │   ├── env.d.ts
 │   │   ├── content.config.ts # Content Layer loaders + essays / notes schema
 │   │   ├── content/        # ★ Content Collections（见 4.6）
-│   │   │   ├── essays/*.mdx   # 14 篇随笔（MDX 内容工程化）
+│   │   │   ├── essays/*.mdx   # 16 篇随笔（MDX 内容工程化）
 │   │   │   └── notes/*.mdx    # 7 条笔记（MDX，2 条 hasDetail）
+│   │   ├── components/
+│   │   │   └── AmbientBackground.astro # 列表、详情与照片页共享的装饰背景
 │   │   ├── layouts/
-│   │   │   └── BaseLayout.astro   # ★ 全站静态外壳（nav/footer/cursor/转场/进度条/回顶）
+│   │   │   └── BaseLayout.astro   # ★ 全站静态外壳（nav/footer/转场/进度条/回顶）
 │   │   └── pages/          # 静态页 + 动态路由 + XML endpoints
 │   │       ├── index.astro / 404.astro / photos.astro   # 原生 Astro 模板
 │   │       ├── essays.astro / notes.astro               # 列表页，getCollection 渲染卡片
@@ -153,8 +154,8 @@ rayspage-astro/
 │   │       └── sitemap.xml.js                           # 构建期自动生成 sitemap
 │   ├── public/             # ← 原样拷进构建产物根目录的静态资产
 │   │   ├── css/            # style.css（全局设计系统）+ 页专属（essays/notes/photos/reading-progress/search/404）
-│   │   ├── js/             # 12 个客户端脚本（见 5.3）+ back-lift.js（详情页返回按钮）
-│   │   ├── assets/         # og 图（default + 各文章）、ray-photo.webp
+│   │   ├── js/             # 14 个客户端脚本 + vendor/lenis.min.js（见 5.2）
+│   │   ├── assets/         # og 图（default + 各文章）、带内容哈希的首页主图
 │   │   ├── photos/         # 多个照片系列（qingdao/sanya/f1-2025-shanghai + 6 张 moments）
 │   │   ├── favicon.svg, robots.txt
 ├── node_modules/           # 依赖（不提交，被 .gitignore 忽略）
@@ -167,11 +168,11 @@ rayspage-astro/
 ### 4.2 分层职责
 | 层 | 文件 | 职责 |
 |---|---|---|
-| 外壳层 | `BaseLayout.astro` | 渲染所有页面共享的 chrome（head meta/OG、nav、footer、cursor、转场遮罩、进度条、回顶按钮），按依赖顺序引入全局脚本 |
+| 外壳层 | `BaseLayout.astro` | 渲染所有页面共享的 chrome（head meta/OG、nav、footer、转场遮罩、进度条、回顶按钮），按依赖顺序引入全局脚本 |
 | 页面层 | `src/pages/*.astro` | 每个页面 = `BaseLayout` + 原生 Astro 模板/Content Collection + 页专属 `extraCss`/`pageScripts` |
 | 样式层 | `public/css/style.css` + 页专属 css | 全局设计系统 + 局部样式 |
 | 运行时层 | `public/js/site.js` | 共享管理器（`RayRAF`/`RayScroll`）+ 转场/进度条/回顶/分析初始化 |
-| 效果层 | `public/js/*.js`（nav/cursor/smooth-scroll/hero-sparkle/search/...） | 各自独立效果，注册到共享管理器 |
+| 效果层 | `public/js/*.js`（nav/smooth-scroll/hero-sparkle/search/...） | 各自独立效果，注册到共享管理器 |
 
 ### 4.3 BaseLayout（静态外壳，核心）
 文件：`site/src/layouts/BaseLayout.astro`
@@ -181,16 +182,16 @@ rayspage-astro/
 title, description, canonical, ogType, ogImage, ogUrl, twitterImage,
 extraCss?: string[],     // 页专属 CSS，如 ["css/essays.css","css/reading-progress.css"]
 current?: string,        // 导航高亮：home|about|contact|photos|notes|essays|other
-preloadPhoto?: boolean,  // 仅首页 true（预加载 ray-photo.webp）
-inlineStyles?: string[], // 页专属内联 <style>（来自原站提取，见 9.2 坑，绝不能删）
+preloadPhoto?: boolean,  // 仅首页 true（预加载带内容哈希的主图）
+pageScripts?: string[],  // 页专属客户端脚本
 ```
 
 **它静态渲染的东西**（新架构关键，原版这些是 JS 注入的）：
-- `<head>`：meta/OG/Twitter、字体 preload、`/css/style.css`、extraCss、inlineStyles、Umami 脚本、`preloadPhoto` 时预载 `ray-photo.webp`。
+- `<head>`：meta/OG/Twitter、字体 preload、`/css/style.css`、extraCss、Umami 脚本；`preloadPhoto` 为 true 时预载带内容哈希的首页主图。更换图片时必须同步更新文件名和预加载路径，以绕过长期缓存。
 - 脚本加载顺序（**顺序很重要**）：
   1. `site.js`（同步 `<script is:inline>`，最先，定义 `window.RayRAF`/`window.RayScroll`，供后续脚本注册）
-  2. 页面自己的 `pageScripts`（defer，由各页面在 `<slot/>` 后注入）
-  3. 全局尾部脚本（BaseLayout 末尾）：仓库内 `lenis.min.js` → `smooth-scroll.js` → `nav.js` → `quick-search.js` → `back-lift.js`
+  2. 全局尾部脚本：仓库内 `lenis.min.js` → `smooth-scroll.js` → `nav.js` → `quick-search.js` → `back-lift.js`
+  3. 页面自己的 `pageScripts`（defer，位于 BaseLayout 尾部）
 - `<body>` 内静态节点：`#pageTransitionOverlay`、`#readingProgress`、`<nav>`、全站快捷搜索、`<slot/>`、`<footer>` 与 `#backToTop`。
 
 **导航高亮逻辑**：`NAV_ITEMS` 固定 5 项（About/Contact/Photos/Notes/Soul-Searching）。首页/about/contact 时 About/Contact 渲染为页内锚点 `#about`/`#contact`，其余渲染为跳转到 `index.html#about` 等；`current` 决定哪个显示 `nav-link-active`。
@@ -199,7 +200,7 @@ inlineStyles?: string[], // 页专属内联 <style>（来自原站提取，见 9
 ```astro
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-const meta = { title, description, canonical, og*, extraCss: [...], current: "photos", preloadPhoto: false };
+const meta = { title, description, canonical, og*, extraCss: [...], current: "photos" };
 const pageScripts = ['js/photos.js'];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
@@ -233,7 +234,7 @@ export default defineConfig({
 ```
 site/src/content.config.ts # glob loaders + essays / notes 的 zod schema
 site/src/content/
-  essays/*.mdx         # 14 篇随笔
+  essays/*.mdx         # 16 篇随笔
   notes/*.mdx          # 7 条笔记（principles/katwu-lenny + extra-1..5）
 site/src/pages/
   essay-[slug].astro   # getStaticPaths → 渲染 <Content />，输出 essay-${slug}.html
@@ -257,17 +258,16 @@ tags: ["PM · AI"]
 ogImage: "https://www.raychan.top/assets/og/note-katwu-lenny.png"
 hasDetail: true
 ---
-<div id="global-bg-effect" class="hero-bg-effect"> ... </div>
-<main class="note-page"> ... </main>
+<p>正文内容……</p>
 ```
 正文 HTML 写在 frontmatter 之后，由动态路由 `const { Content } = await render(entry);` + `<Content />` 渲染。
 
-**样式 / 脚本复用**：原各详情页的 `inlineStyles` 已提升到共享 `public/css/essays.css`；尾部「返回」按钮的 `inlineScripts` 已提升为共享 `public/js/back-lift.js`（对缺失按钮自动 no-op）。动态路由统一加载 `hero-sparkle.js` + `back-lift.js`。
+**样式 / 脚本复用**：原各详情页的内联样式已提升到共享 `public/css/essays.css`，BaseLayout 不再接受原始内联 CSS；浮动返回/回顶按钮统一由 `public/js/back-lift.js` 处理（对缺失按钮自动 no-op）。动态路由复用 `AmbientBackground.astro`，并统一加载 `hero-sparkle.js`、`reading-mode.js`。
 
 ### 4.7 客户端脚本加载顺序（不可乱）
 1. `site.js` → 定义 `RayRAF`/`RayScroll` 单例
-2. 页面 `pageScripts`（defer）→ 各效果脚本（hero-sparkle/search/photos/card-tilt/button-effects/hero-typewriter/scratch-to-reveal 等），运行时会 `window.RayRAF.register(...)` / `window.RayScroll.add(...)`
-3. 全局尾部：`lenis` → `smooth-scroll` → `cursor` → `nav`（必须最后，且 lenis 在 smooth-scroll 前）
+2. 全局尾部：`lenis` → `smooth-scroll` → `nav` → `quick-search` → `back-lift`（lenis 必须在 smooth-scroll 前）
+3. 页面 `pageScripts`（defer）→ 各效果脚本（hero-sparkle/search/photos/card-tilt/button-effects/hero-typewriter/reading-mode 等），运行时按需调用 `window.RayRAF.register(...)` / `window.RayScroll.add(...)`
 
 ---
 
@@ -279,7 +279,7 @@ hasDetail: true
 **`window.RayRAF`** — 共享 rAF 可见性管理器
 - 单个 `visibilitychange` 监听器，暂停/恢复所有注册动画循环。
 - `register({start, stop})` / `unregister(loop)`。
-- 注册者：cursor 的 outline 循环、smooth-scroll 的 lenis raf、hero-sparkle 的粒子循环。
+- 注册者：smooth-scroll 的 Lenis rAF、hero-sparkle 的粒子循环。
 - 收益：3 个独立 `visibilitychange` 监听 → 1 个。
 
 **`window.RayScroll`** — 共享滚动管理器
@@ -298,8 +298,7 @@ hasDetail: true
 | 文件 | 职责 | 注册到 | 备注 |
 |---|---|---|---|
 | `site.js` | 运行时管理器 + 转场/进度条/回顶/分析 | — | 全局最先加载 |
-| `smooth-scroll.js` | Lenis 平滑滚动 + 锚点跳转 + hash 定位 | RayRAF | `history.scrollRestoration='manual'`；`window.lenis` 暴露 |
-| `cursor.js` | 自定义光标（头部 1:1 + canvas 粒子喷射拖尾） | RayRAF | 仅桌面(>768)、reduced-motion 直接 return、首次移动才显示、translate3d GPU 合成、canvas 绘制粒子 |
+| `smooth-scroll.js` | Lenis 平滑滚动 + 锚点跳转 + hash 定位 | RayRAF | 保留原生 history 恢复；减少动态效果时不创建 Lenis |
 | `nav.js` | nav 滚动态 + 移动端菜单 + IntersectionObserver 揭示 + Hero 入场 | RayScroll | 移动端菜单用事件委托 |
 | `hero-sparkle.js` | canvas 粒子背景（notes/essays/photos 页） | RayRAF | `position:fixed` 满屏；reduced-motion 隐藏；MAX_PARTICLES=80 低端机封顶；inline draw 无 shadowBlur 高性能 |
 | `search.js` | essays/notes 页搜索过滤（WAAPI FLIP） | — | 依赖 `#searchInput`/`#notesList`/`#essaysList` |
@@ -307,18 +306,20 @@ hasDetail: true
 | `card-tilt.js` | 卡片 3D 倾斜 hover | — | essay/note 卡片 |
 | `button-effects.js` | 磁性按钮效果 | — | |
 | `hero-typewriter.js` | Hero 打字机标语 | — | 首页 |
-| `scratch-to-reveal.js` | 联系卡刮刮乐 canvas | — | 首页 contact-card |
-| `back-lift.js` | 详情页返回按钮上浮效果 | — | 对缺失按钮自动 no-op |
-| `components.js` | **已删除**（原版注入 nav/footer/cursor 的脚本，新架构改 BaseLayout 静态渲染） | — | 不要恢复它 |
+| `note-cards.js` | Reading Notes 卡片展开/收起 | — | 仅列表页 |
+| `reading-mode.js` | 详情页专注阅读模式 | — | essay/note 详情页 |
+| `quick-search.js` | 全站快捷搜索对话框 | — | 全局加载 |
+| `back-lift.js` | 浮动返回/回顶按钮避让 Footer | — | 减少动态效果时直接定位 |
+| `404.js` | 404 页粒子和指针视差 | — | 减少动态效果时不启动 |
+| `components.js` | **已删除**（原版注入共享 DOM 的脚本，新架构改 BaseLayout 静态渲染） | — | 不要恢复它 |
 
 ### 5.3 平滑滚动 (Lenis)
 - `site/public/js/vendor/lenis.min.js` 固定为 1.1.18，由 BaseLayout 在站内加载。
-- `smooth-scroll.js` 实例化 Lenis（`duration:1.0`，`smoothTouch:false` 触屏不平滑，避免移动端怪异）。
+- `smooth-scroll.js` 实例化 Lenis（`duration:1.0`，`syncTouch:false`，触屏保持原生滚动）；系统开启减少动态效果时完全不创建 Lenis。
 - 锚点链接（如导航 About/Contact）通过事件委托，用 `lenis.scrollTo(targetPos, {duration})`，并减去 nav 高度偏移。
 
-### 5.4 自定义光标 & 粒子背景
-- **光标（星尘喷射，canvas 粒子）**：仅桌面 `innerWidth>768`，CSS `@media (max-width:768px)` 也 `display:none`。`cursor.js` 给 `body` 加 `.custom-cursor-active`（CSS 里 `.custom-cursor-active *{cursor:none}` 隐藏系统光标）。头部 `#cursorComet` 用 `pointermove` 1:1 定位（`translate3d`，不触发 layout）；拖尾 `#cursorStream` 是满屏 `<canvas>`（DPR-aware 缩放），**每个粒子是一颗独立发光圆点**（非连线）。头部移动时每隔 `EMIT_DIST(6.5px)` 发射一个粒子，继承头部速度 `×0.32` 并叠加 `JITTER(±0.4)` 随机扰动；每帧粒子受 `DAMP(0.92)` 阻力减速、`GRAVITY(0.15)` 下沉（`2026-07` 由 `0.06` 加重到 `0.15`，明显下落重量感，commit `568b2d9`）、`life` 衰减，`MAX_PARTICLES(60)` 封顶保护性能。绘制用 `ctx.arc` + `shadowBlur(4)` 柔光、`rgba(255,255,255,α)` 随 `life` 渐隐，无 SVG 丝带/渐变/滤镜。全局 `fade`(`FADE_EASE 0.12`) 柔和淡入淡出（canvas opacity 纯 JS 每帧控制）。hover 到 `a/button/.contact-card/.tag/.social-link/.gallery-item/.essay-card` 时 `body.cursor-hover` 让头部放大、粒子亮度 `baseA` 由 0.5 升到 0.8（`hover` 缓动）。
-- **粒子背景**：出现在 notes/essays/photos 内页的 `#global-bg-effect` 容器内（首页用真实 Hero 背景图，无粒子）。canvas `position:fixed` 满屏，只在 tab 隐藏时暂停。性能：粒子数按面积算、封顶 80；绘制不用 `save/restore`/`shadowBlur`。
+### 5.4 粒子背景
+- **粒子背景**：notes/essays/photos 与详情页统一复用 `AmbientBackground.astro`；该装饰容器带 `aria-hidden="true"`，不会干扰读屏器。canvas `position:fixed` 满屏，页面隐藏时暂停；系统开启减少动态效果时不启动。性能：粒子数按面积计算并封顶 80，绘制不用 `save/restore`/`shadowBlur`。
 
 ### 5.5 ★ 搜索过滤动画：WAAPI FLIP（重点代码思路）
 文件：`site/public/js/search.js` + `site/public/css/search.css`。这是近期重写的重点，逻辑较巧妙，单列说明。
@@ -419,8 +420,8 @@ Node.js 版本: 22.17.1（必须与根目录 `.nvmrc` 一致）
 ### 9.1 `#readingProgress` 元素缺失（严重）
 - 现象：阅读进度条功能死。根因：原由已删的 `components.js` 注入，BaseLayout 重构时漏加。修复：BaseLayout 静态渲染 `<div class="reading-progress" id="readingProgress">`。**教训**：任何「原 components.js 注入的节点」迁移到 BaseLayout 时都要显式加回。
 
-### 9.2 内联 `<style>` 提取遗漏（严重，影响视觉）
-- 现象：子页 Back 按钮飘到左上角（应为左下固定），所有页专属视觉样式丢失。根因：原迁移只收集内联 `<script>`，漏了内联 `<style>`（`.note-back-fixed`、`.pdca-*`、`.dialogue`、`.highlight*`、`.note-*` 等）。修复：migrate 增加 `<style>` 提取 → `inlineStyles` → BaseLayout `<style is:inline>` 渲染。**教训**：`inlineStyles` 里的页专属 `<style>` **绝不可删**（删了 Back 按钮等会错位）。现已统一提升到 `essays.css` / `reading-progress.css` 等共享文件，但 `index`/`photos`/`404` 等仍可能有 `inlineStyles`，改动前先确认。
+### 9.2 内联 `<style>` 提取遗漏（历史问题，已结构化解决）
+- 现象：迁移初期曾因漏掉页内样式，导致详情页 Back 按钮错位。当前所有详情样式已经提升到 `essays.css` / `reading-progress.css` 等共享文件，`inlineStyles` 接口已删除。**教训**：迁移或新增视觉规则时应进入对应的共享 CSS，不要重新引入运行时原始 CSS 注入。
 
 ### 9.3 `photos/` 图片目录漏拷（严重）
 - 现象：照片页图片全 404。根因：搭建骨架时 `cp` 只复制了 css/js/assets，漏了 photos。修复：`cp -R RaysPage/photos public/photos`（注意别嵌套出 `public/photos/photos/`）。**教训**：新增 `public/` 资源目录要全量核对。
@@ -468,7 +469,7 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 - 源文件是 `site/src/pages/sitemap.xml.js`，构建时输出 `dist/sitemap.xml`；不要再在 `site/public/` 下新增同名静态文件。
 - 固定页面在 `STATIC_ROUTES` 中维护；essay 与有详情页的 note 通过 `site/src/lib/content.ts` 的统一发布查询自动收集。
 - `draft: true` 的内容会同时从列表、详情路由、RSS 和 sitemap 排除，新增文章后不再需要手动补 `<url>`。
-- **essays 现状（2026-08-08）**：共 14 篇。新增内容会由列表、详情路由、RSS 和 sitemap 自动发现。
+- **essays 现状（2026-08-12）**：共 16 篇。新增内容会由列表、详情路由、全站搜索、RSS 和 sitemap 自动发现。
 
 ### 9.15 Astro 6+ Content Layer 约束
 - 旧版 `site/src/content/config.ts`、collection `type: 'content'` 与 `entry.slug` 已被 Astro 移除。配置必须放在 `site/src/content.config.ts`，集合使用 `glob()` loader，zod 从 `astro/zod` 导入，路由标识使用 `entry.id`。
@@ -480,9 +481,9 @@ MDX 把内嵌 HTML 交给 **JSX 解析器**（`mdast-util-mdx-jsx`），比浏�
 
 1. **导航高亮 `current`**：每个页面 frontmatter 必须设对（home/about/contact/photos/notes/essays/other），否则导航高亮错位。
 2. **页专属 CSS → `extraCss`**：页面需要的额外 CSS 放进 `extraCss` 数组（如 `"css/reading-progress.css"`），BaseLayout 会 `<link>` 引入。不要塞进 `style.css` 全局（除非真的全局用）。
-3. **页专属内联样式 → `inlineStyles`**：原站页面里的 `<style>` 块由 BaseLayout 用 `<style is:inline>` 渲染，**绝不可删**。
+3. **页专属样式进入 CSS 文件**：放进 `public/css/` 并通过 `extraCss` 加载，不要恢复原始 CSS 字符串注入。
 4. **页专属脚本 → `pageScripts`**：页面以 `<script defer>` 引入。新增页脚本放 `public/js/` 并加入页面 `pageScripts`。
-5. **GLOBAL 脚本不要每页重复**：`lenis`/`smooth-scroll`/`cursor`/`nav` 由 BaseLayout 全局引入，页面不要重复加。
+5. **GLOBAL 脚本不要每页重复**：`lenis`/`smooth-scroll`/`nav`/`quick-search`/`back-lift` 由 BaseLayout 全局引入，页面不要重复加。
 6. **动画循环必须注册到 RayRAF**：新增 rAF 循环用 `window.RayRAF.register({start,stop})`，不要自己加 `visibilitychange`。
 7. **滚动处理必须注册到 RayScroll**：新增 scroll 监听用 `window.RayScroll.add(fn)`，不要自己 `addEventListener('scroll')`。
 8. **reduced-motion 门控**：新增动效必须在脚本顶部或 CSS 里尊重 `prefers-reduced-motion`。
@@ -520,7 +521,7 @@ npm run preview       # 预览构建产物
 
 ### 11.4 改设计（配色/字体/间距）
 - 优先改 `site/public/css/style.css` 的 `:root` 变量（配色、字体、过渡曲线）。
-- 组件样式在同文件对应区块改；页专属样式改 `public/css/essays.css` 等或页面 `inlineStyles`。
+- 组件样式在同文件对应区块改；页专属样式改 `public/css/essays.css` 等共享文件。
 - 动效曲线沿用 §3.4 的统一曲线，不要发明新曲线。
 
 ### 11.5 改内容
@@ -557,7 +558,7 @@ npm run preview       # 预览构建产物
 **不要做的事（Don'ts）**：
 - ❌ 不要改 `build.format` 为 `directory`
 - ❌ 不要恢复已删除的 `components.js`（BaseLayout 已静态渲染它的职责）
-- ❌ 不要动 `inlineStyles` 里的页专属 `<style>`（丢了 Back 按钮等会错位）
+- ❌ 不要恢复 `inlineStyles` 或其他原始 CSS 字符串注入；样式应进入受版本管理的 CSS 文件
 - ❌ 不要拦截/改写 `javascript:` 链接
 - ❌ 不要自己加 `visibilitychange`/`scroll` 监听（用 RayRAF/RayScroll）
 - ❌ 不要把 `node_modules` 提交进 git

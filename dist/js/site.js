@@ -1,21 +1,18 @@
-/* site.js — client runtime for the Astro-migrated RaysPage.
+/* site.js — RaysPage 迁移到 Astro 后的客户端运行时。
  *
- * In the original site, components.js both INJECTED the nav/footer/cursor
- * (server-rendered statically by BaseLayout in the new setup) AND ran the
- * page behaviours below. Here we keep only the runtime behaviour + the
- * shared RAF visibility manager. Nav/footer/cursor/back-to-top are now
- * static markup in BaseLayout, so initAll can assume they already exist.
+ * 旧版 components.js 同时注入导航、页脚等共享节点并执行页面行为；
+ * 新架构改由 BaseLayout 静态渲染节点，这里只保留运行时行为和共享管理器。
+ * initAll 可以直接假设这些共享节点已经存在。
  */
 (function () {
   'use strict';
 
-  // 计量网络用户跳过非必要动画（cursor 粒子 / sparkle），由各特效脚本读取
+  // 计量网络用户跳过非必要动画（如 sparkle），由各特效脚本读取
   window.__reducedData = !!(window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches);
 
   // ---- Shared RAF visibility manager ----
-  // A single visibilitychange listener pauses/resumes every registered loop,
-  // replacing the 3 separate listeners hero-sparkle / cursor / smooth-scroll
-  // used to attach.
+  // 用一个 visibilitychange 监听统一暂停/恢复所有已注册的动画循环，
+  // 取代 hero-sparkle、smooth-scroll 等脚本各自绑定监听的旧实现。
   window.RayRAF = (function () {
     const loops = new Set();
     let bound = false;
