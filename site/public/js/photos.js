@@ -71,12 +71,13 @@
     if (!wasOpen) lastFocused = document.activeElement;
     const item = galleryItems[idx];
     const title = item.getAttribute('data-title') || '';
+    const alt = item.getAttribute('data-alt') || title || '照片';
     const series = item.getAttribute('data-series') || '';
     // Lightbox shows the full-resolution image (data-full), not the grid thumbnail.
     const full = item.getAttribute('data-full');
 
     if (full) lightboxImg.src = full;
-    lightboxImg.alt = title || 'Photo';
+    lightboxImg.alt = alt;
     if (lightboxTitle) lightboxTitle.textContent = title;
     if (lightboxCounter) {
       lightboxCounter.textContent = (idx + 1) + ' / ' + galleryItems.length + (series ? '  ·  ' + series : '');

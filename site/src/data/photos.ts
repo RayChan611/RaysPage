@@ -28,7 +28,7 @@ interface NumberedSeriesInput {
   directory: string;
   prefix: string;
   extension: 'webp' | 'jpeg';
-  altPrefix: string;
+  alts: string[];
   titlePrefix: string;
   description: string;
   layouts: PhotoLayout[];
@@ -42,7 +42,8 @@ function numberedPhotos(input: NumberedSeriesInput): PhotoItemInput[] {
   if (
     input.layouts.length !== input.count ||
     input.dimensions.length !== input.count ||
-    input.thumbHeights.length !== input.count
+    input.thumbHeights.length !== input.count ||
+    input.alts.length !== input.count
   ) {
     throw new Error(`Photo metadata count mismatch for ${input.directory}`);
   }
@@ -58,7 +59,7 @@ function numberedPhotos(input: NumberedSeriesInput): PhotoItemInput[] {
       height,
       thumbWidth: 800,
       thumbHeight: input.thumbHeights[index],
-      alt: `${input.altPrefix} ${number}`,
+      alt: input.alts[index],
       title: `${input.titlePrefix} · ${String(number).padStart(2, '0')}`,
       description: input.description,
       layout: input.layouts[index],
@@ -78,7 +79,26 @@ const seriesInputs: Array<Omit<PhotoSeries, 'photos'> & { photos: PhotoItemInput
       directory: 'qingdao',
       prefix: 'qingdao',
       extension: 'webp',
-      altPrefix: '青岛系列照片',
+      alts: [
+        '雾天海岸边的沙滩与礁石',
+        '戴黑色渔夫帽的人站在常青树旁',
+        '云雾中的青岛红瓦屋顶与远处高楼',
+        '从室内窗框望见盛开的白花',
+        '高大常青树夹道的路上一个行人',
+        '蓝天下的白色春花特写',
+        '雾中空旷的林荫道路',
+        '海边礁石、蓝色海面与远处建筑',
+        '蓝天下盛开的浅粉色花朵',
+        '俯瞰青岛海水浴场及沿岸建筑',
+        '逆光阳光穿过满树白花',
+        '冬日法桐夹道的安静街道',
+        '将浓缩咖啡浇在香草冰淇淋上',
+        '夜色中亮灯的青岛教堂双塔',
+        '雾中红瓦老城与远处城市天际线',
+        '戴眼镜的人坐在树林长椅上',
+        '林间弯曲步道与环形长椅',
+        '冬日公园里的高大落叶树',
+      ],
       titlePrefix: '青岛',
       description: 'Qingdao',
       layouts: [
@@ -105,7 +125,15 @@ const seriesInputs: Array<Omit<PhotoSeries, 'photos'> & { photos: PhotoItemInput
       directory: 'sanya',
       prefix: 'sanya',
       extension: 'jpeg',
-      altPrefix: '三亚系列照片',
+      alts: [
+        '热带绿植之间望向湛蓝海面',
+        '礁石海岸边悬挂的木牌与椰子',
+        '蓝天下伸向海面的观景平台',
+        '傍晚海滩上的人像剪影',
+        '戴黑色渔夫帽的人倚栏眺望海面',
+        '阴天下浪花拍打深色礁石海岸',
+        '阳光下延伸入蓝色海面的岩岸',
+      ],
       titlePrefix: '三亚',
       description: 'Sanya',
       layouts: ['portrait', 'feature-wide', 'wide', 'portrait', 'wide', 'portrait', 'wide'],
@@ -124,7 +152,16 @@ const seriesInputs: Array<Omit<PhotoSeries, 'photos'> & { photos: PhotoItemInput
       directory: 'f1-2025-shanghai',
       prefix: 'f1',
       extension: 'jpeg',
-      altPrefix: 'F1 2025 上海系列照片',
+      alts: [
+        '三组法拉利赛车在上海赛道高速驶过的拼图',
+        '两人在 2025 上海大奖赛标识前合影',
+        '三组迈凯伦橙色赛车在上海赛道驶过的拼图',
+        '三组红牛赛车在上海赛道驶过的拼图',
+        '威廉姆斯、梅赛德斯与阿斯顿·马丁赛车拼图',
+        '法拉利赛车在上海赛道高速驶过',
+        '从看台远望上海赛道上的赛车与观众',
+        '红牛赛车在上海赛道高速驶过',
+      ],
       titlePrefix: 'F1 2025',
       description: 'F1 Shanghai 2025',
       layouts: ['feature', 'portrait', 'portrait', 'portrait', 'portrait', 'wide', 'wide', 'feature-wide'],

@@ -16,6 +16,21 @@ test('navigation spacing follows the responsive stylesheet', async ({ page }, te
   expect(layout.overflow).toBeLessThanOrEqual(1);
 });
 
+test('core content remains visible when JavaScript is disabled', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.goto('http://127.0.0.1:4322/index.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.hero-name-line').first()).toBeVisible();
+  await expect(page.locator('#hero-tagline')).toContainText('Ground-up rebuild.');
+  await expect(page.locator('.animate-on-scroll').first()).toBeVisible();
+
+  await page.goto('http://127.0.0.1:4322/photos.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.gallery-item').first()).toBeVisible();
+
+  await context.close();
+});
+
 test('quick search is inert as soon as it starts closing', async ({ page }) => {
   await openPage(page, '/index.html');
   const trigger = page.locator('#quickSearchTrigger');

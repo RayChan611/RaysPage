@@ -4,15 +4,13 @@ import AmbientBackground from '../components/AmbientBackground.astro';
 import ArticleNavigation from '../components/ArticleNavigation.astro';
 import ReadingModeToggle from '../components/ReadingModeToggle.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublishedDetailedNotes } from '../lib/content';
+import { compareContentNewestFirst, getPublishedDetailedNotes } from '../lib/content';
 
 // One route generates every detailed note page (note-principles.html, ...).
 // Standalone excerpt cards (hasDetail: false) have no detail page, so they
 // are filtered out here. Output filename = `note-${slug}.html`.
 export async function getStaticPaths() {
-  const notes = (await getPublishedDetailedNotes()).sort(
-    (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-  );
+  const notes = (await getPublishedDetailedNotes()).sort(compareContentNewestFirst);
   return notes.map((entry, index) => ({
     params: { slug: entry.id },
     props: {

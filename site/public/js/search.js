@@ -23,7 +23,7 @@
   // Higher score = better match → appears earlier
   function scoreMatch(item, query) {
     var q = query.toLowerCase();
-    var titleEl = item.querySelector('a[href*="essay"], a[href*="note"], h2, h3');
+    var titleEl = item.querySelector('.essay-card-title, .note-book-name, h2, h3');
     var titleText = titleEl ? titleEl.textContent.toLowerCase() : '';
     var bodyText = item.textContent.toLowerCase();
 

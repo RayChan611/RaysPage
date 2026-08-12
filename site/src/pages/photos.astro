@@ -70,10 +70,11 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
                 data-title={photo.title}
                 data-series={item.name}
                 data-full={photo.src}
+                data-alt={photo.alt}
                 role="button"
                 tabindex="0"
                 aria-haspopup="dialog"
-                aria-label={`${photo.title} - 点击查看大图`}
+                aria-label={`${photo.alt}，点击查看大图`}
               >
                 <img
                   src={photo.thumb}

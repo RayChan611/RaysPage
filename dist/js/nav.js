@@ -102,6 +102,9 @@
   function init() {
     initScrollAnimations();
     initHeroAnimation();
+    // Base CSS remains fully visible without this marker. It is added only
+    // after both animation initialisers complete successfully.
+    document.documentElement.classList.add('motion-ready');
     // Mobile menu uses event delegation — no init needed
   }
 

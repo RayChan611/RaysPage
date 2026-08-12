@@ -1,4 +1,5 @@
 import {
+  compareContentNewestFirst,
   formatContentDate,
   getPublishedEssays,
   getPublishedNotes,
@@ -14,6 +15,7 @@ function plainText(value = '') {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ')
+    .replace(/\s*READ NOTES\s*$/i, '')
     .trim();
 }
 
@@ -23,8 +25,8 @@ export async function GET() {
     getPublishedNotes(),
   ]);
 
-  essays.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
-  notes.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+  essays.sort(compareContentNewestFirst);
+  notes.sort(compareContentNewestFirst);
 
   const pages = [
     {

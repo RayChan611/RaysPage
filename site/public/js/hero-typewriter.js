@@ -19,8 +19,9 @@
 
   function renderFinalText() {
     const el = document.getElementById(TARGET_ID);
-    if (!el || el.textContent) return;
+    if (!el) return;
     el.setAttribute('aria-label', LINES.join(' '));
+    if (el.textContent.trim()) return;
     LINES.forEach((line, index) => {
       const span = document.createElement('span');
       span.className = 'hero-tagline-line';
@@ -32,9 +33,12 @@
 
   function typewrite() {
     const el = document.getElementById(TARGET_ID);
-    if (!el || el.textContent) return;
+    if (!el) return;
 
     el.setAttribute('aria-label', LINES.join(' '));
+    // The static text is the no-JavaScript fallback. Replace it only when the
+    // animated runtime is actually ready to type the same content back in.
+    el.replaceChildren();
     el.classList.add('typing');
 
     const lineEls = [];
