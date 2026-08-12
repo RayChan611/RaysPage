@@ -31,6 +31,29 @@ test('core content remains visible when JavaScript is disabled', async ({ browse
   await context.close();
 });
 
+test('slow runtime loading does not disable entrance animations', async ({ page }) => {
+  await page.route('**/js/nav.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    await route.continue();
+  });
+
+  await openPage(page, '/index.html');
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-ready(?:\s|$)/);
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)js(?:\s|$)/);
+  await expect(page.locator('html')).not.toHaveClass(/(?:^|\s)motion-fallback(?:\s|$)/);
+  await expect(page.locator('.hero-name-line').first()).toBeVisible();
+});
+
+test('failed animation runtime releases static content', async ({ page }) => {
+  await page.route('**/js/nav.js', (route) => route.abort());
+  await openPage(page, '/index.html');
+
+  await expect(page.locator('html')).not.toHaveClass(/(?:^|\s)js(?:\s|$)/, { timeout: 3000 });
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-fallback(?:\s|$)/);
+  await expect(page.locator('.hero-name-line').first()).toBeVisible();
+  await expect(page.locator('.animate-on-scroll').first()).toBeVisible();
+});
+
 test('quick search is inert as soon as it starts closing', async ({ page }) => {
   await openPage(page, '/index.html');
   const trigger = page.locator('#quickSearchTrigger');

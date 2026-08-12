@@ -1,13 +1,20 @@
 <!DOCTYPE html><html lang="zh-CN" data-astro-cid-mgul4zgw><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script>
-    // Only hide animated content after JavaScript is known to be available.
-    // nav.js marks the effects runtime ready; otherwise this class is removed
-    // so a failed script can never leave the static site invisible.
+    // 只在确认 JavaScript 可用后隐藏待入场内容。nav.js 会标记动效运行时
+    // 已就绪；若脚本失败，则移除该类，确保静态内容不会一直不可见。
     document.documentElement.classList.add('js');
-    window.setTimeout(() => {
+    const releaseStaticContent = () => {
       if (!document.documentElement.classList.contains('motion-ready')) {
         document.documentElement.classList.remove('js');
+        document.documentElement.classList.add('motion-fallback');
       }
-    }, 2000);
+    };
+    // 解析期间只用较宽松的上限，给慢网脚本足够时间；解析完成后再收紧
+    // 到 2 秒，因此脚本真正失败时仍会及时展示静态内容。
+    let motionFailsafe = window.setTimeout(releaseStaticContent, 5000);
+    document.addEventListener('DOMContentLoaded', () => {
+      window.clearTimeout(motionFailsafe);
+      motionFailsafe = window.setTimeout(releaseStaticContent, 2000);
+    }, { once: true });
   </script><meta name="baidu-site-verification" content="codeva-FkS9J5NQKE"><title>Reading Notes | Ray Chan</title><meta name="description" content="Reading notes and book excerpts by Ray Chan."><meta name="author" content="Ray Chan"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta property="og:title" content="Reading Notes | Ray Chan"><meta property="og:description" content="Reading notes and book excerpts by Ray Chan."><meta property="og:image" content="https://www.raychan.top/assets/og/default.png"><meta property="og:image:alt" content="Reading Notes | Ray Chan"><meta property="og:site_name" content="Ray Chan"><meta property="og:url" content="https://www.raychan.top/notes.html"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Reading Notes | Ray Chan"><meta name="twitter:description" content="Reading notes and book excerpts by Ray Chan."><meta name="twitter:image" content="https://www.raychan.top/assets/og/default.png"><meta name="twitter:image:alt" content="Reading Notes | Ray Chan"><link rel="canonical" href="https://www.raychan.top/notes.html"><link rel="alternate" type="application/rss+xml" title="Ray Chan" href="/rss.xml"><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/quick-search.css"><link rel="stylesheet" href="/css/essays.css"><link rel="stylesheet" href="/css/reading-progress.css"><link rel="stylesheet" href="/css/search.css"><script defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script><style>html,body{background:#0a0a0a;margin:0}.nav[data-astro-cid-mgul4zgw]{z-index:100;position:fixed;top:0;left:0;right:0}
 </style></head><body data-astro-cid-mgul4zgw><a class="skip-link" href="#main-content" data-astro-cid-mgul4zgw>Skip to content</a><!-- Hidden by default so content remains usable without JavaScript. The
        temporary class supplies a CSS-only failsafe if site.js cannot boot. --><div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true" data-astro-cid-mgul4zgw></div><script>
@@ -31,7 +38,7 @@ Pain + Reflection = Progress
 想要追求卓越，你就必须挑战自己的极限，而挑战自己的极限可能会使你一蹶不振。你会觉得自己已经失败了，但这不一定是失败，除非你自己放弃。
 </p>
 
-</div><span class="note-card-action">Read notes <span aria-hidden="true">&rarr;</span></span></a><article id="note-extra-4" class="note-card note-card-excerpt animate-on-scroll"><div class="note-card-header"><span class="note-book-name">精神内耗</span><span class="note-card-tags"><span class="note-card-tag note-card-tag--excerpt">摘录</span><span class="note-card-tag">余华</span></span></div><div class="note-excerpt" id="note-summary-extra-4">
+</div><span class="note-card-action">Read notes <span aria-hidden="true">&rarr;</span></span></a><article id="note-extra-4" class="note-card note-card-excerpt animate-on-scroll"><div class="note-card-header"><span class="note-book-name">精神内耗</span><span class="note-card-tags"><span class="note-card-tag note-card-tag--excerpt">摘录</span><span class="note-card-tag">出处待考</span></span></div><div class="note-excerpt" id="note-summary-extra-4">
 <p class="note-quote">
 说白了就是自己心里的戏太多
 </p>
@@ -48,7 +55,7 @@ Pain + Reflection = Progress
 事已毕，过往仍在脑中演
 </p>
 <p style="text-align: right; color: var(--text-muted); margin-top: 16px;">
-—— 余华
+—— 网络流传，出处待考
 </p>
 </div><button class="note-expand-button" type="button" data-note-expand aria-expanded="false" aria-controls="note-summary-extra-4"><span data-note-expand-label>展开全部</span><span aria-hidden="true">&darr;</span></button></article><article id="note-extra-3" class="note-card note-card-excerpt animate-on-scroll"><div class="note-card-header"><span class="note-book-name">AI 交易时代</span><span class="note-card-tags"><span class="note-card-tag note-card-tag--excerpt">摘录</span><span class="note-card-tag">AI · Quant</span></span></div><div class="note-excerpt" id="note-summary-extra-3">
 <p class="note-quote">
