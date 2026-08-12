@@ -132,6 +132,38 @@ if (!existsSync(distRoot)) {
     if (!existsSync(join(distRoot, output))) failures.push(`missing required output dist/${output}`);
   }
 
+  const notFoundHtml = readFileSync(join(distRoot, '404.html'), 'utf8');
+  const robotsMeta = [...notFoundHtml.matchAll(/<meta\b[^>]*>/gi)]
+    .map((match) => parseAttributes(match[0]))
+    .find((attributes) => attributes.name?.toLowerCase() === 'robots');
+  if (!robotsMeta?.content?.toLowerCase().split(',').map((value) => value.trim()).includes('noindex')) {
+    failures.push('dist/404.html -> robots 元信息必须包含 noindex');
+  }
+
+  for (const pageName of ['essays.html', 'notes.html']) {
+    const html = readFileSync(join(distRoot, pageName), 'utf8');
+    const backgroundTag = html.match(/<div\b[^>]*\bid=(?:"global-bg-effect"|'global-bg-effect')[^>]*>/i)?.[0];
+    const attributes = backgroundTag ? parseAttributes(backgroundTag) : {};
+    if (attributes['aria-hidden'] !== 'true') {
+      failures.push(`dist/${pageName} -> 装饰背景必须设置 aria-hidden="true"`);
+    }
+  }
+
+  const assetNames = readdirSync(join(distRoot, 'assets'));
+  const heroAssets = assetNames.filter((name) => /^ray-photo\.[a-f0-9]{8}\.webp$/i.test(name));
+  if (heroAssets.length !== 1) {
+    failures.push('dist/assets -> 应且仅应存在一个带内容哈希的 ray-photo 主图');
+  } else {
+    const indexHtml = readFileSync(join(distRoot, 'index.html'), 'utf8');
+    const expectedReference = `/assets/${heroAssets[0]}`;
+    if (!indexHtml.includes(expectedReference)) {
+      failures.push(`dist/index.html -> 缺少版本化主图引用 ${expectedReference}`);
+    }
+  }
+  if (existsSync(join(distRoot, 'assets', 'ray-photo.webp'))) {
+    failures.push('dist/assets/ray-photo.webp -> 必须移除未版本化的旧主图');
+  }
+
   const htmlFiles = walk(distRoot).filter((file) => file.endsWith('.html'));
   for (const file of htmlFiles) {
     const pagePath = relative(distRoot, file).split('\\').join('/');

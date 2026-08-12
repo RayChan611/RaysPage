@@ -11,7 +11,6 @@ interface Props {
   extraCss?: string[];
   current?: string;
   preloadPhoto?: boolean;
-  inlineStyles?: string[];
   pageScripts?: string[];
 }
 const {
@@ -30,7 +29,6 @@ const {
   extraCss = [],
   current = 'home',
   preloadPhoto = false,
-  inlineStyles = [],
   pageScripts = [],
 } = Astro.props;
 
@@ -79,9 +77,8 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/quick-search.css" />
   {extraCss.map((href) => <link rel="stylesheet" href={'/' + href} />)}
-  {inlineStyles.map((css) => <style is:inline set:html={css}></style>)}
   <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script>
-  {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.webp" fetchpriority="high" />}
+  {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.98a946ad.webp" fetchpriority="high" />}
 </head>
 <body class:list={{ 'page-home': onIndex }}>
   <a class="skip-link" href="#main-content">Skip to content</a>
