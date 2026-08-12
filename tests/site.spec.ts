@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const keyPages = ['/index.html', '/essays.html', '/notes.html', '/photos.html', '/essay-embers-remain.html'];
+const openPage = (page: Page, path: string) => page.goto(path, { waitUntil: 'domcontentloaded' });
 
 test('navigation spacing follows the responsive stylesheet', async ({ page }, testInfo) => {
-  await page.goto('/index.html');
+  await openPage(page, '/index.html');
   const layout = await page.locator('#nav').evaluate((nav) => ({
     paddingLeft: Number.parseFloat(getComputedStyle(nav).paddingLeft),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -15,7 +17,7 @@ test('navigation spacing follows the responsive stylesheet', async ({ page }, te
 });
 
 test('quick search is inert as soon as it starts closing', async ({ page }) => {
-  await page.goto('/index.html');
+  await openPage(page, '/index.html');
   const trigger = page.locator('#quickSearchTrigger');
   const search = page.locator('#quickSearch');
 
@@ -35,7 +37,7 @@ test('all photo cards are present in static markup and the lightbox interactions
   const html = await response.text();
   expect((html.match(/class="gallery-item /g) || []).length).toBe(39);
 
-  await page.goto('/photos.html');
+  await openPage(page, '/photos.html');
   const cards = page.locator('.gallery-item');
   await expect(cards).toHaveCount(39);
   await cards.first().click();
@@ -56,19 +58,48 @@ test('reduced motion renders final content and does not install a broken canvas 
   page.on('pageerror', (error) => errors.push(error));
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  await page.goto('/index.html');
+  await openPage(page, '/index.html');
   await expect(page.locator('#hero-tagline')).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+  await expect(page.locator('.contact-card').nth(0)).toHaveAttribute('aria-label', '复制Email');
+  await expect(page.locator('.contact-card').nth(1)).toHaveAttribute('aria-label', '复制WeChat / Phone');
+  await expect(page.locator('.contact-card').nth(2)).toHaveAttribute('aria-label', '复制Location');
+  await expect.poll(() => page.evaluate(() => Boolean((window as Window & { lenis?: unknown }).lenis))).toBe(false);
 
-  await page.goto('/essays.html');
+  await openPage(page, '/essays.html');
   await expect(page.locator('#hero-sparkle-canvas')).toHaveCSS('display', 'none');
   await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await page.waitForTimeout(200);
+
+  const topButton = page.locator('#backToTop');
+  const restingBottom = await topButton.evaluate((button) => button.style.bottom);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => topButton.evaluate((button) => button.style.bottom)).not.toBe(restingBottom);
+  const liftedBottom = await topButton.evaluate((button) => button.style.bottom);
+  await page.waitForTimeout(150);
+  await expect(topButton).toHaveCSS('bottom', liftedBottom);
   expect(errors).toEqual([]);
+});
+
+test('reduced motion keeps in-site back-button history semantics', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openPage(page, '/essays.html');
+
+  await Promise.all([
+    page.waitForURL(/essay-embers-remain\.html$/),
+    page.locator('a[href="essay-embers-remain.html"]').click(),
+  ]);
+  await Promise.all([
+    page.waitForURL(/essay-youqingchi\.html$/),
+    page.locator('a.article-pagination-link--next').click(),
+  ]);
+
+  await page.locator('a.note-back-fixed').click();
+  await page.waitForURL(/essay-embers-remain\.html$/);
 });
 
 test('key pages have no serious accessibility violations or horizontal overflow', async ({ page }) => {
   for (const path of keyPages) {
-    await page.goto(path);
+    await openPage(page, path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${path} has horizontal overflow`).toBeLessThanOrEqual(1);
 
@@ -83,7 +114,7 @@ test('key pages have no serious accessibility violations or horizontal overflow'
 test('the global footer uses the same surface on home and content pages', async ({ page }) => {
   const styles = [];
   for (const path of ['/index.html', '/essays.html', '/note-principles.html']) {
-    await page.goto(path);
+    await openPage(page, path);
     styles.push(await page.locator('.footer').evaluate((footer) => {
       const style = getComputedStyle(footer);
       return {

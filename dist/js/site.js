@@ -138,14 +138,9 @@
       // Back buttons (.note-back-fixed) return to the previous in-site page
       // via history.back() when entered through site navigation, falling back
       // to their real href (the listing) on a deep link / external referrer.
-      // This keeps the smooth overlay transition AND "back to where you came
-      // from" semantics, instead of being pinned to the listing page.
+      // 减少动态效果只跳过装饰性的遮罩与延时，不改变返回导航的语义。
       if (link.classList.contains('note-back-fixed')) {
-        if (reduceMotion) return;
         e.preventDefault();
-        overlay.style.transition = 'opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1)';
-        overlay.style.opacity = '1';
-        overlay.style.pointerEvents = 'auto';
         const fallbackHref = href;
         let fromSameSite = false;
         if (document.referrer) {
@@ -153,7 +148,8 @@
             fromSameSite = new URL(document.referrer).origin === location.origin;
           } catch (_) {}
         }
-        setTimeout(function () {
+
+        function navigateBack() {
           if (fromSameSite && window.history.length > 1) {
             let navigated = false;
             window.addEventListener('pagehide', function () { navigated = true; });
@@ -162,7 +158,17 @@
           } else {
             window.location.href = fallbackHref;
           }
-        }, 260);
+        }
+
+        if (reduceMotion) {
+          navigateBack();
+          return;
+        }
+
+        overlay.style.transition = 'opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1)';
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+        setTimeout(navigateBack, 260);
         return;
       }
 
@@ -321,7 +327,8 @@
         hint.textContent = '点击复制';
         card.appendChild(hint);
       }
-      var label = (card.querySelector('h4') || {}).textContent || '内容';
+      // 当前联系卡标题使用 h3，同时兼容旧的 h4，避免标题层级调整后丢失辅助名称。
+      var label = (card.querySelector('h3, h4') || {}).textContent || '内容';
       card.style.cursor = 'pointer';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');

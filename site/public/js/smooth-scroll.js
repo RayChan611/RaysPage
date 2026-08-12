@@ -7,6 +7,8 @@
 
   let lenis;
   let animId = null;
+  const reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Keep native history restoration. Lenis only owns animated/programmatic
   // scrolling; forcing manual restoration made Back return every list to top.
@@ -14,7 +16,8 @@
     history.scrollRestoration = 'auto';
   }
 
-  if (window.Lenis) {
+  // 滚轮插值虽然不是 CSS 动画，仍可能引起不适；减少动态效果时保留原生滚动。
+  if (window.Lenis && !reduceMotion) {
     lenis = new Lenis({
       duration: 1.0,
       easing: (t) => 1 - Math.pow(1 - t, 3),
@@ -67,7 +70,7 @@
         if (lenis) {
           lenis.scrollTo(targetPos, { duration: 0.8 });
         } else {
-          window.scrollTo({ top: targetPos, behavior: 'smooth' });
+          window.scrollTo({ top: targetPos, behavior: reduceMotion ? 'auto' : 'smooth' });
         }
       });
     });
@@ -97,7 +100,7 @@
       if (lenis) {
         lenis.scrollTo(targetPos, { duration: 0.7 });
       } else {
-        window.scrollTo({ top: targetPos, behavior: 'smooth' });
+        window.scrollTo({ top: targetPos, behavior: reduceMotion ? 'auto' : 'smooth' });
       }
     }
   });
