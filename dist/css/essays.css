@@ -399,6 +399,9 @@
     gap: 8px;
     padding: 24px 0;
   }
+  /* 卡片移动入场时让小号元数据保持不透明，避免标签在淡入中短暂低于
+     WCAG AA（网页内容无障碍指南的常规文字对比度标准）。 */
+  .js .essay-card.animate-on-scroll { opacity: 1; }
   .essay-date { min-width: auto; font-size: 0.68rem; }
   .essay-card:hover { padding-left: 0; }
   .essay-card::before { display: none; }

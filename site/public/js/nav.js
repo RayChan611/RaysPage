@@ -67,7 +67,7 @@
   });
 
   // ---- Scroll Animations (Intersection Observer) ----
-  function initScrollAnimations() {
+  function initScrollAnimations(recoveringFromFallback) {
     const scrollElements = document.querySelectorAll('.animate-on-scroll');
     if (!scrollElements.length) return;
 
@@ -83,16 +83,29 @@
         threshold: 0.15,
         rootMargin: '0px 0px -60px 0px'
       });
-      scrollElements.forEach(el => observer.observe(el));
+      scrollElements.forEach(el => {
+        // 兜底期间内容已经可见。恢复动效前先同步固定首屏元素的最终
+        // 状态，避免重新加回 .js 时出现一帧闪烁；折叠以下仍正常揭示。
+        const rect = el.getBoundingClientRect();
+        if (recoveringFromFallback && rect.top < window.innerHeight && rect.bottom > 0) {
+          el.classList.add('visible');
+          return;
+        }
+        observer.observe(el);
+      });
     } else {
       scrollElements.forEach(el => el.classList.add('visible'));
     }
   }
 
   // ---- Hero entrance animation ----
-  function initHeroAnimation() {
+  function initHeroAnimation(recoveringFromFallback) {
     const heroText = document.querySelector('.hero-text');
     if (heroText) {
+      if (recoveringFromFallback) {
+        heroText.classList.add('hero-loaded');
+        return;
+      }
       // 双 rAF 等待首帧样式就绪后触发，与 CSS 动画时序解耦（替代固定 300ms 魔法数字）
       requestAnimationFrame(() => requestAnimationFrame(() => heroText.classList.add('hero-loaded')));
     }
@@ -100,11 +113,14 @@
 
   // ---- Init all ----
   function init() {
-    initScrollAnimations();
-    initHeroAnimation();
+    const root = document.documentElement;
+    const recoveringFromFallback = root.classList.contains('motion-fallback');
+    initScrollAnimations(recoveringFromFallback);
+    initHeroAnimation(recoveringFromFallback);
     // Base CSS remains fully visible without this marker. It is added only
     // after both animation initialisers complete successfully.
-    document.documentElement.classList.add('motion-ready');
+    root.classList.remove('motion-fallback');
+    root.classList.add('js', 'motion-ready');
     // Mobile menu uses event delegation — no init needed
   }
 

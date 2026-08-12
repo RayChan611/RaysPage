@@ -48,15 +48,22 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script is:inline>
-    // Only hide animated content after JavaScript is known to be available.
-    // nav.js marks the effects runtime ready; otherwise this class is removed
-    // so a failed script can never leave the static site invisible.
+    // 只在确认 JavaScript 可用后隐藏待入场内容。nav.js 会标记动效运行时
+    // 已就绪；若脚本失败，则移除该类，确保静态内容不会一直不可见。
     document.documentElement.classList.add('js');
-    window.setTimeout(() => {
+    const releaseStaticContent = () => {
       if (!document.documentElement.classList.contains('motion-ready')) {
         document.documentElement.classList.remove('js');
+        document.documentElement.classList.add('motion-fallback');
       }
-    }, 2000);
+    };
+    // 解析期间只用较宽松的上限，给慢网脚本足够时间；解析完成后再收紧
+    // 到 2 秒，因此脚本真正失败时仍会及时展示静态内容。
+    let motionFailsafe = window.setTimeout(releaseStaticContent, 5000);
+    document.addEventListener('DOMContentLoaded', () => {
+      window.clearTimeout(motionFailsafe);
+      motionFailsafe = window.setTimeout(releaseStaticContent, 2000);
+    }, { once: true });
   </script>
   <meta name="baidu-site-verification" content="codeva-FkS9J5NQKE" />
   <title>{title}</title>

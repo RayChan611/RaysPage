@@ -249,7 +249,7 @@ try {
     'x-frame-options',
     'referrer-policy',
     'permissions-policy',
-    'content-security-policy-report-only',
+    'content-security-policy',
   ];
   for (const key of requiredHeaders) {
     if (!globalKeys.has(key)) failures.push(`edgeone.json is missing ${key}`);
@@ -258,7 +258,22 @@ try {
   if (!cacheControl?.value.includes('max-age=0')) {
     failures.push('edgeone.json HTML cache rule must include max-age=0');
   }
-  for (const source of ['/js/*', '/search-index.json']) {
+  if (globalKeys.has('content-security-policy-report-only')) {
+    failures.push('edgeone.json CSP must enforce rather than only report violations');
+  }
+  const csp = globalHeaders.find((header) => header.key.toLowerCase() === 'content-security-policy')?.value || '';
+  for (const directive of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'"]) {
+    if (!csp.includes(directive)) failures.push(`edgeone.json CSP is missing ${directive}`);
+  }
+  for (const source of [
+    '/js/*',
+    '/css/*',
+    '/photos/*',
+    '/images/*',
+    '/assets/contact/*',
+    '/assets/og/*',
+    '/search-index.json',
+  ]) {
     const headers = edgeConfig.headers?.find((rule) => rule.source === source)?.headers || [];
     const value = headers.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
     if (!value.includes('max-age=0') || value.includes('immutable')) {

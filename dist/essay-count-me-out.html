@@ -1,13 +1,20 @@
 <!DOCTYPE html><html lang="zh-CN" data-astro-cid-mgul4zgw><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script>
-    // Only hide animated content after JavaScript is known to be available.
-    // nav.js marks the effects runtime ready; otherwise this class is removed
-    // so a failed script can never leave the static site invisible.
+    // 只在确认 JavaScript 可用后隐藏待入场内容。nav.js 会标记动效运行时
+    // 已就绪；若脚本失败，则移除该类，确保静态内容不会一直不可见。
     document.documentElement.classList.add('js');
-    window.setTimeout(() => {
+    const releaseStaticContent = () => {
       if (!document.documentElement.classList.contains('motion-ready')) {
         document.documentElement.classList.remove('js');
+        document.documentElement.classList.add('motion-fallback');
       }
-    }, 2000);
+    };
+    // 解析期间只用较宽松的上限，给慢网脚本足够时间；解析完成后再收紧
+    // 到 2 秒，因此脚本真正失败时仍会及时展示静态内容。
+    let motionFailsafe = window.setTimeout(releaseStaticContent, 5000);
+    document.addEventListener('DOMContentLoaded', () => {
+      window.clearTimeout(motionFailsafe);
+      motionFailsafe = window.setTimeout(releaseStaticContent, 2000);
+    }, { once: true });
   </script><meta name="baidu-site-verification" content="codeva-FkS9J5NQKE"><title>Count Me Out | Ray Chan</title><meta name="description" content="在面具与喧嚣之下，学会爱自己、原谅自己，并偏爱上被全世界看轻的那个自己。"><meta name="author" content="Ray Chan"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta property="og:title" content="Count Me Out | Ray Chan"><meta property="og:description" content="在面具与喧嚣之下，学会爱自己、原谅自己，并偏爱上被全世界看轻的那个自己。"><meta property="og:image" content="https://www.raychan.top/assets/og/default.png"><meta property="og:image:alt" content="Count Me Out | Ray Chan"><meta property="og:site_name" content="Ray Chan"><meta property="og:url" content="https://www.raychan.top/essay-count-me-out.html"><meta property="og:type" content="article"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Count Me Out | Ray Chan"><meta name="twitter:description" content="在面具与喧嚣之下，学会爱自己、原谅自己，并偏爱上被全世界看轻的那个自己。"><meta name="twitter:image" content="https://www.raychan.top/assets/og/default.png"><meta name="twitter:image:alt" content="Count Me Out | Ray Chan"><link rel="canonical" href="https://www.raychan.top/essay-count-me-out.html"><link rel="alternate" type="application/rss+xml" title="Ray Chan" href="/rss.xml"><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/quick-search.css"><link rel="stylesheet" href="/css/essays.css"><link rel="stylesheet" href="/css/reading-progress.css"><script defer src="https://cloud.umami.is/script.js" data-website-id="05a8cc57-1dd2-4a0e-bc35-ff78348b4982"></script><style>html,body{background:#0a0a0a;margin:0}.nav[data-astro-cid-mgul4zgw]{z-index:100;position:fixed;top:0;left:0;right:0}
 </style></head><body data-astro-cid-mgul4zgw><a class="skip-link" href="#main-content" data-astro-cid-mgul4zgw>Skip to content</a><!-- Hidden by default so content remains usable without JavaScript. The
        temporary class supplies a CSS-only failsafe if site.js cannot boot. --><div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true" data-astro-cid-mgul4zgw></div><script>

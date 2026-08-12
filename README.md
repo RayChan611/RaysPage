@@ -62,4 +62,6 @@ dist/               提交并用于线上发布的构建产物
 
 GitHub Actions 会在推送或 Pull Request（合并请求）时执行依赖审计、类型检查、构建、产物校验和浏览器测试。EdgeOne 直接发布仓库内的 `dist/`，因此修改源代码后必须重新执行 `npm test`，并将对应的 `dist/` 变化一同提交，否则 CI 会失败。
 
+`main` 是受保护分支：改动应提交到 `codex/*` 等工作分支，通过 Pull Request 合并；名为 `validate` 的 CI 检查必须通过，但个人仓库不要求额外审批。Dependabot 每周检查 npm 依赖、每月检查 GitHub Actions 依赖，安全修复会以可审核的 Pull Request 提交。
+
 项目当前不需要本地环境变量，也不要把令牌、密码或私钥写入仓库。
