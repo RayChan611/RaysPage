@@ -1,5 +1,6 @@
 import rss from '@astrojs/rss';
 import {
+  compareContentNewestFirst,
   getPublishedDetailedNotes,
   getPublishedEssays,
 } from '../lib/content';
@@ -10,20 +11,17 @@ export async function GET(context) {
     getPublishedDetailedNotes(),
   ]);
 
-  const items = [
-    ...essayEntries.map((e) => ({
-      title: e.data.title,
-      pubDate: e.data.date,
-      description: e.data.description || e.data.excerpt || '',
-      link: `/essay-${e.id}.html`,
-    })),
-    ...noteEntries.map((n) => ({
-      title: n.data.title,
-      pubDate: n.data.date,
-      description: n.data.description || n.data.excerpt || '',
-      link: `/note-${n.id}.html`,
-    })),
-  ].sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+  const entries = [
+    ...essayEntries.map((entry) => ({ kind: 'essay', entry })),
+    ...noteEntries.map((entry) => ({ kind: 'note', entry })),
+  ].sort((a, b) => compareContentNewestFirst(a.entry, b.entry));
+
+  const items = entries.map(({ kind, entry }) => ({
+    title: entry.data.title,
+    pubDate: entry.data.date,
+    description: entry.data.description || entry.data.excerpt || '',
+    link: `/${kind}-${entry.id}.html`,
+  }));
 
   return rss({
     title: 'Ray Chan',

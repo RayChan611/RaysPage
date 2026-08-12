@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AmbientBackground from '../components/AmbientBackground.astro';
-import { getPublishedNotes } from '../lib/content';
+import { compareContentNewestFirst, getPublishedNotes } from '../lib/content';
 
 const meta = {
   title: "Reading Notes | Ray Chan",
@@ -17,9 +17,7 @@ const meta = {
 
 // Driven by the `notes` Content Collection. Standalone excerpt cards
 // (hasDetail: false) render as non-linked <article>; detailed notes link out.
-const notes = (await getPublishedNotes()).sort(
-  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-);
+const notes = (await getPublishedNotes()).sort(compareContentNewestFirst);
 
 const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
 ---

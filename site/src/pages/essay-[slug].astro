@@ -4,15 +4,13 @@ import AmbientBackground from '../components/AmbientBackground.astro';
 import ArticleNavigation from '../components/ArticleNavigation.astro';
 import ReadingModeToggle from '../components/ReadingModeToggle.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { formatContentDate, getPublishedEssays } from '../lib/content';
+import { compareContentNewestFirst, formatContentDate, getPublishedEssays } from '../lib/content';
 
 // One route generates every essay detail page (essay-choice.html, ...).
 // `build.format: 'file'` keeps the output filename = `essay-${slug}.html`,
 // so existing links / SEO are preserved.
 export async function getStaticPaths() {
-  const essays = (await getPublishedEssays()).sort(
-    (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-  );
+  const essays = (await getPublishedEssays()).sort(compareContentNewestFirst);
   return essays.map((entry, index) => ({
     params: { slug: entry.id },
     props: {

@@ -66,6 +66,14 @@ function validateHtmlStructure(file, html) {
   for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
     const attributes = parseAttributes(match[0]);
     if (attributes.src === '') failures.push(`${source} -> image has an empty src attribute`);
+    if (/^(?:青岛|三亚|F1 2025 上海)系列照片\s+\d+$/i.test(attributes.alt || '')) {
+      failures.push(`${source} -> image uses a generic numbered alt description`);
+    }
+  }
+
+  for (const match of html.matchAll(/<button\b[^>]*>/gi)) {
+    const attributes = parseAttributes(match[0]);
+    if (!attributes.type) failures.push(`${source} -> button is missing an explicit type attribute`);
   }
 
   const blockElement = 'address|article|aside|blockquote|div|dl|fieldset|footer|form|h[1-6]|header|hr|main|nav|ol|p|pre|section|table|ul';
@@ -241,6 +249,7 @@ try {
     'x-frame-options',
     'referrer-policy',
     'permissions-policy',
+    'content-security-policy-report-only',
   ];
   for (const key of requiredHeaders) {
     if (!globalKeys.has(key)) failures.push(`edgeone.json is missing ${key}`);
