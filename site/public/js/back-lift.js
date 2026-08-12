@@ -28,6 +28,8 @@
   var RETRY_MS = 300;
   var LERP = 0.055;       // smoothing factor — smaller = floatier inertia
   var GAP = 16;           // px of clearance above the footer's top edge
+  var reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var backBtn = document.querySelector('.note-back-fixed');
   var topBtn = document.getElementById('backToTop');
@@ -60,6 +62,21 @@
   }
 
   var animId = null;
+
+  function applyTargetsImmediately() {
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].current = buttons[i].target;
+      buttons[i].el.style.bottom = buttons[i].current + 'px';
+    }
+  }
+
+  function updatePositions() {
+    if (reduceMotion) {
+      applyTargetsImmediately();
+      return;
+    }
+    if (!animId) animId = requestAnimationFrame(tick);
+  }
 
   function tick() {
     var maxDiff = 0;
@@ -112,7 +129,7 @@
         for (var i = 0; i < buttons.length; i++) {
           buttons[i].target = buttons[i].def + buttons[i].lift * liftRatio;
         }
-        if (!animId) animId = requestAnimationFrame(tick);
+        updatePositions();
       },
       // dense thresholds → smooth proportional updates as footer enters
       { threshold: Array.from({ length: 101 }, function (_, i) { return i / 100; }) }
@@ -134,7 +151,7 @@
           button.el.style.bottom = button.current + 'px';
         }
         recomputeLifts();
-        if (!animId) animId = requestAnimationFrame(tick);
+        updatePositions();
       }, 100);
     });
   }
