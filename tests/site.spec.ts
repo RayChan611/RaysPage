@@ -44,6 +44,23 @@ test('slow runtime loading does not disable entrance animations', async ({ page 
   await expect(page.locator('.hero-name-line').first()).toBeVisible();
 });
 
+test('hero typewriter does not reveal the complete fallback copy first', async ({ page }) => {
+  await openPage(page, '/index.html');
+  const tagline = page.locator('#hero-tagline');
+
+  await expect(tagline).toHaveClass(/(?:^|\s)typewriter-pending(?:\s|$)/);
+  await page.waitForTimeout(1700);
+  const pending = await tagline.evaluate((element) => ({
+    opacity: Number.parseFloat(getComputedStyle(element).opacity),
+    text: element.textContent || '',
+  }));
+  expect(pending.text).toContain('Capabilities. Mindset. Vision.');
+  expect(pending.opacity).toBeLessThan(0.01);
+
+  await expect(tagline).toHaveClass(/(?:^|\s)typewriter-active(?:\s|$)/);
+  await expect(tagline).not.toContainText('Capabilities. Mindset. Vision.');
+});
+
 test('failed animation runtime releases static content', async ({ page }) => {
   await page.route('**/js/nav.js', (route) => route.abort());
   await openPage(page, '/index.html');
@@ -51,6 +68,7 @@ test('failed animation runtime releases static content', async ({ page }) => {
   await expect(page.locator('html')).not.toHaveClass(/(?:^|\s)js(?:\s|$)/, { timeout: 3000 });
   await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-fallback(?:\s|$)/);
   await expect(page.locator('.hero-name-line').first()).toBeVisible();
+  await expect(page.locator('#hero-tagline')).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
   await expect(page.locator('.animate-on-scroll').first()).toBeVisible();
 });
 
@@ -89,6 +107,31 @@ test('all photo cards are present in static markup and the lightbox interactions
   await lightbox.click({ position: { x: 8, y: 8 } });
   await expect(lightbox).toHaveAttribute('aria-hidden', 'true');
   await expect(lightbox).toHaveAttribute('inert', '');
+});
+
+test('photo hover keeps its border, shadow and image on a stable transition path', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', '移动端没有鼠标悬停状态');
+  await openPage(page, '/photos.html#series-moments');
+
+  const card = page.locator('[data-title="Cactus Garden"]');
+  await card.scrollIntoViewIfNeeded();
+  const restingStyle = await card.evaluate((element) => {
+    const image = element.querySelector('img');
+    const style = getComputedStyle(element);
+    const imageStyle = image ? getComputedStyle(image) : null;
+    return {
+      isolation: style.isolation,
+      transitionProperties: style.transitionProperty.split(',').map((property) => property.trim()),
+      imageTransform: imageStyle?.transform || 'none',
+    };
+  });
+
+  expect(restingStyle.isolation).toBe('isolate');
+  expect(restingStyle.transitionProperties).toEqual(['opacity', 'border-color', 'transform', 'box-shadow']);
+  expect(restingStyle.imageTransform).not.toBe('none');
+
+  await card.hover();
+  await expect(card.locator('.gallery-overlay')).toHaveCSS('opacity', '1');
 });
 
 test('reduced motion renders final content and does not install a broken canvas resize path', async ({ page }) => {

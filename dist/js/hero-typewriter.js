@@ -21,7 +21,8 @@
     const el = document.getElementById(TARGET_ID);
     if (!el) return;
     el.setAttribute('aria-label', LINES.join(' '));
-    if (el.textContent.trim()) return;
+    el.classList.remove('typewriter-pending', 'typewriter-active', 'typing');
+    el.replaceChildren();
     LINES.forEach((line, index) => {
       const span = document.createElement('span');
       span.className = 'hero-tagline-line';
@@ -39,6 +40,8 @@
     // The static text is the no-JavaScript fallback. Replace it only when the
     // animated runtime is actually ready to type the same content back in.
     el.replaceChildren();
+    el.classList.remove('typewriter-pending');
+    el.classList.add('typewriter-active');
     el.classList.add('typing');
 
     const lineEls = [];
@@ -109,6 +112,13 @@
     return false;
   }
 
+  function canAnimate() {
+    const root = document.documentElement;
+    return root.classList.contains('js')
+      && root.classList.contains('motion-ready')
+      && !root.classList.contains('motion-fallback');
+  }
+
   function init() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       renderFinalText();
@@ -117,9 +127,14 @@
 
     const heroText = document.querySelector('.hero-text');
     const lines = heroText ? Array.from(heroText.querySelectorAll('.hero-name-line')) : [];
+    const tagline = document.getElementById(TARGET_ID);
+    if (tagline) tagline.classList.add('typewriter-pending');
 
     if (!lines.length) {
-      setTimeout(typewrite, FALLBACK_MS);
+      setTimeout(function () {
+        if (canAnimate()) typewrite();
+        else renderFinalText();
+      }, FALLBACK_MS);
       return;
     }
 
@@ -142,7 +157,8 @@
       if (e.target !== lastLine) return;
       started = true;
       cleanup();
-      start();
+      if (canAnimate()) start();
+      else renderFinalText();
     }
 
     lines.forEach(function (l) { l.addEventListener('transitionend', onTransitionEnd); });
@@ -152,7 +168,8 @@
       if (!started) {
         started = true;
         cleanup();
-        typewrite();
+        if (canAnimate()) typewrite();
+        else renderFinalText();
       }
     }, FALLBACK_MS);
   }
