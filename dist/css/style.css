@@ -395,6 +395,19 @@ button { font-family: inherit; }
 .hero-text.hero-loaded > .hero-name    { opacity: 1; }
 .hero-text.hero-loaded > .hero-tagline { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 1.50s; }
 .hero-text.hero-loaded > .hero-cta     { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 2.00s; }
+/* hero-typewriter.js 会在 hero-loaded 显示静态备用文案前添加等待标记；
+   开始输入后用活动标记取消通用的 1.5 秒延迟，让首批字符立即淡入。
+   禁用 JavaScript 时不会出现这两个标记，完整静态文案仍然可见。 */
+.js .hero-text.hero-loaded > .hero-tagline.typewriter-pending {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition-delay: 0s;
+}
+.js .hero-text.hero-loaded > .hero-tagline.typewriter-active {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 0s;
+}
 /* Name lines: each word fades in on its own compositing layer */
 .hero-text.hero-loaded .hero-name-line:nth-child(1) { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 0.50s; }
 .hero-text.hero-loaded .hero-name-line:nth-child(2) { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 0.90s; }
