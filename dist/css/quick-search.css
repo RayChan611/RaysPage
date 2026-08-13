@@ -15,23 +15,22 @@
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
-/* The home navigation sits on top of a bright photograph. Give the compact
-   search control its own contrast surface instead of relying on the image. */
+/* 首页照片上保持可读，但避免搜索入口像独立的黑色按钮。 */
 .page-home .quick-search-trigger {
-  border-color: rgba(255,255,255,0.24);
-  background: rgba(8,8,8,0.58);
-  color: rgba(255,255,255,0.88);
-  box-shadow: 0 3px 14px rgba(0,0,0,0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(8,8,8,0.24);
+  color: rgba(255,255,255,0.68);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .page-home .quick-search-trigger:hover,
 .page-home .quick-search-trigger:focus-visible,
 .page-home .quick-search-trigger[aria-expanded="true"] {
-  border-color: rgba(var(--ember-rgb), 0.7);
-  background: rgba(8,8,8,0.76);
-  color: #fff;
+  border-color: rgba(var(--ember-rgb), 0.48);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.96);
 }
 
 .quick-search-trigger:hover,

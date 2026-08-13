@@ -80,14 +80,15 @@ button { font-family: inherit; }
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  padding: 20px clamp(32px, 5vw, 80px);
+  /* 左侧继续与首页正文对齐，右侧稍收紧，让导航在宽屏上更利落。 */
+  padding: 20px clamp(24px, 3vw, 56px) 20px clamp(32px, 5vw, 80px);
   transition: background var(--transition), padding var(--transition), opacity var(--transition), transform var(--transition);
 }
 .nav.scrolled {
   background: rgba(10,10,10,0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 14px clamp(32px, 5vw, 80px); /* match nav horizontal */
+  padding: 14px clamp(24px, 3vw, 56px) 14px clamp(32px, 5vw, 80px);
   border-bottom: 1px solid var(--border);
 }
 .nav-inner {
@@ -214,7 +215,7 @@ button { font-family: inherit; }
 .nav-mobile-btn.active span:last-child { bottom: 50%; transform: translateY(50%) rotate(-45deg); }
 
 /* Search entry — pill button aligned with nav links; ⌘K hint on desktop */
-.nav-right { display: flex; align-items: center; gap: 28px; }
+.nav-right { display: flex; align-items: center; gap: 20px; }
 @media (max-width: 768px) {
   .nav-links {
     display: flex;

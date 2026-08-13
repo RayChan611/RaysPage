@@ -117,11 +117,6 @@
       window.RayRAF.register({ start, stop });
     }
 
-    document.addEventListener('ray:reading-mode', function (event) {
-      if (event.detail && event.detail.active) stop();
-      else if (!document.hidden) start();
-    });
-
     // RayRAF pauses on hidden/pagehide and restarts on visible/pageshow,
     // including restoration from the browser back-forward cache.
     return true;

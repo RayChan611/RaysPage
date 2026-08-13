@@ -27,6 +27,14 @@ export function compareContentNewestFirst(a: DatedContentEntry, b: DatedContentE
   return dateDifference || a.id.localeCompare(b.id, 'en');
 }
 
+/** 相邻文章始终遵循列表方向：上一篇在上方，下一篇在下方。 */
+export function getListAdjacentEntries<T>(entries: T[], index: number) {
+  return {
+    previous: entries[index - 1] ?? null,
+    next: entries[index + 1] ?? null,
+  };
+}
+
 /** Frontmatter dates are parsed as UTC, so display them in UTC as well. */
 export function formatContentDate(date: Date) {
   const year = date.getUTCFullYear();
