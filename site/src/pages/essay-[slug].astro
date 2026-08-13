@@ -2,23 +2,21 @@
 import { render } from 'astro:content';
 import AmbientBackground from '../components/AmbientBackground.astro';
 import ArticleNavigation from '../components/ArticleNavigation.astro';
-import ReadingModeToggle from '../components/ReadingModeToggle.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { compareContentNewestFirst, formatContentDate, getPublishedEssays } from '../lib/content';
+import { compareContentNewestFirst, formatContentDate, getListAdjacentEntries, getPublishedEssays } from '../lib/content';
 
 // One route generates every essay detail page (essay-choice.html, ...).
 // `build.format: 'file'` keeps the output filename = `essay-${slug}.html`,
 // so existing links / SEO are preserved.
 export async function getStaticPaths() {
   const essays = (await getPublishedEssays()).sort(compareContentNewestFirst);
-  return essays.map((entry, index) => ({
-    params: { slug: entry.id },
-    props: {
-      entry,
-      previous: essays[index + 1] || null,
-      next: essays[index - 1] || null,
-    },
-  }));
+  return essays.map((entry, index) => {
+    const { previous, next } = getListAdjacentEntries(essays, index);
+    return {
+      params: { slug: entry.id },
+      props: { entry, previous, next },
+    };
+  });
 }
 
 const { entry, previous, next } = Astro.props;
@@ -38,7 +36,7 @@ const nextLink = next ? { href: `essay-${next.id}.html`, title: next.data.title 
   twitterImage={ogImage}
   extraCss={["css/essays.css", "css/reading-progress.css"]}
   current="other"
-  pageScripts={["js/hero-sparkle.js", "js/reading-mode.js"]}
+  pageScripts={["js/hero-sparkle.js"]}
 >
   <AmbientBackground />
   <a href="essays.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
@@ -49,7 +47,6 @@ const nextLink = next ? { href: `essay-${next.id}.html`, title: next.data.title 
         <span class="essay-date">{formatContentDate(date)}</span>
         {tags.map((tag) => <span class="essay-tag">{tag}</span>)}
       </div>
-      <div class="article-tools"><ReadingModeToggle /></div>
     </div>
   </section>
   <article class="essay-content section">

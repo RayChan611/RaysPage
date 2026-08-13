@@ -9,10 +9,12 @@ test('navigation spacing follows the responsive stylesheet', async ({ page }, te
   await openPage(page, '/index.html');
   const layout = await page.locator('#nav').evaluate((nav) => ({
     paddingLeft: Number.parseFloat(getComputedStyle(nav).paddingLeft),
+    paddingRight: Number.parseFloat(getComputedStyle(nav).paddingRight),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   }));
 
   expect(layout.paddingLeft).toBe(testInfo.project.name === 'mobile' ? 24 : 64);
+  expect(layout.paddingRight).toBeCloseTo(testInfo.project.name === 'mobile' ? 24 : 38.4, 1);
   expect(layout.overflow).toBeLessThanOrEqual(1);
 });
 
@@ -161,8 +163,7 @@ test('reduced motion renders final content and does not install a broken canvas 
   expect(errors).toEqual([]);
 });
 
-test('reduced motion keeps in-site back-button history semantics', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+test('article back links always return to their collection lists', async ({ page }) => {
   await openPage(page, '/essays.html');
 
   await Promise.all([
@@ -171,11 +172,54 @@ test('reduced motion keeps in-site back-button history semantics', async ({ page
   ]);
   await Promise.all([
     page.waitForURL(/essay-youqingchi\.html$/),
-    page.locator('a.article-pagination-link--next').click(),
+    page.locator('a.article-pagination-link--previous').click(),
   ]);
 
   await page.locator('a.note-back-fixed').click();
-  await page.waitForURL(/essay-embers-remain\.html$/);
+  await page.waitForURL(/essays\.html$/);
+
+  await openPage(page, '/note-principles.html');
+  await page.locator('a.note-back-fixed').click();
+  await page.waitForURL(/notes\.html$/);
+});
+
+test('essay and note detail pages do not include focus reading mode', async ({ page, request }) => {
+  for (const path of ['/essay-qingsimeng.html', '/note-principles.html']) {
+    const response = await request.get(path);
+    const html = await response.text();
+    expect(html).not.toContain('reading-mode.js');
+    expect(html).not.toContain('readingModeToggle');
+
+    await openPage(page, path);
+    await expect(page.locator('.reading-mode-toggle')).toHaveCount(0);
+    await expect(page.locator('.article-tools')).toHaveCount(0);
+  }
+});
+
+test('article pagination follows the visible newest-first list order', async ({ request }) => {
+  const collections = [
+    { listPath: '/essays.html', cardPattern: /<a href="(essay-[^"]+\.html)" class="essay-card\b/g },
+    { listPath: '/notes.html', cardPattern: /<a[^>]+href="(note-[^"]+\.html)"[^>]+class="[^"]*note-card-link/g },
+  ];
+
+  for (const collection of collections) {
+    const listResponse = await request.get(collection.listPath);
+    expect(listResponse.ok(), `${collection.listPath} should load`).toBe(true);
+    const listHtml = await listResponse.text();
+    const detailPaths = [...listHtml.matchAll(collection.cardPattern)].map((match) => match[1]);
+    expect(detailPaths.length, `${collection.listPath} should contain detail links`).toBeGreaterThan(0);
+
+    for (const [index, detailPath] of detailPaths.entries()) {
+      const detailResponse = await request.get(`/${detailPath}`);
+      expect(detailResponse.ok(), `/${detailPath} should load`).toBe(true);
+      const detailHtml = await detailResponse.text();
+      const previousHref = detailHtml.match(/article-pagination-link--previous" href="([^"]+)"/)?.[1] ?? null;
+      const nextHref = detailHtml.match(/article-pagination-link--next" href="([^"]+)"/)?.[1] ?? null;
+
+      expect(previousHref, `${detailPath} previous link`).toBe(detailPaths[index - 1] ?? null);
+      expect(nextHref, `${detailPath} next link`).toBe(detailPaths[index + 1] ?? null);
+    }
+  }
 });
 
 test('key pages have no serious accessibility violations or horizontal overflow', async ({ page }) => {

@@ -132,43 +132,6 @@
       const href = link.getAttribute('href');
       if (!href) return;
 
-      // Back buttons (.note-back-fixed) return to the previous in-site page
-      // via history.back() when entered through site navigation, falling back
-      // to their real href (the listing) on a deep link / external referrer.
-      // 减少动态效果只跳过装饰性的遮罩与延时，不改变返回导航的语义。
-      if (link.classList.contains('note-back-fixed')) {
-        e.preventDefault();
-        const fallbackHref = href;
-        let fromSameSite = false;
-        if (document.referrer) {
-          try {
-            fromSameSite = new URL(document.referrer).origin === location.origin;
-          } catch (_) {}
-        }
-
-        function navigateBack() {
-          if (fromSameSite && window.history.length > 1) {
-            let navigated = false;
-            window.addEventListener('pagehide', function () { navigated = true; });
-            history.back();
-            setTimeout(function () { if (!navigated) window.location.href = fallbackHref; }, 400);
-          } else {
-            window.location.href = fallbackHref;
-          }
-        }
-
-        if (reduceMotion) {
-          navigateBack();
-          return;
-        }
-
-        overlay.style.transition = 'opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1)';
-        overlay.style.opacity = '1';
-        overlay.style.pointerEvents = 'auto';
-        setTimeout(navigateBack, 260);
-        return;
-      }
-
       if (href.startsWith('#')) return;
       if (href.startsWith('http') || href.startsWith('//')) return;
       // javascript: links (e.g. <a href="javascript:history.back()">) must run

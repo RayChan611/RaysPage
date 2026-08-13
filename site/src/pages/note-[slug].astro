@@ -2,23 +2,21 @@
 import { render } from 'astro:content';
 import AmbientBackground from '../components/AmbientBackground.astro';
 import ArticleNavigation from '../components/ArticleNavigation.astro';
-import ReadingModeToggle from '../components/ReadingModeToggle.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { compareContentNewestFirst, getPublishedDetailedNotes } from '../lib/content';
+import { compareContentNewestFirst, getListAdjacentEntries, getPublishedDetailedNotes } from '../lib/content';
 
 // One route generates every detailed note page (note-principles.html, ...).
 // Standalone excerpt cards (hasDetail: false) have no detail page, so they
 // are filtered out here. Output filename = `note-${slug}.html`.
 export async function getStaticPaths() {
   const notes = (await getPublishedDetailedNotes()).sort(compareContentNewestFirst);
-  return notes.map((entry, index) => ({
-    params: { slug: entry.id },
-    props: {
-      entry,
-      previous: notes[index + 1] || null,
-      next: notes[index - 1] || null,
-    },
-  }));
+  return notes.map((entry, index) => {
+    const { previous, next } = getListAdjacentEntries(notes, index);
+    return {
+      params: { slug: entry.id },
+      props: { entry, previous, next },
+    };
+  });
 }
 
 const { entry, previous, next } = Astro.props;
@@ -39,7 +37,7 @@ const nextLink = next ? { href: `note-${next.id}.html`, title: noteTitle(next) }
   twitterImage={ogImage}
   extraCss={["css/essays.css", "css/reading-progress.css"]}
   current="other"
-  pageScripts={["js/hero-sparkle.js", "js/reading-mode.js"]}
+  pageScripts={["js/hero-sparkle.js"]}
 >
   <AmbientBackground />
   <a href="notes.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
@@ -51,7 +49,6 @@ const nextLink = next ? { href: `note-${next.id}.html`, title: noteTitle(next) }
         <span class="note-sep">&middot;</span>
         <span class="note-tag">{(detailTags || tags).join(' · ')}</span>
       </div>
-      <div class="article-tools"><ReadingModeToggle /></div>
     </div>
     <article class="note-body"><Content /></article>
     <ArticleNavigation previous={previousLink} next={nextLink} label="Reading Notes 上一篇与下一篇" />
