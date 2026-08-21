@@ -25,6 +25,7 @@ npm run dev
 ```bash
 npm run check      # Astro 与 TypeScript 检查
 npm run build      # 构建静态网站到 dist/
+npm run photos:optimize # 为摄影原图生成响应式 WebP 中间尺寸（需要 cwebp）
 npm run validate   # 校验构建产物、链接、HTML 结构与安全响应头配置
 npm test           # 依次执行检查、构建和产物校验
 npm run test:e2e   # 执行桌面端和移动端浏览器回归测试
@@ -56,6 +57,7 @@ dist/               提交并用于线上发布的构建产物
 - 新文章放入 `site/src/content/essays/`，并沿用现有文件的 frontmatter（文件顶部元数据）字段。
 - 新阅读笔记放入 `site/src/content/notes/`。
 - 摄影系列与图片元数据维护在 `site/src/data/photos.ts`；每张图片都应提供能说明画面的 `alt` 替代文本。
+- 新增或替换摄影原图后运行 `npm run photos:optimize`，生成画廊使用的 WebP 中间尺寸；原图仅在打开灯箱时加载。该命令需要本机可用的 `cwebp`，也可以通过 `CWEBP_PATH` 指定路径。
 - 内容日期相同时，网站会使用内容 ID 作为固定的第二排序条件，避免不同环境下顺序漂移。
 
 ## 构建与发布

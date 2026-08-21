@@ -20,7 +20,15 @@ export default defineConfig({
     },
     {
       name: 'mobile',
-      use: { viewport: { width: 390, height: 844 }, isMobile: true },
+      use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+    },
+    {
+      name: 'mobile-compact',
+      use: { viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true },
+    },
+    {
+      name: 'mobile-narrow',
+      use: { viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true },
     },
   ],
   webServer: {

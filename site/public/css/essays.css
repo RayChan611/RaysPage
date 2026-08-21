@@ -414,6 +414,14 @@
   .note-card { padding-bottom: 26px; }
 }
 
+@media (max-width: 350px) {
+  .essays-title {
+    font-size: clamp(2rem, 10vw, 2.25rem);
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+  }
+}
+
 /* ============================================
    Essay Article Page (Single Essay)
    ============================================ */
@@ -606,6 +614,8 @@
       z-index: 9999;
   
       display: inline-flex;
+
+      min-height: 44px;
   
       align-items: center;
   
@@ -876,7 +886,26 @@
   .essay-content { padding: 36px 20px 72px; }
   .note-page { padding: 94px 20px 64px; }
   .note-title-area { margin-bottom: 36px; padding-bottom: 28px; }
-  .note-back-fixed { left: 18px; bottom: 18px; }
+  .note-back-fixed {
+    position: static;
+    margin-bottom: 22px;
+    padding: 10px 0;
+  }
   .article-pagination { gap: 18px; margin-top: 56px; padding-top: 24px; }
   .article-pagination-title { font-size: 0.86rem; }
+}
+
+@media (max-width: 480px) {
+  .article-pagination {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .article-pagination-spacer {
+    display: none;
+  }
+
+  .article-pagination-link {
+    min-height: 56px;
+  }
 }

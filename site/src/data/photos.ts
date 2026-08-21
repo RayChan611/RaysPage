@@ -4,10 +4,12 @@ export interface PhotoItem {
   index: number;
   src: string;
   thumb: string;
+  medium?: string;
   width: number;
   height: number;
   thumbWidth: number;
   thumbHeight: number;
+  mediumWidth?: number;
   alt: string;
   title: string;
   description: string;
@@ -36,7 +38,7 @@ interface NumberedSeriesInput {
   thumbHeights: number[];
 }
 
-type PhotoItemInput = Omit<PhotoItem, 'index'>;
+type PhotoItemInput = Omit<PhotoItem, 'index' | 'medium' | 'mediumWidth'>;
 
 function numberedPhotos(input: NumberedSeriesInput): PhotoItemInput[] {
   if (
@@ -190,7 +192,15 @@ let globalPhotoIndex = 0;
 
 export const photoSeries: PhotoSeries[] = seriesInputs.map((series) => ({
   ...series,
-  photos: series.photos.map((photo) => ({ ...photo, index: globalPhotoIndex++ })),
+  photos: series.photos.map((photo) => {
+    const mediumWidth = photo.width > photo.thumbWidth ? Math.min(photo.width, 1280) : undefined;
+    return {
+      ...photo,
+      index: globalPhotoIndex++,
+      medium: mediumWidth ? photo.src.replace(/\.[^.]+$/, '-medium.webp') : undefined,
+      mediumWidth,
+    };
+  }),
 }));
 
 export const photoCount = photoSeries.reduce((total, series) => total + series.photos.length, 0);
