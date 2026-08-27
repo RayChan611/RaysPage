@@ -60,8 +60,10 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
           {item.photos.map((photo) => {
             const wide = photo.layout.includes('wide') || photo.layout === 'feature';
             const sizes = wide ? '(max-width: 768px) 100vw, 55vw' : '(max-width: 768px) 50vw, 25vw';
-            const srcset = photo.width > photo.thumbWidth
-              ? `${photo.thumb} ${photo.thumbWidth}w, ${photo.src} ${photo.width}w`
+            // 画廊卡片不需要灯箱级原图；1280px WebP 足以覆盖高像素密度屏幕，
+            // 同时避免浏览列表时下载 2000px 原图。
+            const srcset = photo.medium && photo.mediumWidth
+              ? `${photo.thumb} ${photo.thumbWidth}w, ${photo.medium} ${photo.mediumWidth}w`
               : undefined;
             return (
               <div

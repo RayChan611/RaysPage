@@ -11,12 +11,19 @@
   const MAX_SIZE   = 1.7;
   const DENSITY    = 45;    // particles per 1000px² (slightly bumped from 35)
   const COLORS     = ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.32)', 'rgba(210,210,210,0.4)', 'rgba(255,255,255,0.22)'];
-  const MAX_PARTICLES = 80; // cap for low-end devices (bumped from 60)
+  const TOUCH_DEVICE = Boolean(
+    (window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) ||
+    navigator.maxTouchPoints > 0
+  );
+  const MAX_PARTICLES = TOUCH_DEVICE ? 36 : 80;
+  const TARGET_FPS = TOUCH_DEVICE ? 30 : 60;
+  const FRAME_INTERVAL = TOUCH_DEVICE ? 1000 / TARGET_FPS : 0;
   const RESIZE_DEBOUNCE = 150; // ms
 
   let canvas, ctx, particles = [];
   let w, h, animId = null;
   let resizeTimer = null;
+  let lastFrame = 0;
 
   /* ---- Particle ---- */
   function rand(a, b) { return a + Math.random() * (b - a); }
@@ -80,19 +87,31 @@
     }
   }
 
-  function animate() {
+  function animate(timestamp) {
+    animId = requestAnimationFrame(animate);
+    if (FRAME_INTERVAL && lastFrame && timestamp - lastFrame < FRAME_INTERVAL) return;
+    lastFrame = timestamp;
     ctx.clearRect(0, 0, w, h);
     ctx.globalAlpha = 1; // reset once per frame
     for (const p of particles) { p.update(); p.draw(); }
-    animId = requestAnimationFrame(animate);
   }
 
-  function start() { if (!animId) animate(); }
-  function stop()  { if (animId) { cancelAnimationFrame(animId); animId = null; } }
+  function start() {
+    if (animId) return;
+    lastFrame = 0;
+    animId = requestAnimationFrame(animate);
+  }
+  function stop() {
+    if (animId) cancelAnimationFrame(animId);
+    animId = null;
+    lastFrame = 0;
+  }
 
   function init() {
     canvas = document.getElementById(CANVAS_ID);
     if (!canvas) return false;
+    canvas.dataset.particleLimit = String(MAX_PARTICLES);
+    canvas.dataset.frameRate = String(TARGET_FPS);
 
     // Skip on reduced motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

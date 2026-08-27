@@ -128,6 +128,12 @@
 }
 
 .quick-search-close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 5px 7px;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -189,6 +195,7 @@
 }
 
 .quick-search-results {
+  flex: 1 1 auto;
   min-height: 126px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -316,16 +323,32 @@ body.quick-search-open {
 
 @media (max-width: 768px) {
   .quick-search-key { display: none; }
-  .quick-search-trigger { padding: 6px; border-color: transparent; background: transparent; }
+  .quick-search-trigger {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+  }
   .quick-search { padding: 76px 12px 16px; }
-  .quick-search-panel { max-height: calc(100dvh - 92px); border-radius: 10px; }
+  .quick-search-panel {
+    min-height: 0;
+    max-height: calc(100dvh - 92px);
+    border-radius: 10px;
+    transform: translateY(-14px);
+  }
+  .quick-search.is-active .quick-search-panel { transform: translateY(0); }
   .quick-search-header { padding: 20px 18px 15px; }
   .quick-search-field { margin: 0 18px; }
+  .quick-search-field input { font-size: 16px; }
   .quick-search-status { padding-inline: 20px; }
+  .quick-search-results { min-height: 0; }
   .quick-search-result { grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
   .quick-search-result-meta { display: none; }
-  .quick-search-footer { justify-content: space-between; gap: 8px; padding-inline: 18px; }
-  .quick-search-footer span:first-child { display: none; }
+  /* 软键盘弹出后高度会骤减；桌面键盘提示在手机上没有用途，隐藏后
+     把有限空间完整留给搜索结果。 */
+  .quick-search-footer { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

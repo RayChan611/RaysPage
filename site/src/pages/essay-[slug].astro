@@ -39,9 +39,9 @@ const nextLink = next ? { href: `essay-${next.id}.html`, title: next.data.title 
   pageScripts={["js/hero-sparkle.js"]}
 >
   <AmbientBackground />
-  <a href="essays.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
   <section class="essay-hero">
     <div class="container">
+      <a href="essays.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
       <h1 class="essay-hero-title">{title}</h1>
       <div class="essay-meta">
         <span class="essay-date">{formatContentDate(date)}</span>

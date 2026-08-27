@@ -12,6 +12,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "photos:optimize": "node --experimental-strip-types scripts/generate-photo-variants.mjs",
     "validate": "node scripts/validate-dist.mjs",
     "audit": "npm audit --audit-level=high --registry=https://registry.npmjs.org",
     "test": "npm run check && npm run build && npm run validate",
