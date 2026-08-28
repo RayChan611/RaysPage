@@ -3,10 +3,14 @@ export type PhotoLayout = 'portrait' | 'wide' | 'feature' | 'feature-wide';
 export interface PhotoItem {
   index: number;
   src: string;
+  small: string;
+  compact: string;
   thumb: string;
   medium?: string;
   width: number;
   height: number;
+  smallWidth: number;
+  compactWidth: number;
   thumbWidth: number;
   thumbHeight: number;
   mediumWidth?: number;
@@ -38,7 +42,10 @@ interface NumberedSeriesInput {
   thumbHeights: number[];
 }
 
-type PhotoItemInput = Omit<PhotoItem, 'index' | 'medium' | 'mediumWidth'>;
+type PhotoItemInput = Omit<
+  PhotoItem,
+  'index' | 'small' | 'smallWidth' | 'compact' | 'compactWidth' | 'medium' | 'mediumWidth'
+>;
 
 function numberedPhotos(input: NumberedSeriesInput): PhotoItemInput[] {
   if (
@@ -169,21 +176,24 @@ const seriesInputs: Array<Omit<PhotoSeries, 'photos'> & { photos: PhotoItemInput
       layouts: ['feature', 'portrait', 'portrait', 'portrait', 'portrait', 'wide', 'wide', 'feature-wide'],
       dimensions: [[627, 1252], [768, 1024], [627, 1252], [628, 1252], [628, 1252], [540, 360], [540, 360], [1086, 724]],
       thumbHeights: [1598, 1067, 1598, 1595, 1595, 534, 534, 534],
-    }),
+    })
+      .filter((photo) => photo.src !== '/photos/f1-2025-shanghai/f1-2.jpeg')
+      .map((photo, index) => ({
+        ...photo,
+        title: `F1 2025 · ${String(index + 1).padStart(2, '0')}`,
+      })),
   },
   {
     id: 'moments',
     name: 'Moments',
     nameEn: 'Miscellaneous',
     nav: 'Moments',
-    description: '散落的瞬间，赛道、雨后、花季与海。',
+    description: '散落的瞬间，赛道、雨后、花季与林间。',
     photos: [
       { src: '/photos/photo-1.webp', thumb: '/photos/photo-1-thumb.webp', width: 2000, height: 1351, thumbWidth: 800, thumbHeight: 541, alt: 'F1 赛车比赛瞬间', title: 'Racing Day', description: 'F1 Shanghai', layout: 'feature-wide' },
       { src: '/photos/photo-2.webp', thumb: '/photos/photo-2-thumb.webp', width: 2000, height: 3000, thumbWidth: 800, thumbHeight: 1200, alt: '雨后湿润的木栈道', title: 'Rainy Boardwalk', description: 'After rain, somewhere green.', layout: 'portrait' },
       { src: '/photos/photo-3.webp', thumb: '/photos/photo-3-thumb.webp', width: 1993, height: 2989, thumbWidth: 800, thumbHeight: 1200, alt: '春日樱花盛开', title: 'Spring Bloom', description: 'Cherry blossoms season.', layout: 'portrait' },
-      { src: '/photos/photo-4.webp', thumb: '/photos/photo-4-thumb.webp', width: 2000, height: 3000, thumbWidth: 800, thumbHeight: 1200, alt: '仙人掌花园中的人像', title: 'Cactus Garden', description: 'Succulent & me.', layout: 'portrait' },
       { src: '/photos/photo-5.webp', thumb: '/photos/photo-5-thumb.webp', width: 2000, height: 3000, thumbWidth: 800, thumbHeight: 1200, alt: '走进森林的小路', title: 'Into the Woods', description: 'Just walking, thinking.', layout: 'portrait' },
-      { src: '/photos/photo-6.webp', thumb: '/photos/photo-6-thumb.webp', width: 2000, height: 2666, thumbWidth: 800, thumbHeight: 1067, alt: '海边站立的人像', title: 'Sea Breeze', description: 'Standing still, waves crashing.', layout: 'portrait' },
     ],
   },
 ];
@@ -193,10 +203,16 @@ let globalPhotoIndex = 0;
 export const photoSeries: PhotoSeries[] = seriesInputs.map((series) => ({
   ...series,
   photos: series.photos.map((photo) => {
+    const smallWidth = 400;
+    const compactWidth = 600;
     const mediumWidth = photo.width > photo.thumbWidth ? Math.min(photo.width, 1280) : undefined;
     return {
       ...photo,
       index: globalPhotoIndex++,
+      small: photo.src.replace(/\.[^.]+$/, `-${smallWidth}.webp`),
+      smallWidth,
+      compact: photo.src.replace(/\.[^.]+$/, `-${compactWidth}.webp`),
+      compactWidth,
       medium: mediumWidth ? photo.src.replace(/\.[^.]+$/, '-medium.webp') : undefined,
       mediumWidth,
     };

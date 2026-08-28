@@ -51,4 +51,13 @@ jobs:
       # EdgeOne publishes the committed dist/ directory. A source-only change
       # must therefore fail CI until its freshly generated output is committed.
       - name: Verify committed site output is current
-        run: git diff --exit-code -- dist
+        shell: bash
+        run: |
+          git diff --exit-code -- dist
+
+          untracked_dist_files="$(git ls-files --others --exclude-standard -- dist)"
+          if [[ -n "$untracked_dist_files" ]]; then
+            echo "Generated dist/ files are missing from the commit:"
+            echo "$untracked_dist_files"
+            exit 1
+          fi

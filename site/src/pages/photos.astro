@@ -36,6 +36,7 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
             href={`#series-${item.id}`}
             class:list={['series-nav-link', { active: index === 0 }]}
             data-target={`series-${item.id}`}
+            aria-current={index === 0 ? 'location' : undefined}
           >
             {item.nav}
           </a>
@@ -59,12 +60,22 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
         <div class="gallery-grid" id={`gallery-${item.id}`}>
           {item.photos.map((photo) => {
             const wide = photo.layout.includes('wide') || photo.layout === 'feature';
-            const sizes = wide ? '(max-width: 768px) 100vw, 55vw' : '(max-width: 768px) 50vw, 25vw';
-            // 画廊卡片不需要灯箱级原图；1280px WebP 足以覆盖高像素密度屏幕，
-            // 同时避免浏览列表时下载 2000px 原图。
-            const srcset = photo.medium && photo.mediumWidth
-              ? `${photo.thumb} ${photo.thumbWidth}w, ${photo.medium} ${photo.mediumWidth}w`
-              : undefined;
+            const sizes = wide
+              ? '(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) calc(50vw - 46px), 594px'
+              : '(max-width: 768px) calc(50vw - 28px), (max-width: 1280px) calc(25vw - 29px), 291px';
+            // 手机端优先选择 400/600px WebP；桌面高像素密度屏幕最高使用
+            // 1280px WebP，不在浏览画廊时下载灯箱级原图。
+            const responsiveSources = [
+              { src: photo.small, width: photo.smallWidth },
+              { src: photo.compact, width: photo.compactWidth },
+              { src: photo.thumb, width: photo.thumbWidth },
+              ...(photo.medium && photo.mediumWidth
+                ? [{ src: photo.medium, width: photo.mediumWidth }]
+                : []),
+            ];
+            const srcset = responsiveSources
+              .map(({ src, width }) => `${src} ${width}w`)
+              .join(', ');
             return (
               <div
                 class={`gallery-item gallery-item--${photo.layout} animate-on-scroll`}
@@ -72,6 +83,7 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
                 data-title={photo.title}
                 data-series={item.name}
                 data-full={photo.src}
+                data-medium={photo.medium}
                 data-alt={photo.alt}
                 role="button"
                 tabindex="0"

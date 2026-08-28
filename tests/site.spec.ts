@@ -34,6 +34,32 @@ test('core content remains visible when JavaScript is disabled', async ({ browse
   await context.close();
 });
 
+test('mobile navigation remains available when JavaScript is disabled', async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '独立手机上下文只需执行一次');
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 320, height: 568 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:4322/index.html', { waitUntil: 'domcontentloaded' });
+
+  const links = page.locator('#navLinks .nav-link');
+  await expect(links).toHaveCount(5);
+  expect(await links.evaluateAll((items) => items.every((item) => {
+    const style = getComputedStyle(item);
+    return style.display !== 'none' && style.visibility === 'visible' && Number(style.opacity) > 0;
+  }))).toBe(true);
+  await expect(page.locator('#navMobileBtn')).toBeHidden();
+  await expect(page.locator('#quickSearchTrigger')).toBeHidden();
+  expect(await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  )).toBeLessThanOrEqual(1);
+
+  await context.close();
+});
+
 test('slow runtime loading does not disable entrance animations', async ({ page }) => {
   await page.route('**/js/nav.js', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 2200));
@@ -47,23 +73,34 @@ test('slow runtime loading does not disable entrance animations', async ({ page 
   await expect(page.locator('.hero-name-line').first()).toBeVisible();
 });
 
-test('hero typewriter does not reveal the complete fallback copy first', async ({ page }) => {
+test('hero typewriter does not reveal the complete fallback copy first', async ({ page, request }) => {
+  const html = await (await request.get('/index.html')).text();
+  const css = await (await request.get('/css/style.css')).text();
+  expect(html).toContain('class="hero-tagline typewriter-pending"');
+  expect(css).toMatch(
+    /\.js \.hero-text\.hero-loaded > \.hero-tagline\.typewriter-pending\s*\{[^}]*opacity:\s*0/s,
+  );
+
   await openPage(page, '/index.html');
   const tagline = page.locator('#hero-tagline');
-
-  await expect(tagline).toHaveClass(/(?:^|\s)typewriter-pending(?:\s|$)/);
-  const pending = await tagline.evaluate((element) => ({
-    opacity: Number.parseFloat(getComputedStyle(element).opacity),
-    text: element.textContent || '',
-  }));
-  expect(pending.text).toContain('Capabilities. Mindset. Vision.');
-  expect(pending.opacity).toBeLessThan(0.01);
-
-  await expect(tagline).toHaveClass(/(?:^|\s)typewriter-active(?:\s|$)/);
-  await expect(tagline).not.toContainText('Capabilities. Mindset. Vision.');
+  await expect.poll(() => tagline.evaluate((element) => ({
+    active: element.classList.contains('typewriter-active'),
+    hasCompleteSecondLine: (element.textContent || '').includes('Capabilities. Mindset. Vision.'),
+  }))).toEqual({ active: true, hasCompleteSecondLine: false });
 });
 
-test('failed animation runtime releases static content', async ({ page }) => {
+test('failed typewriter runtime releases the complete static tagline', async ({ page }) => {
+  await page.route('**/js/hero-typewriter.js', (route) => route.abort());
+  await openPage(page, '/index.html');
+
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-ready(?:\s|$)/);
+  const tagline = page.locator('#hero-tagline');
+  await expect(tagline).not.toHaveClass(/(?:^|\s)typewriter-pending(?:\s|$)/, { timeout: 7000 });
+  await expect(tagline).toBeVisible();
+  await expect(tagline).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+});
+
+test('failed animation runtime releases static content', async ({ page }, testInfo) => {
   await page.route('**/js/nav.js', (route) => route.abort());
   await openPage(page, '/index.html');
 
@@ -72,6 +109,10 @@ test('failed animation runtime releases static content', async ({ page }) => {
   await expect(page.locator('.hero-name-line').first()).toBeVisible();
   await expect(page.locator('#hero-tagline')).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
   await expect(page.locator('.animate-on-scroll').first()).toBeVisible();
+  if (testInfo.project.use.isMobile) {
+    await expect(page.locator('#navLinks .nav-link').first()).toBeVisible();
+    await expect(page.locator('#navMobileBtn')).toBeHidden();
+  }
 });
 
 test('quick search is inert as soon as it starts closing', async ({ page }) => {
@@ -88,6 +129,27 @@ test('quick search is inert as soon as it starts closing', async ({ page }) => {
   await expect(search).toHaveAttribute('aria-hidden', 'true');
   await expect(search).toHaveAttribute('inert', '');
   await expect(trigger).toBeFocused();
+});
+
+test('quick search can reopen after an immediate open-close cycle', async ({ page }) => {
+  await openPage(page, '/index.html');
+  const trigger = page.locator('#quickSearchTrigger');
+  const search = page.locator('#quickSearch');
+
+  // 在同一任务内完成打开与关闭，确保关闭发生在打开用的
+  // requestAnimationFrame 之前；旧实现会在关闭后错误加回 is-active。
+  await page.evaluate(() => {
+    document.getElementById('quickSearchTrigger')?.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  });
+  await expect(search).not.toHaveClass(/is-active/);
+  await expect(search).toHaveAttribute('aria-hidden', 'true');
+  await expect(search).toHaveAttribute('inert', '');
+  await expect(search).toBeHidden();
+
+  await trigger.click();
+  await expect(search).toHaveClass(/is-active/);
+  await expect(page.locator('#quickSearchInput')).toBeFocused();
 });
 
 test('mobile controls, inputs and active navigation remain touch-friendly', async ({ page }, testInfo) => {
@@ -116,6 +178,7 @@ test('mobile controls, inputs and active navigation remain touch-friendly', asyn
   await page.locator('.quick-search-close').click();
 
   await menu.click();
+  await expect(page.locator('#navLinks a').first()).toBeFocused();
   const activeLine = await page.locator('.nav-link-active').evaluate((link) => ({
     linkWidth: link.getBoundingClientRect().width,
     lineWidth: Number.parseFloat(getComputedStyle(link, '::after').width),
@@ -123,6 +186,57 @@ test('mobile controls, inputs and active navigation remain touch-friendly', asyn
   }));
   expect(activeLine.lineWidth).toBeCloseTo(activeLine.linkWidth, 0);
   expect(activeLine.linkWidth).toBeLessThan(activeLine.menuWidth * 0.75);
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeFocused();
+});
+
+test('secondary photo and note controls remain touch-friendly on mobile', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.use.isMobile, '只检查手机端触控布局');
+
+  await openPage(page, '/notes.html');
+  const noteButtons = page.locator('.note-expand-button:visible');
+  expect(await noteButtons.count()).toBeGreaterThan(0);
+  for (const button of await noteButtons.all()) {
+    const box = await button.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(43.9);
+    expect(box?.height).toBeGreaterThanOrEqual(43.9);
+  }
+
+  await openPage(page, '/photos.html');
+  for (const link of await page.locator('.series-nav-link').all()) {
+    const box = await link.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(43.9);
+    expect(box?.height).toBeGreaterThanOrEqual(43.9);
+  }
+
+  await page.locator('.gallery-item').first().click();
+  for (const control of await page.locator('.lightbox-close, .lightbox-prev, .lightbox-next').all()) {
+    const box = await control.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(43.9);
+    expect(box?.height).toBeGreaterThanOrEqual(43.9);
+  }
+});
+
+test('collection search status starts empty and announces a no-match result', async ({ page }) => {
+  const collections = [
+    { path: '/essays.html', empty: 'No matching entries found.' },
+    { path: '/notes.html', empty: 'No matching notes found.' },
+  ];
+
+  for (const collection of collections) {
+    await openPage(page, collection.path);
+    const input = page.locator('#searchInput');
+    const status = page.locator('#searchNoResults');
+    await expect(status).toHaveText('');
+
+    await input.fill('__definitely_no_matching_content__');
+    await expect(status).toHaveText(collection.empty);
+    await expect(status).toHaveClass(/visible/);
+
+    await input.fill('');
+    await expect(status).toHaveText('');
+    await expect(status).not.toHaveClass(/visible/);
+  }
 });
 
 test('short mobile essays keep the footer at the viewport edge and Back clear of it', async ({ page }, testInfo) => {
@@ -204,10 +318,15 @@ test('touch devices use native scrolling and the lower-cost particle profile', a
 test('external resources cannot destabilize Chinese article layout or core initialization', async ({ page, request }) => {
   const response = await request.get('/essays.html');
   const html = await response.text();
-  const analyticsTag = html.match(/<script[^>]+cloud\.umami\.is[^>]*>/)?.[0] || '';
-  expect(analyticsTag).toContain('async');
-  expect(analyticsTag).not.toContain('defer');
-  expect(html).not.toContain('Noto+Serif+SC');
+  const errorHtml = await (await request.get('/404.html')).text();
+  const globalCss = await (await request.get('/css/style.css')).text();
+  expect(html).not.toMatch(/<script[^>]+src=["']https:\/\/cloud\.umami\.is\/script\.js/);
+  expect(html).toContain("window.addEventListener('load'");
+  expect(html).toContain('analyticsScript.async = true');
+  expect(html + errorHtml).not.toContain('fonts.googleapis.com');
+  expect(html + errorHtml).not.toContain('fonts.gstatic.com');
+  expect(globalCss).toContain('/assets/contact/flower-800.webp');
+  expect(globalCss).not.toContain('/assets/contact/flower.jpg');
 
   await openPage(page, '/essays.html');
   await expect(page.locator('.essay-card-title').first()).toHaveCSS(
@@ -219,35 +338,143 @@ test('external resources cannot destabilize Chinese article layout or core initi
 test('all photo cards are present in static markup and the lightbox interactions work', async ({ page, request }) => {
   const response = await request.get('/photos.html');
   const html = await response.text();
-  expect((html.match(/class="gallery-item /g) || []).length).toBe(39);
-  expect((html.match(/-medium\.webp \d+w/g) || []).length).toBe(28);
+  expect((html.match(/class="gallery-item /g) || []).length).toBe(36);
+  expect((html.match(/-400\.webp 400w/g) || []).length).toBe(36);
+  expect((html.match(/-600\.webp 600w/g) || []).length).toBe(36);
+  expect((html.match(/-medium\.webp \d+w/g) || []).length).toBe(26);
+  expect(html).not.toContain('/photos/f1-2025-shanghai/f1-2.jpeg');
+  expect(html).not.toContain('/photos/photo-4.webp');
+  expect(html).not.toContain('/photos/photo-6.webp');
+  expect(html).toContain('/photos/qingdao/qingdao-1-400.webp 400w');
+  expect(html).toContain('/photos/qingdao/qingdao-1-600.webp 600w');
   expect(html).toContain('/photos/qingdao/qingdao-1-medium.webp 1280w');
   expect(html).not.toContain('/photos/qingdao/qingdao-1.webp 2000w');
   const mediumPhoto = await request.get('/photos/qingdao/qingdao-1-medium.webp');
   expect(mediumPhoto.ok()).toBe(true);
   expect(mediumPhoto.headers()['content-type']).toContain('image/webp');
+  const mobilePhoto = await request.get('/photos/qingdao/qingdao-1-400.webp');
+  expect(mobilePhoto.ok()).toBe(true);
+  expect(mobilePhoto.headers()['content-type']).toContain('image/webp');
 
   await openPage(page, '/photos.html');
   const cards = page.locator('.gallery-item');
-  await expect(cards).toHaveCount(39);
+  await expect(cards).toHaveCount(36);
   await cards.first().click();
   const lightbox = page.locator('#lightbox');
   await expect(lightbox).toHaveClass(/active/);
-  await expect(page.locator('#lightboxCounter')).toContainText('1 / 39');
+  await expect(page.locator('#lightboxCounter')).toContainText('1 / 36');
 
   await lightbox.dispatchEvent('wheel', { deltaX: 72, deltaY: 0, deltaMode: 0 });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 39');
+  await expect(page.locator('#lightboxCounter')).toContainText('2 / 36');
 
   await lightbox.click({ position: { x: 8, y: 8 } });
   await expect(lightbox).toHaveAttribute('aria-hidden', 'true');
   await expect(lightbox).toHaveAttribute('inert', '');
 });
 
+test('desktop photo sizes stop at the capped gallery width', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '桌面 DPR 1 资源选择只需执行一次');
+  await page.setViewportSize({ width: 1920, height: 900 });
+  await openPage(page, '/photos.html');
+
+  const wide = page.locator('.gallery-item--wide img, .gallery-item--feature-wide img, .gallery-item--feature img').first();
+  await expect(wide).toHaveAttribute(
+    'sizes',
+    '(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) calc(50vw - 46px), 594px',
+  );
+  await expect.poll(() => wide.evaluate((image: HTMLImageElement) => image.currentSrc)).toMatch(/-600\.webp$/);
+
+  const portrait = page.locator('.gallery-item--portrait img').first();
+  await expect(portrait).toHaveAttribute(
+    'sizes',
+    '(max-width: 768px) calc(50vw - 28px), (max-width: 1280px) calc(25vw - 29px), 291px',
+  );
+  await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.currentSrc)).toMatch(/-400\.webp$/);
+});
+
+test('photo series anchors use one scroll path and preserve fragment history', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '桌面端启用 Lenis，检查重复调用最精确');
+  await openPage(page, '/photos.html');
+
+  await page.evaluate(() => {
+    const scopedWindow = window as Window & {
+      lenis?: { scrollTo: (...args: unknown[]) => unknown };
+      __seriesScrollCalls?: number;
+    };
+    if (!scopedWindow.lenis) throw new Error('Lenis was not initialised');
+    const original = scopedWindow.lenis.scrollTo.bind(scopedWindow.lenis);
+    scopedWindow.__seriesScrollCalls = 0;
+    scopedWindow.lenis.scrollTo = (...args: unknown[]) => {
+      scopedWindow.__seriesScrollCalls = (scopedWindow.__seriesScrollCalls || 0) + 1;
+      return original(...args);
+    };
+  });
+
+  const link = page.locator('.series-nav-link[data-target="series-f1-2025"]');
+  await link.click();
+  await expect(page).toHaveURL(/#series-f1-2025$/);
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __seriesScrollCalls?: number }).__seriesScrollCalls
+  )).toBe(1);
+  await expect(link).toHaveAttribute('aria-current', 'location');
+  await expect.poll(() => page.evaluate(() => {
+    const target = document.getElementById('series-f1-2025');
+    const seriesNav = document.getElementById('seriesNav');
+    if (!target || !seriesNav) return Number.POSITIVE_INFINITY;
+    const stickyTop = Number.parseFloat(getComputedStyle(seriesNav).top);
+    return Math.abs(target.getBoundingClientRect().top - stickyTop - seriesNav.offsetHeight);
+  })).toBeLessThanOrEqual(3);
+
+  await page.locator('.series-nav-link[data-target="series-moments"]').click();
+  await expect(page).toHaveURL(/#series-moments$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/#series-f1-2025$/);
+  await expect.poll(() => page.evaluate(() => {
+    const target = document.getElementById('series-f1-2025');
+    const seriesNav = document.getElementById('seriesNav');
+    if (!target || !seriesNav) return Number.POSITIVE_INFINITY;
+    const stickyTop = Number.parseFloat(getComputedStyle(seriesNav).top);
+    return Math.abs(target.getBoundingClientRect().top - stickyTop - seriesNav.offsetHeight);
+  })).toBeLessThanOrEqual(3);
+});
+
+test('Save-Data uses a medium lightbox image and skips adjacent originals', async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '独立上下文只需执行一次');
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'connection', {
+      configurable: true,
+      value: { saveData: true, effectiveType: '4g' },
+    });
+  });
+  const page = await context.newPage();
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+
+  await page.goto('http://127.0.0.1:4322/photos.html', { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => page.evaluate(() =>
+    Boolean((window as Window & { __reducedData?: boolean }).__reducedData)
+  )).toBe(true);
+  await page.locator('.gallery-item').first().click();
+  await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /-medium\.webp$/);
+  await page.waitForTimeout(250);
+
+  const originalRequests = requests.filter((url) =>
+    url.includes('/photos/') &&
+    /\.(?:webp|jpe?g)(?:\?|$)/i.test(url) &&
+    !url.includes('-thumb.') &&
+    !url.includes('-medium.') &&
+    !/-(?:400|600)\.webp(?:\?|$)/i.test(url)
+  );
+  expect(originalRequests).toEqual([]);
+  await context.close();
+});
+
 test('photo hover keeps its border, shadow and image on a stable transition path', async ({ page }, testInfo) => {
   test.skip(Boolean(testInfo.project.use.isMobile), '移动端没有鼠标悬停状态');
   await openPage(page, '/photos.html#series-moments');
 
-  const card = page.locator('[data-title="Cactus Garden"]');
+  const card = page.locator('[data-title="Into the Woods"]');
   await card.scrollIntoViewIfNeeded();
   const restingStyle = await card.evaluate((element) => {
     const image = element.querySelector('img');
@@ -292,6 +519,11 @@ test('reduced motion renders final content and does not install a broken canvas 
   const liftedBottom = await topButton.evaluate((button) => button.style.bottom);
   await page.waitForTimeout(150);
   await expect(topButton).toHaveCSS('bottom', liftedBottom);
+  const positionAfterClick = await page.evaluate(() => {
+    document.getElementById('backToTop')?.click();
+    return window.scrollY;
+  });
+  expect(positionAfterClick).toBeLessThanOrEqual(1);
   expect(errors).toEqual([]);
 });
 
@@ -299,20 +531,24 @@ test('article back links always return to their collection lists', async ({ page
   await openPage(page, '/essays.html');
 
   await Promise.all([
-    page.waitForURL(/essay-embers-remain\.html$/),
+    page.waitForURL(/essay-embers-remain\.html$/, { waitUntil: 'domcontentloaded' }),
     page.locator('a[href="essay-embers-remain.html"]').click(),
   ]);
   await Promise.all([
-    page.waitForURL(/essay-youqingchi\.html$/),
+    page.waitForURL(/essay-youqingchi\.html$/, { waitUntil: 'domcontentloaded' }),
     page.locator('a.article-pagination-link--previous').click(),
   ]);
 
-  await page.locator('a.note-back-fixed').click();
-  await page.waitForURL(/essays\.html$/);
+  await Promise.all([
+    page.waitForURL(/essays\.html$/, { waitUntil: 'domcontentloaded' }),
+    page.locator('a.note-back-fixed').click(),
+  ]);
 
   await openPage(page, '/note-principles.html');
-  await page.locator('a.note-back-fixed').click();
-  await page.waitForURL(/notes\.html$/);
+  await Promise.all([
+    page.waitForURL(/notes\.html$/, { waitUntil: 'domcontentloaded' }),
+    page.locator('a.note-back-fixed').click(),
+  ]);
 });
 
 test('essay and note detail pages do not include focus reading mode', async ({ page, request }) => {

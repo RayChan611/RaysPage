@@ -9,6 +9,8 @@
 (function () {
   'use strict';
 
+  let mobileMenuFocusFrame = null;
+
   // ---- Nav scroll effect ----
   function handleNavScroll() {
     const nav = document.getElementById('nav');
@@ -32,7 +34,24 @@
     links.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     btn.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
-    if (!open && restoreFocus) btn.focus();
+
+    if (mobileMenuFocusFrame !== null) {
+      cancelAnimationFrame(mobileMenuFocusFrame);
+      mobileMenuFocusFrame = null;
+    }
+
+    if (open) {
+      // 链接在 DOM 中位于菜单按钮之前；打开后主动把焦点移入菜单，
+      // 避免用户下一次按 Tab 时直接越过全部导航项。
+      mobileMenuFocusFrame = requestAnimationFrame(function () {
+        mobileMenuFocusFrame = null;
+        if (btn.getAttribute('aria-expanded') !== 'true') return;
+        const firstLink = links.querySelector('a[href]');
+        if (firstLink) firstLink.focus();
+      });
+    } else if (restoreFocus) {
+      btn.focus();
+    }
   }
 
   document.addEventListener('click', function (e) {

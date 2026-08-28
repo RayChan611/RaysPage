@@ -328,6 +328,12 @@
   opacity: 0.5;
   transition: opacity var(--transition);
   cursor: pointer;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 .lightbox-close:hover { opacity: 1; }
 
@@ -342,6 +348,8 @@
   opacity: 0.4;
   transition: opacity var(--transition), border-color var(--transition);
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
 }
 .lightbox-prev:hover, .lightbox-next:hover {
   opacity: 1;
@@ -376,6 +384,11 @@
   .photos-hero { padding: 120px 24px 48px; }
   .series-nav { padding: 14px 24px; top: 56px; }
   .series-nav .container { gap: 10px; }
+  .series-nav-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
   .series-section { padding: 56px 24px 32px; }
   .series-header {
     flex-direction: column;

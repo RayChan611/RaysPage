@@ -7,8 +7,16 @@
 (function () {
   'use strict';
 
-  // 计量网络用户跳过非必要动画（如 sparkle），由各特效脚本读取
-  window.__reducedData = !!(window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches);
+  // 计量网络用户跳过非必要动画（如 sparkle），由各特效脚本读取。
+  // Chromium 系浏览器通过 Network Information API 暴露“省流量”与慢网，
+  // 不应只依赖尚未广泛支持的 prefers-reduced-data 媒体查询。
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const slowConnection = !!(connection && /^(slow-2g|2g|3g)$/.test(connection.effectiveType || ''));
+  window.__reducedData = !!(
+    (window.matchMedia && window.matchMedia('(prefers-reduced-data: reduce)').matches) ||
+    (connection && connection.saveData) ||
+    slowConnection
+  );
 
   // ---- Shared RAF visibility manager ----
   // 用一个 visibilitychange 监听统一暂停/恢复所有已注册的动画循环，
@@ -190,11 +198,14 @@
       }
     });
 
+    const reduceMotion = !!(window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
     btn.addEventListener('click', function () {
       if (window.lenis && typeof window.lenis.scrollTo === 'function') {
-        window.lenis.scrollTo(0, { duration: 0.8 });
+        window.lenis.scrollTo(0, reduceMotion ? { immediate: true } : { duration: 0.8 });
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
       }
     });
   }
@@ -228,6 +239,10 @@
         }
       }
     }
+
+    // BaseLayout 在页面 load 后才请求第三方脚本；显式监听完成事件，
+    // 即使网络超过轮询窗口，之前排队的事件也不会永久滞留。
+    window.addEventListener('ray:analytics-ready', _flush, { once: true });
 
     if (!window.umami) {
       var tries = 0, timer = setInterval(function () {

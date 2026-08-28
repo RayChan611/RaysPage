@@ -412,6 +412,7 @@
   .note-quote { padding-left: 12px; font-size: 0.88rem; }
   .notes-list { gap: 26px; }
   .note-card { padding-bottom: 26px; }
+  .note-expand-button { min-height: 44px; }
 }
 
 @media (max-width: 350px) {

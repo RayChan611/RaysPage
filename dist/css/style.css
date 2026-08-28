@@ -20,8 +20,8 @@
   --ember-soft: rgba(var(--ember-rgb), 0.12);
   --border: rgba(255,255,255,0.08);
   --border-hover: rgba(255,255,255,0.18);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'Fira Code', monospace;
   /* 中文衬线正文使用系统字体，避免 Google Fonts 在弱网或国内网络下
      晚加载后改变换行和页面高度。 */
   --font-serif-cn: 'Songti SC', 'STSong', 'Source Han Serif SC', 'Noto Serif CJK SC', 'SimSun', serif;
@@ -275,6 +275,27 @@ button { font-family: inherit; }
   .nav { padding: 8px 20px; }
   .nav.scrolled { padding: 6px 20px; }
   .nav-right { gap: 4px; }
+  /* 无 JavaScript 或导航脚本失败时，保留一个可横向滚动的静态导航条；
+     同时隐藏无法工作的菜单和搜索按钮。 */
+  html:not(.js) .nav-links {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    min-height: 44px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    white-space: nowrap;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: none;
+    z-index: 60;
+    scrollbar-width: none;
+  }
+  html:not(.js) .nav-links::-webkit-scrollbar { display: none; }
+  html:not(.js) .nav-mobile-btn,
+  html:not(.js) .quick-search-trigger { display: none; }
 }
 
 /* ---------- Hero ---------- */
@@ -424,9 +445,9 @@ button { font-family: inherit; }
 .hero-text.hero-loaded > .hero-name    { opacity: 1; }
 .hero-text.hero-loaded > .hero-tagline { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 1.50s; }
 .hero-text.hero-loaded > .hero-cta     { opacity: 1; transform: translate3d(0, 0, 0); transition-delay: 2.00s; }
-/* hero-typewriter.js 会在 hero-loaded 显示静态备用文案前添加等待标记；
+/* 首页 HTML 预置等待标记，确保打字机脚本本身在慢网下也不会先闪出全文；
    开始输入后用活动标记取消通用的 1.5 秒延迟，让首批字符立即淡入。
-   禁用 JavaScript 时不会出现这两个标记，完整静态文案仍然可见。 */
+   禁用 JavaScript 时选择器不生效，完整静态文案仍然可见。 */
 .js .hero-text.hero-loaded > .hero-tagline.typewriter-pending {
   opacity: 0;
   transform: translate3d(0, 18px, 0);
@@ -783,7 +804,8 @@ button { font-family: inherit; }
   color: var(--text-primary);
 }
 
-/* contact-card 铅笔手绘背景变体（花 / 叶子 / 藤蔓） */
+/* contact-card 铅笔手绘背景变体（花 / 叶子 / 藤蔓）。
+   800px WebP 足以覆盖卡片的最大显示尺寸，同时避免首页加载三张 1920px JPEG。 */
 .contact-card::before {
   content: "";
   position: absolute;
@@ -803,9 +825,9 @@ button { font-family: inherit; }
 .contact-card > * { position: relative; z-index: 1; }
 .contact-card > .copy-hint { position: absolute; }
 
-.contact-card--flower::before { background-image: url("/assets/contact/flower.jpg"); }
-.contact-card--leaf::before   { background-image: url("/assets/contact/leaf.jpg"); background-position: center 55%; }
-.contact-card--vine::before   { background-image: url("/assets/contact/vine.jpg"); opacity: 0.16; }
+.contact-card--flower::before { background-image: url("/assets/contact/flower-800.webp"); }
+.contact-card--leaf::before   { background-image: url("/assets/contact/leaf-800.webp"); background-position: center 55%; }
+.contact-card--vine::before   { background-image: url("/assets/contact/vine-800.webp"); opacity: 0.16; }
 
 /* Hover lights up the pencil sketch without washing out the strokes.
    The sketch is light-gray lines on near-white paper, so a raw brightness()
