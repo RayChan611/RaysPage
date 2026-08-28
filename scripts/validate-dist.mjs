@@ -240,7 +240,10 @@ if (repositoryFiles.status !== 0) {
 
 try {
   const edgeConfig = JSON.parse(readFileSync(join(repoRoot, 'edgeone.json'), 'utf8'));
+  const immediateRevalidationCacheControl = 'public, max-age=0, must-revalidate';
+  const stableAssetCacheControl = 'public, max-age=3600, stale-while-revalidate=86400';
   const globalHeaders = edgeConfig.headers?.find((rule) => rule.source === '/*')?.headers || [];
+  const rootHeaders = edgeConfig.headers?.find((rule) => rule.source === '/')?.headers || [];
   const htmlHeaders = edgeConfig.headers?.find((rule) => rule.source === '/*.html')?.headers || [];
   const globalKeys = new Set(globalHeaders.map((header) => header.key.toLowerCase()));
   const requiredHeaders = [
@@ -254,9 +257,18 @@ try {
   for (const key of requiredHeaders) {
     if (!globalKeys.has(key)) failures.push(`edgeone.json is missing ${key}`);
   }
-  const cacheControl = htmlHeaders.find((header) => header.key.toLowerCase() === 'cache-control');
-  if (!cacheControl?.value.includes('max-age=0')) {
-    failures.push('edgeone.json HTML cache rule must include max-age=0');
+  const redirectToWww = edgeConfig.redirects?.find((redirect) => redirect.source === '$host');
+  if (redirectToWww?.destination !== '$wwwhost' || redirectToWww?.statusCode !== 301) {
+    failures.push('edgeone.json must permanently redirect the apex custom domain to www');
+  }
+  for (const [source, headers] of [
+    ['/', rootHeaders],
+    ['/*.html', htmlHeaders],
+  ]) {
+    const value = headers.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
+    if (value !== immediateRevalidationCacheControl) {
+      failures.push(`edgeone.json ${source} HTML cache rule must revalidate immediately`);
+    }
   }
   if (globalKeys.has('content-security-policy-report-only')) {
     failures.push('edgeone.json CSP must enforce rather than only report violations');
@@ -265,6 +277,9 @@ try {
   for (const directive of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'"]) {
     if (!csp.includes(directive)) failures.push(`edgeone.json CSP is missing ${directive}`);
   }
+  if (csp.includes('fonts.googleapis.com') || csp.includes('fonts.gstatic.com')) {
+    failures.push('edgeone.json CSP must not allow the removed external Google Fonts origins');
+  }
   for (const source of [
     '/js/*',
     '/css/*',
@@ -272,13 +287,17 @@ try {
     '/images/*',
     '/assets/contact/*',
     '/assets/og/*',
-    '/search-index.json',
   ]) {
     const headers = edgeConfig.headers?.find((rule) => rule.source === source)?.headers || [];
     const value = headers.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
-    if (!value.includes('max-age=0') || value.includes('immutable')) {
-      failures.push(`edgeone.json ${source} cache rule must revalidate stable URLs`);
+    if (value !== stableAssetCacheControl) {
+      failures.push(`edgeone.json ${source} stable asset cache rule must use the short shared policy`);
     }
+  }
+  const searchHeaders = edgeConfig.headers?.find((rule) => rule.source === '/search-index.json')?.headers || [];
+  const searchCacheControl = searchHeaders.find((header) => header.key.toLowerCase() === 'cache-control')?.value || '';
+  if (searchCacheControl !== immediateRevalidationCacheControl) {
+    failures.push('edgeone.json /search-index.json cache rule must revalidate immediately');
   }
 } catch (error) {
   failures.push(`edgeone.json is invalid: ${error.message}`);

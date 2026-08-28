@@ -3,7 +3,7 @@
 > **目标**：不依赖口口相传，让你快速、准确地理解这个站点的一切——设计理念、设计思路、逻辑、具体样式风格、架构逻辑、代码思路、踩过的坑、各种细节。
 > **阅读顺序建议**：先读 §0–§2 建立心智模型 → §3 看样式 → §4 看架构 → §5 看代码（尤其 search 动画与双管理器）→ §9（坑）必读 → §10–§11 上手干活。
 >
-> *本文档更新日期：2026-08-12。当前状态：已升级至 Astro 7 / Content Layer API，Node 最低版本为 22.12（本项目固定使用 22.17.1）；内容日期按 UTC 稳定解析；照片数据由构建期 TypeScript 单一来源驱动；GitHub Actions 会自动执行安全审计、类型检查、构建、静态产物校验，以及桌面/移动端 Playwright + Axe 回归；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
+> *本文档更新日期：2026-08-28。当前状态：已升级至 Astro 7 / Content Layer API，Node 最低版本为 22.12（本项目固定使用 22.17.1）；内容日期按 UTC 稳定解析；照片数据由构建期 TypeScript 单一来源驱动；GitHub Actions 会自动执行安全审计、类型检查、构建、静态产物校验，以及桌面/移动端 Playwright + Axe 回归；源码 + 构建产物 `dist/` 一并提交，EdgeOne 直接托管 `dist/` 静态文件。*
 
 ---
 
@@ -19,7 +19,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 | 作者 | Ray Chan |
 | 新版仓库 | `RayChan611/RaysPage` 的 `main` 分支（Astro 源码在 `site/`，`dist/` 已提交） |
 | 旧版存档 | `RayChan611/RaysPage-legacy`（原版纯 HTML 站，107 commits 完整历史，作参考） |
-| 成功标准 | 当前 23 个生成 HTML 页面内容正确、链接完整，关键页面与交互通过自动化浏览器回归 |
+| 成功标准 | 当前 24 个生成 HTML 页面内容正确、链接完整，关键页面与交互通过自动化浏览器回归 |
 | 部署方式 | 提交 `dist/` 静态产物 → EdgeOne 直接服务 `dist/`（**不**让 EdgeOne 自己 `npm run build`，详见 §7） |
 
 ---
@@ -27,12 +27,12 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 ## 1. 技术栈
 
 - **Astro 7.2**（`package.json` 中 `astro: ^7.2.0`；`@astrojs/mdx: ^7.0.5` 用于 Content Collections，`@astrojs/rss` 用于 RSS）
-- **Node.js ≥ 22.12.0**（Astro 7 的最低运行版本；仓库 `.nvmrc` 与 CI 固定为 `22.12.0`）
+- **Node.js ≥ 22.12.0**（Astro 7 的最低运行版本；仓库 `.nvmrc` 与 CI 固定为 `22.17.1`）
 - **构建输出**：`build.format: 'file'` → 输出 `index.html` / `essays.html` / `essay-choice.html` 等（保持 URL 与原站一致，已有外链零破坏）
 - **客户端 JS**：原生 IIFE（无打包、无转译，浏览器直接跑）+ 仓库内固定版本的 **Lenis 1.1.18**
 - **样式**：手写 CSS（`style.css` 全局设计系统 + 各页专属 CSS），无 Tailwind / CSS-in-JS
-- **字体**：Google Fonts — `Inter`（sans，300–700）+ `JetBrains Mono`（mono，400/500）+ `Noto Serif SC`（中文正文衬线，400–700），使用 preconnect + 标准 stylesheet 加载
-- **分析**：Umami（`cloud.umami.is`，BaseLayout 中 `<script defer>` 引入）
+- **字体**：`@fontsource-variable/inter@5.3.0` + `@fontsource-variable/jetbrains-mono@5.3.0` 自托管可变字体（`font-display: swap`）；中文正文使用系统宋体回退栈，页面不依赖 Google Fonts
+- **分析**：Umami（`cloud.umami.is`，BaseLayout 在页面 `load` 后动态加载，第三方网络异常不会拖住核心页面生命周期）
 - **部署**：EdgeOne（连 GitHub `RayChan611/RaysPage` 仓库触发）
 
 无客户端 TypeScript 框架、无 CSS 预处理器、无组件库。TypeScript 仅用于 Astro 类型检查。保持极简。
@@ -83,8 +83,8 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
   --accent-subtle: rgba(255,255,255,0.08);
   --border: rgba(255,255,255,0.08);
   --border-hover: rgba(255,255,255,0.18);
-  --font-sans: 'Inter', -apple-system, ...;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, ...;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'Fira Code', monospace;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);  /* 曾被漏定义导致返回按钮 hover 失效，已修 */
 }
@@ -92,7 +92,7 @@ RaysPage 是个人网站（**https://www.raychan.top**），作者 Ray Chan。�
 **配色纪律**：所有颜色走变量。不要硬编码 `#fff`/`#000`（光标/边框等少数基础值除外，但新增样式请用变量）。
 
 ### 3.2 字体与排版
-- Sans：`Inter`（300/400/500/600/700）；Mono：`JetBrains Mono`（400/500）。
+- Sans：自托管 `Inter Variable`；Mono：自托管 `JetBrains Mono Variable`。两者均保留系统字体回退，不因外部字体网络故障阻塞首屏。
 - 标题用负字距（`letter-spacing: -0.02em ~ -0.03em`）营造紧凑高级感。
 - 正文 `line-height: 1.6`；About 区 bio 用 mono 字体 + `letter-spacing: 0.04em`。
 - 字号用 `clamp()` 流式缩放（如 `.section-title: clamp(1.8rem, 4vw, 2.8rem)`）。
@@ -134,7 +134,7 @@ rayspage-astro/
 │   ├── workflows/ci.yml   # main 的 push / PR 自动校验
 │   └── dependabot.yml     # npm 与 GitHub Actions 自动依赖更新
 ├── astro.config.mjs        # 构建配置（见 4.5）
-├── edgeone.json            # EdgeOne 响应头：安全策略 + 固定 URL 资源重验证
+├── edgeone.json            # EdgeOne 响应头：安全策略 + HTML 即时验证 + 稳定资源短缓存
 ├── scripts/validate-dist.mjs # 静态产物、资源引用、响应头配置校验
 ├── tsconfig.json
 ├── .gitignore              # 忽略 node_modules / .astro / .DS_Store
@@ -158,7 +158,7 @@ rayspage-astro/
 │   │   ├── css/            # style.css（全局设计系统）+ 页专属（essays/notes/photos/reading-progress/search/404）
 │   │   ├── js/             # 14 个客户端脚本 + vendor/lenis.min.js（见 5.2）
 │   │   ├── assets/         # og 图（default + 各文章）、带内容哈希的首页主图
-│   │   ├── photos/         # 多个照片系列（qingdao/sanya/f1-2025-shanghai + 6 张 moments）
+│   │   ├── photos/         # 多个照片系列（qingdao/sanya/f1-2025-shanghai + 4 张 moments）
 │   │   ├── favicon.svg, robots.txt
 ├── node_modules/           # 依赖（不提交，被 .gitignore 忽略）
 ├── dist/                   # 构建产物（已提交，EdgeOne 直接托管静态文件）
@@ -189,7 +189,7 @@ pageScripts?: string[],  // 页专属客户端脚本
 ```
 
 **它静态渲染的东西**（新架构关键，原版这些是 JS 注入的）：
-- `<head>`：meta/OG/Twitter、字体 preload、`/css/style.css`、extraCss、Umami 脚本；`preloadPhoto` 为 true 时预载带内容哈希的首页主图。更换图片时必须同步更新文件名和预加载路径，以绕过长期缓存。
+- `<head>`：meta/OG/Twitter、Fontsource 本地字体样式、`/css/style.css`、extraCss，以及页面 `load` 后请求 Umami 的加载器；`preloadPhoto` 为 true 时预载带内容哈希的首页主图。更换图片时必须同步更新文件名和预加载路径，以绕过长期缓存。
 - 脚本加载顺序（**顺序很重要**）：
   1. `site.js`（同步 `<script is:inline>`，最先，定义 `window.RayRAF`/`window.RayScroll`，供后续脚本注册）
   2. 全局尾部脚本：仓库内 `lenis.min.js` → `smooth-scroll.js` → `nav.js` → `quick-search.js` → `back-lift.js`
@@ -360,7 +360,7 @@ hasDetail: true
 ---
 
 ## 6. 照片页数据模式
-文件：`site/src/data/photos.ts` 是照片系列、说明、布局、真实尺寸与缩略图尺寸的单一数据源。`photos.astro` 在构建期输出完整网格，`search-index.json.ts` 从同一数据派生数量和系列入口；因此即使客户端 JavaScript 失败，39 张照片仍可浏览。`photos.js` 只负责灯箱与交互。
+文件：`site/src/data/photos.ts` 是照片系列、说明、布局、真实尺寸与缩略图尺寸的单一数据源。`photos.astro` 在构建期输出完整网格，`search-index.json.ts` 从同一数据派生数量和系列入口；因此即使客户端 JavaScript 失败，36 张照片仍可浏览。`photos.js` 只负责灯箱与交互。
 
 ---
 
@@ -370,7 +370,7 @@ hasDetail: true
 - **EdgeOne** 连 GitHub 仓库 **`RayChan611/RaysPage`** 的 `main` 分支，push 触发重新部署。
 - 站点域名 `www.raychan.top`。
 - **策略**：仓库同时提交 Astro 源码 (`site/`) 和构建产物 (`dist/`)。EdgeOne 配置为**直接服务 `dist/` 目录的静态文件**，不依赖 EdgeOne 的 `npm ci` 构建环境。
-- 根目录 `edgeone.json` 为所有响应补充基础安全头，并启用强制执行的 CSP（内容安全策略，用于限制页面可加载的资源来源）。HTML、CSS、JS、搜索索引及固定文件名的照片/文章配图均使用 `max-age=0, must-revalidate`；带内容哈希的首页主图仍可安全使用平台长期缓存。EdgeOne 会在新部署时自动刷新边缘节点缓存。
+- 根目录 `edgeone.json` 为所有响应补充基础安全头，并启用强制执行的 CSP（内容安全策略，用于限制页面可加载的资源来源）。HTML 与搜索索引使用 `max-age=0, must-revalidate`；CSS、JS、照片和固定资源使用 `max-age=3600, stale-while-revalidate=86400`，在一小时浏览器缓存后允许后台更新。EdgeOne 会在新部署时自动刷新边缘节点缓存。
 
 ### 7.2 本地构建与提交流程
 ```bash
@@ -505,7 +505,7 @@ cd <RaysPage 仓库目录>
 npm ci                # 按 lockfile 安装；需要 Node >= 22.12.0
 npm run dev           # 开发服务器，默认 http://localhost:4321
 npm run check         # Astro / TypeScript 静态检查
-npm test              # check + build + dist 完整性验证（当前 23 个 HTML 页面）
+npm test              # check + build + dist 完整性验证（当前 24 个 HTML 页面）
 npm run test:e2e      # Playwright 桌面/移动端交互、布局与 Axe 无障碍回归
 npm run audit         # high / critical 依赖漏洞检查
 npm run preview       # 预览构建产物

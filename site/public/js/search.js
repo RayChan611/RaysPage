@@ -121,7 +121,10 @@
 
     // ====== CLEAR: WAAPI FLIP reverse animation (no height snapping, no stagger pause) ======
     if (!hasQuery) {
-      noResults && noResults.classList.remove('visible');
+      if (noResults) {
+        noResults.classList.remove('visible');
+        noResults.textContent = '';
+      }
       if (placeholder) {
         placeholder.classList.remove('is-hidden');
         setSearchHidden(placeholder, false);
@@ -284,7 +287,11 @@
 
     // No-results toggle
     if (noResults) {
-      noResults.classList.toggle('visible', visibleCount === 0 && hasQuery);
+      var hasNoMatches = visibleCount === 0 && hasQuery;
+      noResults.classList.toggle('visible', hasNoMatches);
+      noResults.textContent = hasNoMatches
+        ? (noResults.getAttribute('data-no-results') || 'No matching results found.')
+        : visibleCount + ' matching ' + (visibleCount === 1 ? 'result' : 'results') + ' found.';
     }
 
     // Hide placeholder + push to very bottom (instant, always)

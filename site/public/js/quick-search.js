@@ -14,6 +14,7 @@
   var activeIndex = -1;
   var lastFocused = null;
   var closeTimer = null;
+  var openFrame = null;
   var backgroundState = new Map();
   var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || '');
   var shortcut = document.querySelector('[data-search-shortcut]');
@@ -197,7 +198,8 @@
 
   function openSearch() {
     clearTimeout(closeTimer);
-    if (root.classList.contains('is-active')) return;
+    closeTimer = null;
+    if (root.classList.contains('is-active') || openFrame !== null) return;
     if (document.querySelector('.lightbox.active')) return;
     lastFocused = document.activeElement;
     root.hidden = false;
@@ -208,7 +210,9 @@
     document.body.classList.add('quick-search-open');
     setBackgroundInert(true);
     root.getBoundingClientRect();
-    requestAnimationFrame(function () {
+    openFrame = requestAnimationFrame(function () {
+      openFrame = null;
+      if (root.hidden || root.getAttribute('aria-hidden') === 'true') return;
       root.classList.add('is-active');
       input.focus();
     });
@@ -216,7 +220,11 @@
   }
 
   function closeSearch() {
-    if (root.hidden) return;
+    if (root.hidden || root.getAttribute('aria-hidden') === 'true') return;
+    if (openFrame !== null) {
+      cancelAnimationFrame(openFrame);
+      openFrame = null;
+    }
     root.classList.remove('is-active');
     root.setAttribute('aria-hidden', 'true');
     // Remove the fading dialog from the focus/accessibility tree immediately;
@@ -226,7 +234,10 @@
     input.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('quick-search-open');
     setBackgroundInert(false);
-    closeTimer = setTimeout(function () { root.hidden = true; }, 380);
+    closeTimer = setTimeout(function () {
+      if (root.getAttribute('aria-hidden') === 'true') root.hidden = true;
+      closeTimer = null;
+    }, 380);
     if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
   }
 
@@ -240,11 +251,11 @@
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (root.classList.contains('is-active')) closeSearch();
+      if (!root.hidden && root.getAttribute('aria-hidden') !== 'true') closeSearch();
       else openSearch();
       return;
     }
-    if (root.hidden) return;
+    if (root.hidden || root.getAttribute('aria-hidden') === 'true') return;
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopImmediatePropagation();

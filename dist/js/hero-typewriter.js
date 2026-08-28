@@ -33,6 +33,10 @@
   }
 
   function typewrite() {
+    if (document.documentElement.dataset.heroTypewriterFallback === 'true') {
+      renderFinalText();
+      return;
+    }
     const el = document.getElementById(TARGET_ID);
     if (!el) return;
 
@@ -120,6 +124,10 @@
   }
 
   function init() {
+    if (document.documentElement.dataset.heroTypewriterFallback === 'true') {
+      renderFinalText();
+      return;
+    }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       renderFinalText();
       return;

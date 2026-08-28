@@ -20,6 +20,28 @@
   let previousBodyOverflow = '';
   const backgroundAriaState = new Map();
 
+  function networkPrefersLessData() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return Boolean(
+      window.__reducedData ||
+      (connection && connection.saveData) ||
+      (connection && /^(slow-2g|2g|3g)$/.test(connection.effectiveType || ''))
+    );
+  }
+
+  function useMediumLightboxAsset() {
+    return networkPrefersLessData() || window.innerWidth <= 768 || Boolean(
+      (window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) ||
+      navigator.maxTouchPoints > 0
+    );
+  }
+
+  function lightboxSource(item) {
+    const full = item.getAttribute('data-full');
+    const medium = item.getAttribute('data-medium');
+    return useMediumLightboxAsset() && medium ? medium : full;
+  }
+
   function setBackgroundInert(enabled) {
     if (!lightbox) return;
     Array.from(document.body.children).forEach((element) => {
@@ -73,8 +95,8 @@
     const title = item.getAttribute('data-title') || '';
     const alt = item.getAttribute('data-alt') || title || '照片';
     const series = item.getAttribute('data-series') || '';
-    // Lightbox shows the full-resolution image (data-full), not the grid thumbnail.
-    const full = item.getAttribute('data-full');
+    // 桌面端显示原图；手机或计量网络优先使用足够清晰的可用中尺寸版本。
+    const full = lightboxSource(item);
 
     if (full) lightboxImg.src = full;
     lightboxImg.alt = alt;
@@ -102,14 +124,16 @@
     preloadAdjacent(idx);
   }
 
-  // Preload next + prev FULL images so arrow-key / click navigation has no blank flash
+  // 只在网络条件允许时预取相邻照片。手机使用可用的中尺寸版本；
+  // Save-Data、2G 与 3G 用户完全跳过相邻预取。
   function preloadAdjacent(idx) {
+    if (networkPrefersLessData()) return;
     [idx + 1, idx - 1].forEach(function (i) {
       if (i >= 0 && i < galleryItems.length) {
-        var full = galleryItems[i].getAttribute('data-full');
-        if (full) {
+        var source = lightboxSource(galleryItems[i]);
+        if (source) {
           var pre = new Image();
-          pre.src = full;
+          pre.src = source;
         }
       }
     });
@@ -202,27 +226,16 @@
     const navLinks = document.querySelectorAll('.series-nav-link');
     const sections = document.querySelectorAll('.series-section');
 
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('data-target');
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        if (window.lenis && typeof window.lenis.scrollTo === 'function') {
-          window.lenis.scrollTo(target, { offset: -100 });
-        } else {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    });
-
     if ('IntersectionObserver' in window && sections.length) {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const id = entry.target.id;
             navLinks.forEach(l => {
-              l.classList.toggle('active', l.getAttribute('data-target') === id);
+              const active = l.getAttribute('data-target') === id;
+              l.classList.toggle('active', active);
+              if (active) l.setAttribute('aria-current', 'location');
+              else l.removeAttribute('aria-current');
             });
           }
         });
