@@ -143,9 +143,8 @@
     // Mobile menu uses event delegation — no init needed
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 100));
-  } else {
-    setTimeout(init, 100);
-  }
+  // BaseLayout 将本脚本放在完整页面标记之后，所需节点已经存在。
+  // 立即排队初始化，不再等待后续 defer 脚本和 DOMContentLoaded；否则
+  // 任一非关键脚本慢加载都会让 motion-ready 与首页打字机一起被阻塞。
+  setTimeout(init, 100);
 })();

@@ -65,19 +65,21 @@ const resolvedOgImageAlt = ogImageAlt || title;
       if (!document.documentElement.classList.contains('motion-ready')) {
         document.documentElement.classList.remove('js');
         document.documentElement.classList.add('motion-fallback');
+        // 一旦静态兜底已经曝光首页文案，就固定为静态终态。
+        // 即使 Hero 尚未解析，也要先记录状态，避免迟到的运行时重播全文。
+        document.documentElement.dataset.heroTypewriterFallback = 'true';
+        releasePendingTypewriter();
       }
     };
-    // 解析期间只用较宽松的上限，给慢网脚本足够时间；解析完成后再收紧
-    // 到 2 秒，因此脚本真正失败时仍会及时展示静态内容。
+    // 全站内容兜底必须从解析期开始，避免挂起的同步/defer 脚本让首屏长期透明。
+    // 打字机兜底则只能在 DOMContentLoaded 后启动，避免把手机慢网误判成永久失败。
     let motionFailsafe = window.setTimeout(releaseStaticContent, 5000);
-    let typewriterFailsafe = window.setTimeout(releasePendingTypewriter, 5000);
     document.addEventListener('DOMContentLoaded', () => {
       window.clearTimeout(motionFailsafe);
-      window.clearTimeout(typewriterFailsafe);
       motionFailsafe = window.setTimeout(releaseStaticContent, 2000);
       // 首页姓名入场本身约需 2 秒；给打字机独立的 5 秒窗口，避免正常
       // 动画被全站脚本兜底提前打断。
-      typewriterFailsafe = window.setTimeout(releasePendingTypewriter, 5000);
+      window.setTimeout(releasePendingTypewriter, 5000);
     }, { once: true });
   </script>
   <meta name="baidu-site-verification" content="codeva-FkS9J5NQKE" />
@@ -234,10 +236,12 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <script is:inline src="/js/vendor/lenis.min.js"></script>
   <script is:inline src="/js/smooth-scroll.js"></script>
   <script is:inline src="/js/nav.js"></script>
+  <!-- 页面关键脚本优先于非关键全站增强执行；首页打字机不会再被搜索等
+       无关 defer 脚本的慢请求阻塞。 -->
+  {pageScripts.map((src) => <script is:inline defer src={'/' + src}></script>)}
   <script is:inline defer src="/js/quick-search.js"></script>
   <!-- back-lift is global: #backToTop exists on every page and must clear the
        footer divider everywhere, not just on essay/note detail pages. -->
   <script is:inline defer src="/js/back-lift.js"></script>
-  {pageScripts.map((src) => <script is:inline defer src={'/' + src}></script>)}
 </body>
 </html>

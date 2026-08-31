@@ -73,6 +73,53 @@ test('slow runtime loading does not disable entrance animations', async ({ page 
   await expect(page.locator('.hero-name-line').first()).toBeVisible();
 });
 
+test('a stalled critical runtime still releases the mobile hero before DOMContentLoaded', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '解析期兜底只需在一个手机项目中验证');
+
+  await page.route('**/js/nav.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await route.continue();
+  });
+
+  const navigation = openPage(page, '/index.html');
+  await expect.poll(() => page.locator('.hero-name').evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).opacity)
+  ), { timeout: 8000 }).toBeGreaterThan(0.9);
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-fallback(?:\s|$)/);
+  expect(await page.evaluate(() => document.readyState)).toBe('loading');
+  await navigation;
+  await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-ready(?:\s|$)/);
+  await page.waitForTimeout(2000);
+  const tagline = page.locator('#hero-tagline');
+  await expect(page.locator('html')).toHaveAttribute('data-hero-typewriter-fallback', 'true');
+  await expect(tagline).toBeVisible();
+  await expect(tagline).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+  await expect(tagline).not.toHaveClass(/typewriter-pending|typewriter-active|typing/);
+});
+
+test('a stalled parser-blocking runtime freezes the mobile hero before its markup exists', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '解析器阻塞兜底只需在一个手机项目中验证');
+
+  await page.route('**/js/site.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await route.continue();
+  });
+
+  const navigation = openPage(page, '/index.html');
+  const root = page.locator('html');
+  await expect(root).toHaveClass(/(?:^|\s)motion-fallback(?:\s|$)/, { timeout: 8000 });
+  await expect(root).toHaveAttribute('data-hero-typewriter-fallback', 'true');
+  await expect(page.locator('#hero-tagline')).toHaveCount(0);
+  expect(await page.evaluate(() => document.readyState)).toBe('loading');
+  await navigation;
+  await expect(root).toHaveClass(/(?:^|\s)motion-ready(?:\s|$)/);
+  await page.waitForTimeout(2000);
+  const tagline = page.locator('#hero-tagline');
+  await expect(tagline).toBeVisible();
+  await expect(tagline).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+  await expect(tagline).not.toHaveClass(/typewriter-pending|typewriter-active|typing/);
+});
+
 test('hero typewriter does not reveal the complete fallback copy first', async ({ page, request }) => {
   const html = await (await request.get('/index.html')).text();
   const css = await (await request.get('/css/style.css')).text();
@@ -87,6 +134,42 @@ test('hero typewriter does not reveal the complete fallback copy first', async (
     active: element.classList.contains('typewriter-active'),
     hasCompleteSecondLine: (element.textContent || '').includes('Capabilities. Mindset. Vision.'),
   }))).toEqual({ active: true, hasCompleteSecondLine: false });
+});
+
+test('slow mobile typewriter loading is not mistaken for a failed runtime', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '慢网竞态只需在一个手机项目中验证');
+
+  await page.route('**/js/hero-typewriter.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 5500));
+    await route.continue();
+  });
+
+  await openPage(page, '/index.html');
+
+  await expect(page.locator('html')).not.toHaveAttribute('data-hero-typewriter-fallback', 'true');
+  const tagline = page.locator('#hero-tagline');
+  await expect.poll(() => tagline.evaluate((element) => ({
+    active: element.classList.contains('typewriter-active'),
+    hasCompleteSecondLine: (element.textContent || '').includes('Capabilities. Mindset. Vision.'),
+  })), { timeout: 5000 }).toEqual({ active: true, hasCompleteSecondLine: false });
+});
+
+test('a slow noncritical script does not make the mobile typewriter give up', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'defer 脚本时序只需在一个手机项目中验证');
+
+  await page.route('**/js/button-effects.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 5500));
+    await route.continue();
+  });
+
+  await openPage(page, '/index.html');
+
+  await expect(page.locator('html')).not.toHaveAttribute('data-hero-typewriter-fallback', 'true');
+  const tagline = page.locator('#hero-tagline');
+  await expect.poll(() => tagline.evaluate((element) => ({
+    active: element.classList.contains('typewriter-active'),
+    hasCompleteSecondLine: (element.textContent || '').includes('Capabilities. Mindset. Vision.'),
+  })), { timeout: 3000 }).toEqual({ active: true, hasCompleteSecondLine: false });
 });
 
 test('failed typewriter runtime releases the complete static tagline', async ({ page }) => {
@@ -501,7 +584,10 @@ test('reduced motion renders final content and does not install a broken canvas 
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
   await openPage(page, '/index.html');
-  await expect(page.locator('#hero-tagline')).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+  const tagline = page.locator('#hero-tagline');
+  await expect(tagline).toHaveText('Ground-up rebuild.Capabilities. Mindset. Vision.');
+  await expect(tagline).toBeVisible();
+  await expect(tagline).not.toHaveClass(/typewriter-pending|typewriter-active|typing/);
   await expect(page.locator('.contact-card').nth(0)).toHaveAttribute('aria-label', '复制Email');
   await expect(page.locator('.contact-card').nth(1)).toHaveAttribute('aria-label', '复制WeChat / Phone');
   await expect(page.locator('.contact-card').nth(2)).toHaveAttribute('aria-label', '复制Location');
