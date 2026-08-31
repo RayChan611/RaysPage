@@ -123,6 +123,33 @@
       && !root.classList.contains('motion-fallback');
   }
 
+  function runWhenMotionSettles(onReady, onFallback) {
+    const root = document.documentElement;
+    if (canAnimate()) {
+      onReady();
+      return;
+    }
+    if (root.classList.contains('motion-fallback')) {
+      onFallback();
+      return;
+    }
+
+    // motion-ready 由页面底部的导航运行时设置；极慢的非关键脚本不应让
+    // 打字机按固定时长误判失败。等待根节点进入明确的就绪或降级状态。
+    const observer = new MutationObserver(function () {
+      if (canAnimate()) {
+        observer.disconnect();
+        onReady();
+        return;
+      }
+      if (root.classList.contains('motion-fallback')) {
+        observer.disconnect();
+        onFallback();
+      }
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+  }
+
   function init() {
     if (document.documentElement.dataset.heroTypewriterFallback === 'true') {
       renderFinalText();
@@ -140,15 +167,14 @@
 
     if (!lines.length) {
       setTimeout(function () {
-        if (canAnimate()) typewrite();
-        else renderFinalText();
+        runWhenMotionSettles(typewrite, renderFinalText);
       }, FALLBACK_MS);
       return;
     }
 
-    // If already loaded (e.g. reduced motion or cached state), start immediately.
+    // 已完成入场（例如缓存或异常恢复）时，立即进入打字流程。
     if (heroText.classList.contains('hero-loaded') && isReady(heroText)) {
-      start();
+      runWhenMotionSettles(start, renderFinalText);
       return;
     }
 
@@ -165,8 +191,7 @@
       if (e.target !== lastLine) return;
       started = true;
       cleanup();
-      if (canAnimate()) start();
-      else renderFinalText();
+      runWhenMotionSettles(start, renderFinalText);
     }
 
     lines.forEach(function (l) { l.addEventListener('transitionend', onTransitionEnd); });
@@ -176,8 +201,7 @@
       if (!started) {
         started = true;
         cleanup();
-        if (canAnimate()) typewrite();
-        else renderFinalText();
+        runWhenMotionSettles(typewrite, renderFinalText);
       }
     }, FALLBACK_MS);
   }
