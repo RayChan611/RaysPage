@@ -20,7 +20,7 @@ const essays = (await getPublishedEssays()).sort(compareContentNewestFirst);
 
 const pageScripts = ["js/search.js", "js/hero-sparkle.js"];
 ---
-<BaseLayout {...meta} pageScripts={pageScripts}>
+<BaseLayout {...meta} pageScripts={pageScripts} articleNavigation bodyClass="page-essay-index">
   <AmbientBackground />
 
   <section class="essays-hero">
@@ -39,10 +39,10 @@ const pageScripts = ["js/search.js", "js/hero-sparkle.js"];
 
       <div class="essays-list" id="essaysList">
         {essays.map((e) => (
-          <a href={`essay-${e.id}.html`} class="essay-card animate-on-scroll">
+          <a href={`essay-${e.id}.html`} class="essay-card" data-essay-link={e.id} id={`entry-${e.id}`}>
             <span class="essay-date">{formatContentDate(e.data.date)}</span>
             <div class="essay-card-body">
-              <h2 class="essay-card-title">{e.data.title}</h2>
+              <h2 class="essay-card-title" style={`view-transition-name: essay-${e.id}`} data-essay-title={e.id}>{e.data.title}</h2>
               <p class="essay-card-excerpt">{e.data.excerpt}</p>
             </div>
             <span class="essay-card-tag">{e.data.tags[0] || 'Essay'}</span>

@@ -33,10 +33,10 @@ npm run audit      # 检查高危依赖漏洞
 npm run preview    # 本地预览 Astro 构建结果
 ```
 
-首次执行端到端测试前，可能需要安装 Chromium：
+首次执行端到端测试前，安装 Chromium 和 WebKit（用于接近 iPhone Safari 的核心浏览器验收）：
 
 ```bash
-npx playwright install chromium
+npx playwright install chromium webkit
 ```
 
 ## 项目结构
@@ -55,6 +55,8 @@ dist/               提交并用于线上发布的构建产物
 ## 内容维护
 
 - 新文章放入 `site/src/content/essays/`，并沿用现有文件的 frontmatter（文件顶部元数据）字段。
+- 文章排版通过 `presentation` 显式选择：默认 `article` 是连续阅读的内页，`quote` 是短句扉页，`poem` 是保留诗句换行的扉页；不按字数或标签自动猜测。可参考 `no-belief.mdx`、`qingsimeng.mdx` 与 `embers-remain.mdx`。
+- Soul-Searching 目录与文章保留普通链接，在支持跨页面视图转场的浏览器中共享标题动画；减少动态效果时关闭该动画。返回目录会恢复同标签页最近 30 分钟的筛选和阅读位置；禁用存储时退回普通导航。
 - 新阅读笔记放入 `site/src/content/notes/`。
 - 摄影系列与图片元数据维护在 `site/src/data/photos.ts`；每张图片都应提供能说明画面的 `alt` 替代文本。
 - 新增摄影原图并补齐 `site/src/data/photos.ts` 元数据后，运行 `npm run photos:optimize` 生成并校验画廊使用的 400、600、800 与最高 1280px WebP；普通画廊不会加载原图，桌面灯箱按需加载原图，手机与省流量模式优先使用可用的中尺寸 WebP（最高 1280px）。命令需要本机可用的 `cwebp` 与 `webpinfo`，也可以分别通过 `CWEBP_PATH`、`WEBPINFO_PATH` 指定路径。替换原图并希望强制重建已有派生图时，执行 `npm run photos:optimize -- --force`。
@@ -63,6 +65,10 @@ dist/               提交并用于线上发布的构建产物
 ## 构建与发布
 
 GitHub Actions 会在推送或 Pull Request（合并请求）时执行依赖审计、类型检查、构建、产物校验和浏览器测试。EdgeOne 直接发布仓库内的 `dist/`，因此修改源代码后必须重新执行 `npm test`，并将对应的 `dist/` 变化一同提交，否则 CI 会失败。
+
+构建完成时，`scripts/version-static-assets.mjs` 会给 `public` 中的 CSS/JS 生成带内容哈希（由文件内容计算的版本标识）的同目录副本，并替换所有页面（包含 404）的资源引用。`dist/asset-manifest.json` 记录对应关系；原地址暂时保留以兼容旧页面。新页面会请求与其配套的新资源地址，避免缓存中的旧脚本或样式混入。产物校验会检查清单、内容哈希和页面引用。Astro 自己生成的 `/_astro/` 资源继续由 Astro 管理版本。
+
+浏览器回归覆盖 Chromium 的桌面和三档手机尺寸，以及 WebKit 手机的首页动效、文章往返、横屏导航、搜索和照片浏览。WebKit 自动化无法代替 Safari 真机的软键盘、地址栏伸缩和双指缩放验收；发布交互变化前仍需在真实 iPhone 上抽查这些行为。
 
 `main` 是受保护分支：改动应提交到 `codex/*` 等工作分支，通过 Pull Request 合并；名为 `validate` 的 CI 检查必须通过，但个人仓库不要求额外审批。Dependabot 每周检查 npm 依赖、每月检查 GitHub Actions 依赖，安全修复会以可审核的 Pull Request 提交。
 

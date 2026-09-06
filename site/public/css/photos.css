@@ -4,7 +4,7 @@
 
 /* ---- Photos Hero ---- */
 .photos-hero {
-  padding: 160px 40px 80px;
+  padding: 128px 40px 42px;
   position: relative;
   z-index: 1;
 }
@@ -25,6 +25,15 @@
   color: var(--text-secondary);
   font-family: var(--font-mono);
   letter-spacing: 0.04em;
+}
+.photos-edition {
+  display: block;
+  margin-top: 18px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 /* Photos page: wider mask than the shared default in style.css */
@@ -80,7 +89,7 @@
 
 /* ---- Series Section ---- */
 .series-section {
-  padding: 80px 40px 40px;
+  padding: 48px 40px 80px;
   position: relative;
   z-index: 1;
 }
@@ -99,7 +108,15 @@
 .series-header-left {
   display: flex;
   align-items: flex-end;
-  gap: 0;
+  gap: 20px;
+}
+.series-chapter {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  color: var(--ember);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding-top: 5px;
 }
 .series-title-block { display: flex; flex-direction: column; gap: 4px; }
 .series-name {
@@ -129,19 +146,20 @@
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-auto-flow: row;
-  grid-auto-rows: 48px;
-  gap: 12px;
+  align-items: start;
+  column-gap: 12px;
+  row-gap: clamp(40px, 5vw, 72px);
 }
 
 .gallery-item {
   position: relative;
   grid-column: span 3;
-  grid-row: span 8;
-  overflow: hidden;
+  min-width: 0;
+  align-self: start;
   isolation: isolate;
-  background: var(--bg-card);
+  background: transparent;
   cursor: pointer;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   box-shadow:
     0 0 0 var(--bg-primary),
     0 0 0 rgba(0, 0, 0, 0);
@@ -160,53 +178,83 @@
     box-shadow var(--motion-slow) var(--motion-ease);
 }
 
+/* 题注移到图外后须始终清晰；仅照片淡入，卡片仍保留原有位移与悬停过渡。 */
+.js .gallery-item.animate-on-scroll {
+  opacity: 1;
+}
+
 .gallery-item--wide,
-.gallery-item--feature-wide {
+.gallery-item--feature-wide,
+.gallery-item--opening {
   grid-column: span 6;
-  grid-row: span 6;
 }
 
 .gallery-item--feature {
   grid-column: span 6;
-  grid-row: span 11;
 }
 
 .gallery-item:hover {
   z-index: 2;
-  border-color: rgba(var(--ember-rgb), 0.42);
-  /* 第一层实体阴影补住上移的 3px，防止固定粒子背景从底边透出。 */
-  box-shadow:
-    0 3px 0 var(--bg-primary),
-    0 20px 46px rgba(0,0,0,0.38);
-  transform: translateY(-3px);
+  border-color: transparent;
+}
+
+/* 照片保留原始比例，题注参与正常排版，避免竖图被裁切和文字压图。 */
+.gallery-image {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: var(--photo-ratio);
+  background: var(--bg-card);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .js .gallery-item.animate-on-scroll .gallery-image {
+    transition: opacity var(--motion-slow) var(--motion-ease);
+  }
+  .js .gallery-item.animate-on-scroll:not(.visible) .gallery-image {
+    opacity: 0;
+  }
 }
 
 .gallery-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  filter: grayscale(74%) contrast(1.05);
+  display: block;
+  object-fit: contain;
+  filter: grayscale(28%);
   transform: scale(1.001);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transition: filter var(--transition), transform var(--motion-slow) var(--motion-ease);
 }
 .gallery-item:hover img {
-  filter: grayscale(12%) contrast(1.04);
-  transform: scale(1.025);
+  filter: grayscale(0%);
 }
+
+.gallery-view {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(10, 10, 10, 0.72);
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.gallery-item:hover .gallery-view,
+.gallery-item:focus-visible .gallery-view { opacity: 1; transform: none; }
 
 /* Overlay */
 .gallery-overlay {
-  position: absolute;
-  inset: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 28px 24px;
-  background: linear-gradient(to top, rgba(10,10,10,0.85) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity var(--transition);
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 0 0;
+  opacity: 1;
 }
 .gallery-item:hover .gallery-overlay { opacity: 1; }
 .gallery-item:focus-visible .gallery-overlay { opacity: 1; }
@@ -216,19 +264,20 @@
   font-size: 0.7rem;
   color: var(--ember);
   letter-spacing: 0.12em;
-  margin-bottom: 6px;
+  flex: 0 0 auto;
 }
+.gallery-caption-copy { min-width: 0; }
 .gallery-overlay h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
   margin-bottom: 4px;
 }
 .gallery-overlay p {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
-  letter-spacing: 0.03em;
+  line-height: 1.65;
+  margin-top: 5px;
 }
 
 /* Placeholder slot */
@@ -301,6 +350,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  touch-action: pan-y pinch-zoom;
 }
 .lightbox-content img {
   display: block;
@@ -311,11 +361,18 @@
   object-fit: contain;
   cursor: default;
   pointer-events: auto;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
   filter: grayscale(50%);
   transition: filter 0.5s ease;
   box-shadow: 0 24px 80px rgba(0,0,0,0.5);
 }
 .lightbox.active .lightbox-content img { filter: grayscale(0%); }
+
+/* 放大后的横向拖动属于浏览器平移，不能继续限制为竖向手势。 */
+.lightbox.is-zoomed .lightbox-content,
+.lightbox.is-zoomed .lightbox-content img { touch-action: auto; }
 
 .lightbox-close {
   position: absolute;
@@ -378,49 +435,71 @@
   color: var(--text-muted);
   letter-spacing: 0.1em;
 }
+.lightbox-status {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.lightbox-status:empty { display: none; }
+.lightbox.is-dragging .lightbox-content img { cursor: grabbing; }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .photos-hero { padding: 120px 24px 48px; }
-  .series-nav { padding: 14px 24px; top: 56px; }
-  .series-nav .container { gap: 10px; }
+  .photos-hero { padding: 90px 24px 26px; }
+  .photos-title { font-size: clamp(2.1rem, 10vw, 3.1rem); line-height: 1.15; margin-bottom: 12px; }
+  .photos-subtitle { font-size: 0.82rem; line-height: 1.8; letter-spacing: 0; }
+  .photos-edition { font-size: 0.6rem; margin-top: 12px; letter-spacing: 0.07em; }
+  .series-nav { padding: 4px 24px; top: 56px; }
+  .series-nav .container { gap: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .series-nav .container::-webkit-scrollbar { display: none; }
+  .series-nav-link, .series-nav-divider { flex-shrink: 0; }
   .series-nav-link {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
   }
-  .series-section { padding: 56px 24px 32px; }
+  .series-section { padding: 28px 24px 48px; }
   .series-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 18px;
   }
-  .series-desc { text-align: left; max-width: 100%; }
+  .series-name { font-size: 1.8rem; }
+  .series-header-left { gap: 14px; }
+  .series-meta { font-size: 0.65rem; }
+  .series-desc { text-align: left; max-width: 100%; font-size: 0.8rem; padding-bottom: 0; }
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 42px;
-    gap: 8px;
+    gap: 34px 8px;
   }
   .gallery-item {
     grid-column: span 1;
-    grid-row: span 6;
   }
   .gallery-item--wide,
-  .gallery-item--feature-wide {
+  .gallery-item--feature-wide,
+  .gallery-item--opening {
     grid-column: span 2;
-    grid-row: span 5;
   }
   .gallery-item--feature {
     grid-column: span 2;
-    grid-row: span 8;
   }
-  .gallery-overlay { padding: 18px 16px; }
+  .gallery-overlay { padding: 12px 0 0; gap: 8px; }
+  .gallery-number { font-size: 0.6rem; }
+  .gallery-overlay h3 { font-size: 0.76rem; line-height: 1.5; }
+  .gallery-overlay p { font-size: 0.7rem; line-height: 1.6; }
+  .gallery-view { opacity: 1; transform: none; width: 26px; height: 26px; right: 8px; bottom: 8px; }
   .lightbox {
     gap: 12px;
-    padding: 64px 52px max(20px, env(safe-area-inset-bottom));
+    padding: max(68px, env(safe-area-inset-top)) 18px max(76px, calc(env(safe-area-inset-bottom) + 64px));
   }
-  .lightbox-prev, .lightbox-next { padding: 12px 10px; font-size: 1.4rem; }
-  .lightbox-prev { left: 8px; }
-  .lightbox-next { right: 8px; }
+  .lightbox-content { max-width: 100%; }
+  .lightbox-prev, .lightbox-next { top: auto; bottom: max(14px, env(safe-area-inset-bottom)); transform: none; padding: 8px 12px; font-size: 1.4rem; }
+  .lightbox-prev { left: calc(50% - 52px); }
+  .lightbox-next { right: calc(50% - 52px); }
   .lightbox-close { top: 20px; right: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lightbox, .lightbox-content img, .gallery-item img, .gallery-view { transition: none; }
 }

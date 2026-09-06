@@ -23,7 +23,8 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
   <section class="photos-hero">
     <div class="container">
       <h1 class="photos-title">Photography</h1>
-      <p class="photos-subtitle">Moments captured in monochrome, grouped by series.</p>
+      <p class="photos-subtitle">光、时间，和一些未说完的瞬间。</p>
+      <span class="photos-edition">A photographic journal · {photoSeries.reduce((total, series) => total + series.photos.length, 0)} frames</span>
     </div>
   </section>
 
@@ -45,11 +46,12 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
     </div>
   </nav>
 
-  {photoSeries.map((item) => (
+  {photoSeries.map((item, seriesIndex) => (
     <section class="series-section" id={`series-${item.id}`} aria-labelledby={`${item.id}-title`}>
       <div class="container">
         <div class="series-header animate-on-scroll">
           <div class="series-header-left">
+            <span class="series-chapter" aria-hidden="true">{String(seriesIndex + 1).padStart(2, '0')}</span>
             <div class="series-title-block">
               <h2 class="series-name" id={`${item.id}-title`}>{item.name}</h2>
               <span class="series-meta">{item.nameEn} · {item.photos.length} photos</span>
@@ -58,8 +60,8 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
           <p class="series-desc">{item.description}</p>
         </div>
         <div class="gallery-grid" id={`gallery-${item.id}`}>
-          {item.photos.map((photo) => {
-            const wide = photo.layout.includes('wide') || photo.layout === 'feature';
+          {item.photos.map((photo, photoIndex) => {
+            const wide = photoIndex === 0 || photo.layout.includes('wide') || photo.layout === 'feature';
             const sizes = wide
               ? '(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) calc(50vw - 46px), 594px'
               : '(max-width: 768px) calc(50vw - 28px), (max-width: 1280px) calc(25vw - 29px), 291px';
@@ -78,32 +80,40 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
               .join(', ');
             return (
               <div
-                class={`gallery-item gallery-item--${photo.layout} animate-on-scroll`}
+                class={`gallery-item gallery-item--${photo.layout}${photoIndex === 0 ? ' gallery-item--opening' : ''} animate-on-scroll`}
                 data-layout={photo.layout}
                 data-title={photo.title}
                 data-series={item.name}
                 data-full={photo.src}
                 data-medium={photo.medium}
                 data-alt={photo.alt}
+                data-width={photo.width}
+                data-height={photo.height}
                 role="button"
                 tabindex="0"
                 aria-haspopup="dialog"
                 aria-label={`${photo.alt}，点击查看大图`}
               >
-                <img
-                  src={photo.thumb}
-                  srcset={srcset}
-                  sizes={sizes}
-                  width={photo.thumbWidth}
-                  height={photo.thumbHeight}
-                  alt={photo.alt}
-                  loading="lazy"
-                  decoding="async"
-                />
+                <div class="gallery-image" style={`--photo-ratio: ${photo.width} / ${photo.height}`}>
+                  <img
+                    src={photo.thumb}
+                    srcset={srcset}
+                    sizes={sizes}
+                    width={photo.thumbWidth}
+                    height={photo.thumbHeight}
+                    alt={photo.alt}
+                    loading={photo.index === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={photo.index === 0 ? 'high' : 'auto'}
+                    decoding="async"
+                  />
+                  <span class="gallery-view" aria-hidden="true">↗</span>
+                </div>
                 <div class="gallery-overlay">
                   <span class="gallery-number">{String(photo.index + 1).padStart(2, '0')}</span>
-                  <h3>{photo.title}</h3>
-                  <p>{photo.description}</p>
+                  <div class="gallery-caption-copy">
+                    <h3>{photo.title}</h3>
+                    <p>{photo.alt}</p>
+                  </div>
                 </div>
               </div>
             );
@@ -119,7 +129,8 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
     slot="overlay"
     role="dialog"
     aria-modal="true"
-    aria-label="Image viewer"
+    aria-label="照片浏览器"
+    aria-describedby="lightboxTitle lightboxCounter"
     aria-hidden="true"
     data-lenis-prevent
     hidden
@@ -129,11 +140,12 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
     <button class="lightbox-prev" type="button" aria-label="Previous image">&#8249;</button>
     <button class="lightbox-next" type="button" aria-label="Next image">&#8250;</button>
     <div class="lightbox-content">
-      <img alt="" id="lightboxImg" />
+      <img alt="" id="lightboxImg" draggable="false" />
     </div>
     <div class="lightbox-info">
       <span class="lightbox-title" id="lightboxTitle"></span>
-      <span class="lightbox-counter" id="lightboxCounter"></span>
+      <span class="lightbox-counter" id="lightboxCounter" aria-live="polite" aria-atomic="true"></span>
+      <span class="lightbox-status" id="lightboxStatus" role="status" aria-live="polite"></span>
     </div>
   </div>
 </BaseLayout>

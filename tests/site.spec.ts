@@ -4,6 +4,8 @@ import type { Page } from '@playwright/test';
 
 const keyPages = ['/index.html', '/essays.html', '/notes.html', '/photos.html', '/essay-embers-remain.html'];
 const openPage = (page: Page, path: string) => page.goto(path, { waitUntil: 'domcontentloaded' });
+// 构建后资源使用内容版本号；慢网和失败模拟必须拦截实际页面加载的地址。
+const scriptAsset = (name: string) => new RegExp(`/js/${name}(?:\\.[a-f0-9]{12})?\\.js(?:[?#]|$)`);
 
 test('navigation spacing follows the responsive stylesheet', async ({ page }, testInfo) => {
   await openPage(page, '/index.html');
@@ -61,7 +63,7 @@ test('mobile navigation remains available when JavaScript is disabled', async ({
 });
 
 test('slow runtime loading does not disable entrance animations', async ({ page }) => {
-  await page.route('**/js/nav.js', async (route) => {
+  await page.route(scriptAsset('nav'), async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 2200));
     await route.continue();
   });
@@ -76,7 +78,7 @@ test('slow runtime loading does not disable entrance animations', async ({ page 
 test('a stalled critical runtime still releases the mobile hero before DOMContentLoaded', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', '解析期兜底只需在一个手机项目中验证');
 
-  await page.route('**/js/nav.js', async (route) => {
+  await page.route(scriptAsset('nav'), async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 10000));
     await route.continue();
   });
@@ -100,7 +102,7 @@ test('a stalled critical runtime still releases the mobile hero before DOMConten
 test('a stalled parser-blocking runtime freezes the mobile hero before its markup exists', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', '解析器阻塞兜底只需在一个手机项目中验证');
 
-  await page.route('**/js/site.js', async (route) => {
+  await page.route(scriptAsset('site'), async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 10000));
     await route.continue();
   });
@@ -139,7 +141,7 @@ test('hero typewriter does not reveal the complete fallback copy first', async (
 test('slow mobile typewriter loading is not mistaken for a failed runtime', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', '慢网竞态只需在一个手机项目中验证');
 
-  await page.route('**/js/hero-typewriter.js', async (route) => {
+  await page.route(scriptAsset('hero-typewriter'), async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 5500));
     await route.continue();
   });
@@ -157,7 +159,7 @@ test('slow mobile typewriter loading is not mistaken for a failed runtime', asyn
 test('a slow noncritical script does not make the mobile typewriter give up', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'defer 脚本时序只需在一个手机项目中验证');
 
-  await page.route('**/js/button-effects.js', async (route) => {
+  await page.route(scriptAsset('button-effects'), async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 5500));
     await route.continue();
   });
@@ -173,7 +175,7 @@ test('a slow noncritical script does not make the mobile typewriter give up', as
 });
 
 test('failed typewriter runtime releases the complete static tagline', async ({ page }) => {
-  await page.route('**/js/hero-typewriter.js', (route) => route.abort());
+  await page.route(scriptAsset('hero-typewriter'), (route) => route.abort());
   await openPage(page, '/index.html');
 
   await expect(page.locator('html')).toHaveClass(/(?:^|\s)motion-ready(?:\s|$)/);
@@ -184,7 +186,7 @@ test('failed typewriter runtime releases the complete static tagline', async ({ 
 });
 
 test('failed animation runtime releases static content', async ({ page }, testInfo) => {
-  await page.route('**/js/nav.js', (route) => route.abort());
+  await page.route(scriptAsset('nav'), (route) => route.abort());
   await openPage(page, '/index.html');
 
   await expect(page.locator('html')).not.toHaveClass(/(?:^|\s)js(?:\s|$)/, { timeout: 3000 });

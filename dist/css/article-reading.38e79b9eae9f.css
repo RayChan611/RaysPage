@@ -1,0 +1,123 @@
+/* 目录和正文共享同一标题快照，不支持的浏览器仍使用普通链接。 */
+@view-transition { navigation: auto; }
+html[data-article-navigation] #pageTransitionOverlay { display: none; }
+::view-transition-group(*) {
+  animation-duration: 440ms;
+  animation-timing-function: cubic-bezier(.22, .68, 0, 1);
+}
+::view-transition-old(root) { animation-duration: 150ms; }
+::view-transition-new(root) { animation-duration: 320ms; }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-group(*) { animation-duration: 0s; }
+}
+
+/* 同一套衬线文字，在目录是索引，在内页成为篇章标题。 */
+.page-essay-index .essay-card { scroll-margin-top: 110px; }
+.page-essay-index .essay-card-title { color: #eee7dd; line-height: 1.45; }
+.page-essay-index .essay-card::before { background: var(--ember); }
+.page-essay-index .essay-card:focus-visible { outline-offset: 8px; }
+.page-essay .hero-bg-effect { opacity: .28; }
+.page-essay .essay-hero { padding-bottom: 32px; z-index: 2; }
+.page-essay .essay-hero .container,
+.page-essay .essay-content .container { max-width: 680px; }
+.essay-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+  font: 500 .62rem/1.6 var(--font-mono);
+  letter-spacing: .12em;
+  color: var(--text-secondary);
+}
+.essay-kicker span { color: var(--ember); }
+.page-essay .essay-hero-title {
+  color: #eee7dd;
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -.035em;
+}
+.page-essay .essay-meta { flex-wrap: wrap; gap: 10px 16px; }
+.page-essay .essay-tag {
+  border: 0;
+  padding: 0;
+  font-size: .62rem;
+  color: var(--text-secondary);
+}
+.page-essay .essay-tag:hover { background: none; }
+.page-essay .essay-date { width: auto; color: var(--text-secondary); }
+.page-essay .essay-content { padding-top: 28px; padding-bottom: 64px; }
+.page-essay .essay-body {
+  color: #d7d2ca;
+  font-size: 1.125rem;
+  line-height: 1.95;
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
+}
+.page-essay .essay-body p { margin-bottom: 1.65em; }
+.page-essay .essay-body .meta-line {
+  color: #a6a099;
+  opacity: 1;
+  font-size: .86em;
+}
+.page-essay .article-pagination { margin-top: 56px; }
+
+/* 扉页不放大日期与分类，让停顿与句子本身成为主角。 */
+.page-essay--quote .essay-hero-title,
+.page-essay--poem .essay-hero-title { font-size: clamp(1.65rem, 3vw, 2.2rem); }
+.page-essay--quote .essay-body,
+.page-essay--poem .essay-body {
+  min-height: 290px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 0;
+  font-size: clamp(1.55rem, 3.15vw, 2.65rem);
+  line-height: 1.9;
+  color: #eee7dd;
+  letter-spacing: .04em;
+}
+.page-essay--quote .essay-quote-block::before,
+.page-essay--poem .essay-quote-block::before {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 1px;
+  background: var(--ember);
+  margin-bottom: 32px;
+}
+.page-essay--quote .essay-body p,
+.page-essay--poem .essay-body p { margin-bottom: .85em; }
+.page-essay--quote .essay-quote-block p:last-child,
+.page-essay--poem .essay-quote-block p:last-child { margin-bottom: 0; }
+.page-essay--quote .essay-body .meta-line,
+.page-essay--poem .essay-body .meta-line {
+  font-size: .95rem;
+  margin: 28px 0 0 !important;
+  letter-spacing: .06em;
+}
+.page-essay--quote .article-pagination,
+.page-essay--poem .article-pagination { margin-top: 32px; }
+@media (max-width: 768px) {
+  .page-essay .essay-hero { padding: 90px 24px 24px; }
+  .page-essay .essay-content { padding: 14px 24px 48px; }
+  .essay-kicker { font-size: .56rem; gap: 10px; margin-bottom: 18px; }
+  .page-essay .essay-hero-title { font-size: clamp(2rem, 8vw, 2.6rem); }
+  .page-essay .essay-body { font-size: 1.05rem; line-height: 1.95; }
+  .page-essay .article-pagination { margin-top: 40px; }
+  .page-essay--quote .essay-hero-title,
+  .page-essay--poem .essay-hero-title { font-size: 1.55rem; }
+  .page-essay--quote .essay-body,
+  .page-essay--poem .essay-body {
+    min-height: 240px;
+    padding: 24px 0;
+    font-size: clamp(1.35rem, 5.9vw, 1.85rem);
+    line-height: 2;
+  }
+  .page-essay--quote .article-pagination,
+  .page-essay--poem .article-pagination { margin-top: 16px; }
+}
+@media (max-height: 480px) {
+  .page-essay--quote .essay-body,
+  .page-essay--poem .essay-body { min-height: 0; }
+}

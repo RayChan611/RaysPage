@@ -39,6 +39,7 @@
   }
 
   function cleanupCard(el) {
+    el.style.display = '';
     el.style.height = '';
     el.style.marginTop = '';
     el.style.marginBottom = '';
@@ -79,6 +80,41 @@
     // Capture original DOM order ONCE so clearing search can restore it
     var originalOrder = Array.prototype.slice.call(list.children);
 
+    function restoreSearch() {
+      clearTimeout(debounceTimer);
+      runFilter(input.value.toLowerCase().trim(), list, itemSelector, noResults, prevMatches, originalOrder, true);
+    }
+
+    // 返回目录时先同步恢复布局，再让调用方恢复滚动位置与标题转场。
+    input.addEventListener('ray:restore-search', restoreSearch);
+
+    function revealHashTarget(hash) {
+      var id;
+      try { id = decodeURIComponent(hash.slice(1)); } catch (_) { return null; }
+      var target = document.getElementById(id);
+      var card = target && target.closest(itemSelector);
+      if (!card || !list.contains(card) || !card.classList.contains('is-hidden')) return null;
+      input.value = '';
+      restoreSearch();
+      return target;
+    }
+
+    // 同页锚点不会重新载入页面，必须在浏览器定位前解除目标卡片的过滤。
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var anchor = event.target instanceof Element && event.target.closest('a[href]');
+      if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      var url;
+      try { url = new URL(anchor.href, window.location.href); } catch (_) { return; }
+      if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search || !url.hash) return;
+      revealHashTarget(url.hash);
+    }, true);
+
+    window.addEventListener('hashchange', function () {
+      var target = revealHashTarget(window.location.hash);
+      if (target) target.scrollIntoView({ block: 'start' });
+    });
+
     input.addEventListener('input', function () {
       var query = this.value.toLowerCase().trim();
       clearTimeout(debounceTimer);
@@ -86,9 +122,13 @@
         runFilter(query, list, itemSelector, noResults, prevMatches, originalOrder);
       }, DEBOUNCE);
     });
+    // 原生跨页面转场可能早于 defer 脚本；监听器齐备后才允许恢复目录。
+    input.dataset.searchReady = 'true';
+    input.dispatchEvent(new Event('ray:search-ready', { bubbles: true }));
   }
 
-  function runFilter(query, list, itemSelector, noResults, prevMatches, originalOrder) {
+  function runFilter(query, list, itemSelector, noResults, prevMatches, originalOrder, immediate) {
+    var run = list._searchRun = (list._searchRun || 0) + 1;
     var items = Array.prototype.slice.call(list.querySelectorAll(itemSelector));
     // Exclude placeholder cards — they are NOT filterable results
     items = items.filter(function (el) {
@@ -98,6 +138,8 @@
 
     var hasQuery = query.length > 0;
     var placeholder = list.querySelector('.essay-card-placeholder, .note-card-placeholder');
+    if (placeholder) cleanupCard(placeholder);
+    if (noResults) noResults.style.transition = immediate ? 'none' : '';
 
     // Snapshot hidden state BEFORE we touch any classes — the clear path needs
     // it to know which cards to float back in (cleanupCard below strips is-hidden).
@@ -111,6 +153,7 @@
     items.forEach(function (el) {
       if (el._searchAnim) { el._searchAnim.cancel(); el._searchAnim = null; }
       cleanupCard(el);
+      if (immediate) el.style.transition = 'none';
     });
 
     // Cancel pending timers from previous run
@@ -132,9 +175,8 @@
 
       // (timers + in-flight WAAPI already cancelled at the top of runFilter)
 
-      if (reduceMotion || !Element.prototype.animate) {
+      if (immediate || reduceMotion || !Element.prototype.animate) {
         originalOrder.forEach(function (el) { list.appendChild(el); });
-        items.forEach(function (el) { cleanupCard(el); });
         prevMatches.clear();
         items.forEach(function (el) { prevMatches.set(el, true); });
         return;
@@ -192,7 +234,9 @@
 
       // 6) Play WAAPI animations on the compositor (smooth, no layout thrash)
       requestAnimationFrame(function () {
+        if (list._searchRun !== run) return;
         requestAnimationFrame(function () {
+          if (list._searchRun !== run) return;
           items.forEach(function (el, i) {
             var hidden = hiddenSnapshot.get(el);
             var f = firstRects.get(el);
@@ -235,7 +279,7 @@
             el._searchAnim = anim;
 
             anim.onfinish = function () {
-              if (el._searchAnim === anim) el._searchAnim = null;
+              if (el._searchAnim !== anim) return;
               cleanupCard(el);
             };
           });
@@ -302,7 +346,9 @@
     }
 
     // ====== Sort by relevance (desc). Stable sort keeps original order within same score ======
-    matched.sort(function (a, b) { return b.score - a.score; });
+    matched.sort(function (a, b) {
+      return b.score - a.score || originalOrder.indexOf(a.el) - originalOrder.indexOf(b.el);
+    });
 
     // ====== Reorder DOM: matches FIRST (sorted), hidden cards keep slots, placeholder last ======
     matched.forEach(function (m, i) {
@@ -320,8 +366,12 @@
       }
     });
 
-    // Reorder above is instant (no animation) — safe under reduced motion too.
-    if (reduceMotion) return;
+    // 同步恢复必须真正移除占位；仅设透明度会让返回时的滚动位置失真。
+    if (immediate || reduceMotion) {
+      hiding.forEach(function (entry) { entry.el.style.display = 'none'; });
+      if (placeholder) placeholder.style.display = 'none';
+      return;
+    }
 
     // --- Stagger OUT ---
     hiding.forEach(function (entry, i) {
