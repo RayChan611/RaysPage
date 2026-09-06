@@ -178,6 +178,11 @@
     box-shadow var(--motion-slow) var(--motion-ease);
 }
 
+/* 题注移到图外后须始终清晰；仅照片淡入，卡片仍保留原有位移与悬停过渡。 */
+.js .gallery-item.animate-on-scroll {
+  opacity: 1;
+}
+
 .gallery-item--wide,
 .gallery-item--feature-wide,
 .gallery-item--opening {
@@ -199,6 +204,15 @@
   overflow: hidden;
   aspect-ratio: var(--photo-ratio);
   background: var(--bg-card);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .js .gallery-item.animate-on-scroll .gallery-image {
+    transition: opacity var(--motion-slow) var(--motion-ease);
+  }
+  .js .gallery-item.animate-on-scroll:not(.visible) .gallery-image {
+    opacity: 0;
+  }
 }
 
 .gallery-item img {

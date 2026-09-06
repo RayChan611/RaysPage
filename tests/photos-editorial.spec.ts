@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test('影集保留全部照片、完整比例和图外题注', async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -15,6 +16,8 @@ test('影集保留全部照片、完整比例和图外题注', async ({ page }, 
       expectedRatio: Number(item.getAttribute('data-width')) / Number(item.getAttribute('data-height')),
       captionGap: caption.getBoundingClientRect().top - bounds.bottom,
       opacity: getComputedStyle(caption).opacity,
+      cardOpacity: getComputedStyle(item).opacity,
+      imageOpacity: getComputedStyle(frame).opacity,
       objectFit: getComputedStyle(image).objectFit,
     };
   }));
@@ -22,6 +25,8 @@ test('影集保留全部照片、完整比例和图外题注', async ({ page }, 
     expect(layout.ratio).toBeCloseTo(layout.expectedRatio, 2);
     expect(layout.captionGap).toBeGreaterThanOrEqual(-1);
     expect(layout.opacity).toBe('1');
+    expect(layout.cardOpacity).toBe('1');
+    expect(layout.imageOpacity).toBe('1');
     expect(layout.objectFit).toBe('contain');
   }
   if (testInfo.project.use.isMobile) {
@@ -29,6 +34,67 @@ test('影集保留全部照片、完整比例和图外题注', async ({ page }, 
     expect(firstImage?.y).toBeLessThan(470);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   }
+});
+
+test('照片淡入的初始帧与中间帧均保持题注清晰，并保留图片和位移动画', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  const first = page.locator('.gallery-item').first();
+  await first.scrollIntoViewIfNeeded();
+  await expect(first).toHaveClass(/visible/);
+  const frames = await first.evaluate((card) => {
+    const image = card.querySelector('.gallery-image')!;
+    const caption = card.querySelector('.gallery-overlay')!;
+    const snapshot = () => ({
+      cardOpacity: getComputedStyle(card).opacity,
+      captionOpacity: getComputedStyle(caption).opacity,
+      imageOpacity: Number(getComputedStyle(image).opacity),
+      transform: getComputedStyle(card).transform,
+    });
+    card.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
+    // 首次进入已取消观察，可以重播并冻结真实的 CSS 过渡，不依赖机器速度。
+    card.classList.remove('visible');
+    card.getBoundingClientRect();
+    card.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
+    const initial = snapshot();
+    card.classList.add('visible');
+    card.getBoundingClientRect();
+    const animations = card.getAnimations({ subtree: true });
+    animations.forEach((animation) => {
+      animation.pause();
+      animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+    });
+    return { initial, middle: snapshot() };
+  });
+  for (const frame of [frames.initial, frames.middle]) {
+    expect(frame.cardOpacity).toBe('1');
+    expect(frame.captionOpacity).toBe('1');
+    expect(frame.transform).not.toBe('none');
+  }
+  expect(frames.initial.imageOpacity).toBe(0);
+  expect(frames.middle.imageOpacity).toBeGreaterThan(0);
+  expect(frames.middle.imageOpacity).toBeLessThan(1);
+  const accessibility = await new AxeBuilder({ page })
+    .include('.gallery-item:first-child')
+    .withRules(['color-contrast'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+});
+
+test.describe('禁用脚本的摄影影集', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('所有照片和题注直接可见', async ({ page }) => {
+    await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+    const cards = page.locator('.gallery-item');
+    await expect(cards).toHaveCount(36);
+    const opacities = await cards.evaluateAll((items) => items.flatMap((item) => [
+      getComputedStyle(item).opacity,
+      getComputedStyle(item.querySelector('.gallery-image')!).opacity,
+      getComputedStyle(item.querySelector('.gallery-overlay')!).opacity,
+    ]));
+    expect(opacities.every((opacity) => opacity === '1')).toBe(true);
+  });
 });
 
 test('关闭照片恢复原滚动位置，切图后焦点返回当前照片', async ({ page }) => {
