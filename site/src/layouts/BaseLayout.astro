@@ -15,6 +15,9 @@ interface Props {
   current?: string;
   preloadPhoto?: boolean;
   pageScripts?: string[];
+  activeSection?: string;
+  articleNavigation?: boolean;
+  bodyClass?: string;
 }
 const {
   title = 'Ray Chan',
@@ -33,6 +36,9 @@ const {
   current = 'home',
   preloadPhoto = false,
   pageScripts = [],
+  activeSection,
+  articleNavigation = false,
+  bodyClass,
 } = Astro.props;
 
 const NAV_ITEMS = [
@@ -46,7 +52,7 @@ const onIndex = current === 'home' || current === 'about' || current === 'contac
 const resolvedOgImageAlt = ogImageAlt || title;
 ---
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-article-navigation={articleNavigation || undefined}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -108,6 +114,8 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/quick-search.css" />
   {extraCss.map((href) => <link rel="stylesheet" href={'/' + href} />)}
+  {articleNavigation && <link rel="stylesheet" href="/css/article-reading.css" />}
+  {articleNavigation && <script is:inline src="/js/article-navigation.js"></script>}
   <!-- 第三方统计在页面 load 后再请求，避免其网络状态拖住核心页面生命周期。 -->
   <script is:inline>
     window.addEventListener('load', function () {
@@ -123,14 +131,16 @@ const resolvedOgImageAlt = ogImageAlt || title;
   </script>
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.98a946ad.webp" fetchpriority="high" />}
 </head>
-<body class:list={{ 'page-home': onIndex }}>
+<body class:list={[{ 'page-home': onIndex }, bodyClass]}>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
   <!-- Hidden by default so content remains usable without JavaScript. The
        temporary class supplies a CSS-only failsafe if site.js cannot boot. -->
   <div class="page-transition-overlay" id="pageTransitionOverlay" aria-hidden="true"></div>
   <script is:inline>
-    document.getElementById('pageTransitionOverlay')?.classList.add('page-transition-overlay--entering');
+    if (!document.documentElement.hasAttribute('data-article-navigation')) {
+      document.getElementById('pageTransitionOverlay')?.classList.add('page-transition-overlay--entering');
+    }
   </script>
 
   <!-- RayRAF + page behaviours. Loaded synchronously before page scripts so
@@ -151,10 +161,11 @@ const resolvedOgImageAlt = ogImageAlt || title;
               return <a class={isActive ? 'nav-link nav-link-active' : 'nav-link'} href={'#' + item.key} aria-current={isActive ? 'page' : undefined}>{item.label}</a>;
             }
             const isActive = item.key === current;
-            const cls = isActive ? 'nav-link nav-link-active' : 'nav-link';
+            const inSection = item.key === activeSection;
+            const cls = isActive || inSection ? 'nav-link nav-link-active' : 'nav-link';
             return isActive
               ? <span class={cls} aria-current="page">{item.label}</span>
-              : <a class={cls} href={item.href}>{item.label}</a>;
+              : <a class={cls} href={item.href} aria-current={inSection ? 'location' : undefined}>{item.label}</a>;
           })}
         </div>
         <button
@@ -198,14 +209,12 @@ const resolvedOgImageAlt = ogImageAlt || title;
           placeholder="搜索文章、笔记、照片与页面…"
           autocomplete="off"
           spellcheck="false"
-          role="combobox"
-          aria-autocomplete="list"
+          aria-label="搜索文章、笔记、照片与页面"
           aria-controls="quickSearchResults"
-          aria-expanded="false"
         />
       </div>
       <p class="quick-search-status" id="quickSearchStatus" role="status" aria-live="polite"></p>
-      <div class="quick-search-results" id="quickSearchResults" role="listbox" aria-label="搜索结果"></div>
+      <div class="quick-search-results" id="quickSearchResults" role="region" aria-label="搜索结果"></div>
       <footer class="quick-search-footer">
         <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate</span>
         <span><kbd>&crarr;</kbd> Open</span>

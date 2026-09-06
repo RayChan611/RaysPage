@@ -10,10 +10,18 @@ export const prerender = true;
 
 function plainText(value = '') {
   return value
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<[^>]+>/g, ' ')
+    .replace(/!?\[([^\]]+)\]\([^\n)]+\)/g, '$1')
+    .replace(/^\s{0,3}(?:#{1,6}\s+|>\s*|[-*+]\s+|\d+\.\s+)/gm, '')
+    .replace(/(?:\*\*|__|~~|`)/g, '')
     .replace(/&(?:rarr|mdash|middot|nbsp);/g, ' ')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/\s+/g, ' ')
     .replace(/\s*READ NOTES\s*$/i, '')
     .trim();
@@ -80,7 +88,9 @@ export async function GET() {
   const essayItems = essays.map((entry, index) => ({
     type: 'essay',
     title: entry.data.title,
-    description: entry.data.excerpt,
+    description: plainText(entry.data.excerpt),
+    summary: plainText(entry.data.description),
+    content: plainText(entry.body),
     href: `/essay-${entry.id}.html`,
     meta: formatContentDate(entry.data.date),
     keywords: entry.data.tags,
@@ -91,11 +101,14 @@ export async function GET() {
     type: 'note',
     title: entry.data.book || entry.data.title,
     description: plainText(entry.data.excerpt),
+    summary: plainText(entry.data.description),
+    author: plainText(entry.data.author),
+    content: plainText(entry.body),
     href: entry.data.hasDetail === false
       ? `/notes.html#note-${entry.id}`
       : `/note-${entry.id}.html`,
     meta: formatContentDate(entry.data.date),
-    keywords: entry.data.tags,
+    keywords: [...entry.data.tags, ...(entry.data.detailTags || []), entry.data.detailTitle || ''],
     featured: false,
   }));
 

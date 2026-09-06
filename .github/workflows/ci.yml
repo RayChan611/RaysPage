@@ -42,8 +42,8 @@ jobs:
       - name: Type-check, build, and validate output
         run: npm test
 
-      - name: Install Chromium for browser regression tests
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and WebKit for browser regression tests
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run desktop and mobile browser regression tests
         run: npm run test:e2e

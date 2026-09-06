@@ -99,6 +99,8 @@
 
   // ---- Page Transition Logic ----
   function initPageTransition() {
+    // 阅读页交给浏览器的原生标题转场；旧黑幕会盖住共享标题的快照。
+    if (document.documentElement.hasAttribute('data-article-navigation')) return;
     const overlay = document.getElementById('pageTransitionOverlay');
     if (!overlay) return;
 
@@ -354,8 +356,10 @@
       }
     }
     function fallbackCopy(text, ok) {
+      var previousFocus = document.activeElement;
+      var ta = document.createElement('textarea');
+      var copied = false;
       try {
-        var ta = document.createElement('textarea');
         ta.value = text;
         ta.style.position = 'fixed';
         ta.style.opacity = '0';
@@ -366,12 +370,17 @@
         // only a fallback for browsers without the asynchronous Clipboard API.
         /** @type {{ execCommand(commandId: string): boolean }} */
         var legacyDocument = document;
-        legacyDocument.execCommand('copy');
-        document.body.removeChild(ta);
-        ok();
+        copied = legacyDocument.execCommand('copy');
       } catch (e) {
-        showToast('复制失败，请手动复制');
+        copied = false;
+      } finally {
+        ta.remove();
+        if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+          previousFocus.focus({ preventScroll: true });
+        }
       }
+      if (copied) ok();
+      else showToast('复制失败，请手动复制');
     }
   }
 

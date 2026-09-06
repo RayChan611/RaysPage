@@ -1,4 +1,4 @@
-/* Global Cmd/Ctrl+K search palette. */
+/* 全站 Cmd/Ctrl+K 搜索：输入、真实焦点与结果导航保持一致。 */
 (function () {
   'use strict';
 
@@ -15,6 +15,8 @@
   var lastFocused = null;
   var closeTimer = null;
   var openFrame = null;
+  var composing = false;
+  var searchRequest = 0;
   var backgroundState = new Map();
   var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || '');
   var shortcut = document.querySelector('[data-search-shortcut]');
@@ -67,7 +69,7 @@
       })
       .then(function (items) {
         searchIndex = items.map(function (item) {
-          item._haystack = normalise([item.title, item.description, item.meta, (item.keywords || []).join(' ')].join(' '));
+          item._haystack = normalise([item.title, item.description, item.summary, item.author, item.content, item.meta, (item.keywords || []).join(' ')].join(' '));
           item._title = normalise(item.title);
           return item;
         });
@@ -117,13 +119,31 @@
     empty.textContent = message;
     results.appendChild(empty);
     activeIndex = -1;
-    input.removeAttribute('aria-activedescendant');
+  }
+
+  function resultSnippet(item, query) {
+    var fields = [item.description, item.summary, item.author, item.content].filter(Boolean);
+    var tokens = normalise(query).split(' ').filter(Boolean);
+    var text = fields[0] || '';
+    var matchAt = -1;
+    fields.some(function (field) {
+      var cleaned = normalise(field);
+      var positions = tokens.map(function (token) { return cleaned.indexOf(token); })
+        .filter(function (position) { return position >= 0; });
+      if (!positions.length) return false;
+      text = String(field).replace(/\s+/g, ' ').trim();
+      matchAt = Math.min.apply(Math, positions);
+      return true;
+    });
+    // 命中词尽量靠前，窄屏单行截断后仍能看见匹配依据。
+    var start = Math.max(0, matchAt - 12);
+    var end = Math.min(text.length, start + 100);
+    return (start ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
   }
 
   function render(items, query) {
     results.textContent = '';
     activeIndex = -1;
-    input.removeAttribute('aria-activedescendant');
 
     if (!items.length) {
       status.textContent = query ? '0 results' : 'Suggested places';
@@ -137,8 +157,6 @@
       link.className = 'quick-search-result';
       link.href = item.href;
       link.id = 'quick-search-result-' + index;
-      link.setAttribute('role', 'option');
-      link.setAttribute('aria-selected', 'false');
       link.dataset.resultIndex = String(index);
 
       var type = document.createElement('span');
@@ -152,7 +170,7 @@
       title.textContent = item.title;
       var description = document.createElement('span');
       description.className = 'quick-search-result-description';
-      description.textContent = item.description || '';
+      description.textContent = resultSnippet(item, query);
       main.appendChild(title);
       main.appendChild(description);
 
@@ -164,7 +182,6 @@
       link.appendChild(main);
       link.appendChild(meta);
       link.addEventListener('click', closeSearch);
-      link.addEventListener('mousemove', function () { setActive(index); });
       link.addEventListener('focus', function () { setActive(index); });
       results.appendChild(link);
     });
@@ -175,23 +192,24 @@
     return Array.prototype.slice.call(results.querySelectorAll('.quick-search-result'));
   }
 
-  function setActive(index) {
+  function setActive(index, moveFocus) {
     var links = resultLinks();
     if (!links.length) return;
     activeIndex = (index + links.length) % links.length;
     links.forEach(function (link, linkIndex) {
       var active = linkIndex === activeIndex;
       link.classList.toggle('is-active', active);
-      link.setAttribute('aria-selected', String(active));
     });
-    input.setAttribute('aria-activedescendant', links[activeIndex].id);
+    if (moveFocus) links[activeIndex].focus({ preventScroll: true });
     links[activeIndex].scrollIntoView({ block: 'nearest' });
   }
 
   function updateResults() {
+    if (composing) return;
     var query = input.value;
+    var request = ++searchRequest;
     loadIndex().then(function (loaded) {
-      if (!loaded) return;
+      if (!loaded || request !== searchRequest || composing) return;
       render(getMatches(query), query.trim());
     });
   }
@@ -206,7 +224,6 @@
     root.removeAttribute('inert');
     root.setAttribute('aria-hidden', 'false');
     trigger.setAttribute('aria-expanded', 'true');
-    input.setAttribute('aria-expanded', 'true');
     document.body.classList.add('quick-search-open');
     setBackgroundInert(true);
     root.getBoundingClientRect();
@@ -227,11 +244,9 @@
     }
     root.classList.remove('is-active');
     root.setAttribute('aria-hidden', 'true');
-    // Remove the fading dialog from the focus/accessibility tree immediately;
-    // `hidden` follows after the opacity transition finishes.
+    // 淡出开始即移出焦点和无障碍树；动画结束后再设置 hidden。
     root.setAttribute('inert', '');
     trigger.setAttribute('aria-expanded', 'false');
-    input.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('quick-search-open');
     setBackgroundInert(false);
     closeTimer = setTimeout(function () {
@@ -246,8 +261,16 @@
     button.addEventListener('click', closeSearch);
   });
   input.addEventListener('input', updateResults);
+  input.addEventListener('compositionstart', function () { composing = true; });
+  input.addEventListener('compositionend', function () {
+    composing = false;
+    updateResults();
+  });
+  input.addEventListener('focus', function () { setActive(0); });
 
   document.addEventListener('keydown', function (event) {
+    // 组合输入期间，回车、方向键与 Esc 属于输入法；229 兼容部分 Safari。
+    if (composing || event.isComposing || Reflect.get(event, 'keyCode') === 229) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -256,25 +279,27 @@
       return;
     }
     if (root.hidden || root.getAttribute('aria-hidden') === 'true') return;
+    var focused = document.activeElement;
+    var links = resultLinks();
+    var focusedIndex = links.indexOf(focused);
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopImmediatePropagation();
       closeSearch();
-    } else if (event.key === 'ArrowDown') {
+    } else if (event.key === 'ArrowDown' && (focused === input || focusedIndex !== -1)) {
       event.preventDefault();
-      setActive(activeIndex + 1);
-    } else if (event.key === 'ArrowUp') {
+      setActive(focusedIndex === -1 ? 0 : focusedIndex + 1, true);
+    } else if (event.key === 'ArrowUp' && (focused === input || focusedIndex !== -1)) {
       event.preventDefault();
-      setActive(activeIndex - 1);
-    } else if (event.key === 'Enter' && document.activeElement === input) {
-      var links = resultLinks();
+      setActive(focusedIndex === -1 ? links.length - 1 : focusedIndex - 1, true);
+    } else if (event.key === 'Enter' && focused === input) {
       if (links[activeIndex]) {
         event.preventDefault();
         links[activeIndex].click();
       }
     } else if (event.key === 'Tab') {
-      var focusable = [input]
-        .concat(Array.prototype.slice.call(root.querySelectorAll('button:not([hidden]), .quick-search-result')))
+      // 按实际 DOM 顺序循环，末项 Tab 能回到位于输入框之前的关闭按钮。
+      var focusable = Array.prototype.slice.call(root.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]'))
         .filter(function (element) { return element.offsetParent !== null; });
       if (!focusable.length) return;
       var first = focusable[0];

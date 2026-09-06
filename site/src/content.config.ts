@@ -48,6 +48,8 @@ const essays = defineCollection({
     pattern: '**/*.{md,mdx}',
   }),
   schema: base.extend({
+    // 显式区分扉页与内页，不用字数或 Quote 标签猜测文章的排版意图。
+    presentation: z.enum(['article', 'quote', 'poem']).default('article'),
     description: z.string().min(1),
     excerpt: z.string().min(1),
     tags: z.array(z.string()).min(1),

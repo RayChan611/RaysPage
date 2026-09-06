@@ -1,5 +1,7 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import { fileURLToPath } from 'node:url';
+import { versionStaticAssets } from './scripts/version-static-assets.mjs';
 // build.format:'file' keeps output URLs identical to the current site
 // (index.html, essays.html, essay-choice.html, ...) so existing links keep working.
 export default defineConfig({
@@ -11,5 +13,10 @@ export default defineConfig({
   build: { format: 'file' },
   trailingSlash: 'ignore',
   // Content Collections use MDX for essays / reading notes.
-  integrations: [mdx()]
+  integrations: [mdx(), {
+    name: 'version-public-assets',
+    hooks: {
+      'astro:build:done': ({ dir }) => { versionStaticAssets(fileURLToPath(dir)); },
+    },
+  }]
 });

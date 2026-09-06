@@ -30,6 +30,16 @@ export default defineConfig({
       name: 'mobile-narrow',
       use: { viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true },
     },
+    {
+      name: 'mobile-webkit',
+      testMatch: '**/release-safety.spec.ts',
+      use: {
+        browserName: 'webkit',
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
   ],
   webServer: {
     command: 'node scripts/serve-dist.mjs',

@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -134,6 +135,7 @@ if (!existsSync(distRoot)) {
     'search-index.json',
     'rss.xml',
     'sitemap.xml',
+    'asset-manifest.json',
   ];
 
   for (const output of requiredOutputs) {
@@ -173,6 +175,33 @@ if (!existsSync(distRoot)) {
   }
 
   const htmlFiles = walk(distRoot).filter((file) => file.endsWith('.html'));
+  let versionedAssets = {};
+  try {
+    versionedAssets = JSON.parse(readFileSync(join(distRoot, 'asset-manifest.json'), 'utf8'));
+    for (const [original, versioned] of Object.entries(versionedAssets)) {
+      const source = join(distRoot, original);
+      const target = join(distRoot, versioned);
+      if (!existsSync(source) || !existsSync(target)) {
+        failures.push(`资源版本清单存在缺失文件：${original} -> ${versioned}`);
+        continue;
+      }
+      const content = readFileSync(source);
+      const hash = createHash('sha256').update(content).digest('hex').slice(0, 12);
+      const expected = original.replace(/\.(css|js)$/, `.${hash}.$1`);
+      if (versioned !== expected || !content.equals(readFileSync(target))) {
+        failures.push(`资源版本与内容不匹配：${original} -> ${versioned}`);
+      }
+    }
+    for (const directory of ['css', 'js']) {
+      for (const file of walk(join(distRoot, directory))) {
+        if (!/\.(?:css|js)$/.test(file) || /\.[a-f0-9]{12}\.(?:css|js)$/.test(file)) continue;
+        const url = `/${relative(distRoot, file).split('\\').join('/')}`;
+        if (!versionedAssets[url]) failures.push(`资源版本清单缺少 ${url}`);
+      }
+    }
+  } catch (error) {
+    failures.push(`资源版本清单无效：${error.message}`);
+  }
   for (const file of htmlFiles) {
     const pagePath = relative(distRoot, file).split('\\').join('/');
     const html = readFileSync(file, 'utf8');
@@ -180,6 +209,12 @@ if (!existsSync(distRoot)) {
 
     for (const reference of attributeValues(html, 'href|src|poster')) {
       validateLocalReference(file, reference, pagePath);
+      let url;
+      try { url = new URL(reference, `${siteOrigin}/${pagePath}`); } catch { continue; }
+      if (url.origin === siteOrigin && /^\/(?:css|js)\/.*\.(?:css|js)$/.test(url.pathname) &&
+          !Object.values(versionedAssets).includes(url.pathname)) {
+        failures.push(`${relative(repoRoot, file)} -> CSS/JS 引用没有内容版本号：${reference}`);
+      }
     }
     for (const srcset of attributeValues(html, 'srcset|imagesrcset')) {
       validateSrcset(file, srcset, pagePath);

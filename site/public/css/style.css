@@ -235,6 +235,12 @@ button { font-family: inherit; }
     background: rgba(10,10,10,0.97);
     backdrop-filter: blur(12px);
     padding: 24px 40px;
+    /* 横屏时菜单必须在视口内独立滚动，最后一项不能落在屏幕外。 */
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
     gap: 20px;
     border-bottom: 1px solid var(--border);
     flex-direction: column;

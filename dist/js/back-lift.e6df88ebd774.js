@@ -1,0 +1,166 @@
+/* back-lift.js
+ * --------------------------------------------------------------------------
+ * Shared behaviour for all pages.
+ *
+ * Lifts two fixed UI elements upward when the page footer scrolls into
+ * view, so they never overlap the footer's text content:
+ *
+ *   - `.note-back-fixed`  ← Back button on essay/note detail pages
+ *   - `#backToTop`        Back to top arrow (every page)
+ *
+ * The lift uses a requestAnimationFrame lerp loop (exponential smoothing,
+ * factor 0.055) — this is what gives the subtle inertia / "settles into
+ * place" feel rather than a hard binary jump. The lift is also proportional
+ * to the footer's intersection ratio (ratio * 12, capped at 1), so the
+ * buttons glide up gradually as you reach the bottom of the page.
+ *
+ * The lift amount is computed from the actual footer height, so each
+ * button lands a fixed gap (GAP) above the divider line (the footer's
+ * border-top). This works for footers of any height and adapts to resize.
+ *
+ * `el.style.bottom` is driven by JS every frame, so there is intentionally
+ * NO `bottom` transition in CSS — adding one would fight the lerp.
+ *
+ * Generic: it only acts if at least one of the two buttons exists, so
+ * including it on pages without either is a no-op.
+ */
+(function () {
+  var RETRY_MS = 300;
+  var LERP = 0.055;       // smoothing factor — smaller = floatier inertia
+  var GAP = 16;           // px of clearance above the footer's top edge
+  var reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var backBtn = document.querySelector('.note-back-fixed');
+  var topBtn = document.getElementById('backToTop');
+  if (!backBtn && !topBtn) return;
+
+  // Resting bottom is read from the *actual computed* style so it respects
+  // responsive media queries — e.g. .back-to-top is 26px on desktop but 18px
+  // on mobile (≤768px). Hardcoding would freeze it at 26px and the lerp would
+  // constantly drag the mobile button 8px lower than the CSS intends, even
+  // across a breakpoint resize.
+  function restingBottom(el, fallback) {
+    // JS drives an inline bottom while animating. Temporarily remove it so
+    // getComputedStyle can see the CSS value from the active media query.
+    var inlineBottom = el.style.bottom;
+    el.style.removeProperty('bottom');
+    var v = parseFloat(getComputedStyle(el).bottom);
+    if (inlineBottom) el.style.bottom = inlineBottom;
+    return isFinite(v) ? v : fallback;
+  }
+
+  // Each button keeps its own resting bottom (its CSS-declared position).
+  var buttons = [];
+  if (backBtn) {
+    var bd = restingBottom(backBtn, 32);
+    buttons.push({ el: backBtn, def: bd, lift: 0, current: bd, target: bd });
+  }
+  if (topBtn) {
+    var td = restingBottom(topBtn, 26);
+    buttons.push({ el: topBtn, def: td, lift: 0, current: td, target: td });
+  }
+
+  var animId = null;
+
+  function applyTargetsImmediately() {
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].current = buttons[i].target;
+      buttons[i].el.style.bottom = buttons[i].current + 'px';
+    }
+  }
+
+  function updatePositions() {
+    if (reduceMotion) {
+      applyTargetsImmediately();
+      return;
+    }
+    if (!animId) animId = requestAnimationFrame(tick);
+  }
+
+  function tick() {
+    var maxDiff = 0;
+    for (var i = 0; i < buttons.length; i++) {
+      var d = Math.abs(buttons[i].target - buttons[i].current);
+      if (d > maxDiff) maxDiff = d;
+    }
+    if (maxDiff < 0.3) {
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].current = buttons[i].target;
+        buttons[i].el.style.bottom = buttons[i].current + 'px';
+      }
+      animId = null;
+      return;
+    }
+    // exponential smoothing → smooth glide with a little inertia
+    for (var i = 0; i < buttons.length; i++) {
+      var b = buttons[i];
+      b.current += (b.target - b.current) * LERP;
+      b.el.style.bottom = b.current + 'px';
+    }
+    animId = requestAnimationFrame(tick);
+  }
+
+  function setupFooterObserver() {
+    var footer = document.querySelector('.footer');
+    if (!footer) {
+      setTimeout(setupFooterObserver, RETRY_MS);
+      return;
+    }
+
+    // Per-button lift amount, computed from actual footer height.
+    // Target when fully visible = footerHeight + GAP (lands GAP px above divider).
+    var liftRatio = 0;
+    function recomputeLifts() {
+      var fh = footer.offsetHeight;
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].lift = fh + GAP - buttons[i].def;
+        buttons[i].target = buttons[i].def + buttons[i].lift * liftRatio;
+      }
+    }
+    recomputeLifts();
+
+    var io = new IntersectionObserver(
+      function (entries) {
+        var entry = entries[0];
+        if (!entry) return;
+        // proportional lift: rises gradually as the footer scrolls in
+        liftRatio = Math.min(1, entry.intersectionRatio * 12);
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].target = buttons[i].def + buttons[i].lift * liftRatio;
+        }
+        updatePositions();
+      },
+      // dense thresholds → smooth proportional updates as footer enters
+      { threshold: Array.from({ length: 101 }, function (_, i) { return i / 100; }) }
+    );
+
+    io.observe(footer);
+
+    // Recompute lifts when the footer resizes (responsive padding etc.)
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        // Recompute resting bottoms too, in case a breakpoint changed them.
+        for (var i = 0; i < buttons.length; i++) {
+          var button = buttons[i];
+          var nextDef = restingBottom(button.el, button.def);
+          button.current += nextDef - button.def;
+          button.def = nextDef;
+          button.el.style.bottom = button.current + 'px';
+        }
+        recomputeLifts();
+        updatePositions();
+      }, 100);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(setupFooterObserver, 200);
+    });
+  } else {
+    setTimeout(setupFooterObserver, 200);
+  }
+})();
