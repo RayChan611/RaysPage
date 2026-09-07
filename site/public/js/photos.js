@@ -25,6 +25,8 @@
   let touchGesture = null;
   let suppressClickUntil = 0;
   let previousLenisState = null;
+  let hiddenGalleryImage = null;
+  let closeSequence = 0;
   const backgroundAriaState = new Map();
 
   function cancelImageAnimation() {
@@ -32,13 +34,27 @@
     imageAnimation = null;
   }
 
-  function animateImage(frames, duration) {
+  function animateImage(frames, duration, options = {}) {
     cancelImageAnimation();
     if (reducedMotion.matches || !lightboxImg || typeof lightboxImg.animate !== 'function') return;
     imageAnimation = lightboxImg.animate(frames, {
       duration,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      ...options,
     });
+    return imageAnimation;
+  }
+
+  function restoreGalleryImage() {
+    if (hiddenGalleryImage) hiddenGalleryImage.classList.remove('is-lightbox-source');
+    hiddenGalleryImage = null;
+  }
+
+  function hideGalleryImage(image) {
+    restoreGalleryImage();
+    if (!image) return;
+    image.classList.add('is-lightbox-source');
+    hiddenGalleryImage = image;
   }
 
   // 用已显示的缩略图建立连续构图，大图到达后再替换；失败时保留可读画面。
@@ -134,10 +150,12 @@
   function openLightbox(idx, direction = 0) {
     if (!lightbox || !lightboxImg || !galleryItems[idx]) return;
     const wasOpen = lightbox.classList.contains('active');
+    ++closeSequence;
     if (lightboxHideTimer) {
       clearTimeout(lightboxHideTimer);
       lightboxHideTimer = null;
     }
+    lightbox.classList.remove('is-closing');
     currentIndex = idx;
     cancelImageAnimation();
     resetTouchGesture();
@@ -146,6 +164,8 @@
     const item = galleryItems[idx];
     const thumbnail = item.querySelector('img');
     const origin = thumbnail && thumbnail.getBoundingClientRect();
+    // 同一张照片只交给一个图层绘制，避免透明遮罩下的缩略图与大图重叠。
+    hideGalleryImage(thumbnail);
     const title = item.getAttribute('data-title') || '';
     const alt = item.getAttribute('data-alt') || title || '照片';
     const series = item.getAttribute('data-series') || '';
@@ -211,18 +231,23 @@
 
   function closeLightbox() {
     if (!lightbox || !lightbox.classList.contains('active')) return;
+    const sequence = ++closeSequence;
     ++imageRequest;
+    // 关闭发生在展开或切图中途时，从当前可见位置接续，不先跳回完整尺寸。
+    const visibleFrame = lightboxImg && lightboxImg.getBoundingClientRect();
+    const visibleOpacity = lightboxImg ? getComputedStyle(lightboxImg).opacity : '1';
     cancelImageAnimation();
     resetTouchGesture();
     const returnItem = galleryItems[currentIndex];
     const returnImage = returnItem && returnItem.querySelector('img');
-    const start = lightboxImg && lightboxImg.getBoundingClientRect();
+    lightbox.classList.add('is-closing');
     lightbox.classList.remove('active', 'is-zoomed');
     lightbox.setAttribute('aria-hidden', 'true');
     lightbox.setAttribute('inert', '');
     document.body.style.overflow = previousBodyOverflow;
     setBackgroundInert(false);
     // 看过其他照片后回到当前照片；仍是原图时保留原有滚动位置。
+    let closingFrames = null;
     if (returnImage) {
       const bounds = returnImage.getBoundingClientRect();
       const stickyNav = document.getElementById('seriesNav');
@@ -230,12 +255,19 @@
       if (bounds.bottom <= visibleTop || bounds.top >= window.innerHeight) {
         returnItem.scrollIntoView({ block: 'center', behavior: 'instant' });
       }
+      // 目标可能刚从别的系列进入视口，先完成其入场，交接位置才不会继续漂移。
+      returnItem.classList.add('visible');
+      returnItem.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
       const destination = returnImage.getBoundingClientRect();
+      // 恢复滚动条与目标位置后再测固定层，兼容实体滚动条改变视口宽度的浏览器。
+      const start = lightboxImg && lightboxImg.getBoundingClientRect();
       if (start && start.width && start.height && destination.width && destination.height) {
-        animateImage([
-          { transform: 'none', transformOrigin: 'top left' },
-          { transform: photoTransform(destination, start), transformOrigin: 'top left' },
-        ], 320);
+        const coveredTop = Math.max(0, Math.min(100, (visibleTop - destination.top) / destination.height * 100));
+        closingFrames = [
+          { transform: photoTransform(visibleFrame || start, start), transformOrigin: 'top left', clipPath: 'inset(0% 0 0)', opacity: visibleOpacity },
+          // 收回被吸顶导航遮住的照片时，末帧也遵守相同的遮挡关系。
+          { transform: photoTransform(destination, start), transformOrigin: 'top left', clipPath: `inset(${coveredTop}% 0 0)`, opacity: 1 },
+        ];
       }
     }
     currentIndex = -1;
@@ -254,16 +286,28 @@
     if (focusTarget && typeof focusTarget.focus === 'function') {
       focusTarget.focus({ preventScroll: true });
     }
-    lightboxHideTimer = setTimeout(() => {
-      if (lightbox.classList.contains('active')) return;
+    const finishClose = () => {
+      if (sequence !== closeSequence || lightbox.classList.contains('active')) return;
+      if (lightboxHideTimer) clearTimeout(lightboxHideTimer);
+      lightboxHideTimer = null;
+      // 先隐藏灯箱再交还缩略图，末帧与真实照片在同一帧切换。
       lightbox.hidden = true;
       cancelImageAnimation();
+      restoreGalleryImage();
+      lightbox.classList.remove('is-closing');
       if (lightboxImg) {
         lightboxImg.removeAttribute('src');
         lightboxImg.alt = '';
       }
-      lightboxHideTimer = null;
-    }, reducedMotion.matches ? 0 : 360);
+    };
+    const closingAnimation = closingFrames && animateImage(closingFrames, 300, { fill: 'forwards' });
+    if (closingAnimation) {
+      closingAnimation.onfinish = finishClose;
+      // 保留末帧直到交接；超时只处理极端情况下漏掉的动画完成事件。
+      lightboxHideTimer = setTimeout(finishClose, 380);
+    } else {
+      finishClose();
+    }
   }
 
   function goNext() {
