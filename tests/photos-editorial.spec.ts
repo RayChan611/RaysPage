@@ -265,3 +265,107 @@ test('桌面惯性滚动中打开照片会冻结背景，关闭保留位置及�
   await expect(page.locator('#lightbox')).toBeHidden();
   expect(await page.evaluate(() => (window as Window & { lenis?: { isStopped: boolean } }).lenis?.isStopped)).toBe(true);
 });
+
+test('灯箱关闭的初中末帧只绘制一张清晰照片，末帧不跳回大图', async ({ page }) => {
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('.gallery-item').first().click();
+  const image = page.locator('#lightboxImg');
+  await expect.poll(() => image.evaluate((element) => element.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0);
+  const frames = await page.evaluate(() => {
+    const box = document.querySelector<HTMLElement>('#lightbox')!;
+    const image = document.querySelector<HTMLImageElement>('#lightboxImg')!;
+    const thumbnail = document.querySelector<HTMLImageElement>('.gallery-item img')!;
+    // 空白处触发同一关闭路径，冻结实际的 CSS/WAAPI 帧以免依赖测试机速度。
+    box.click();
+    box.getBoundingClientRect();
+    const animations = box.getAnimations({ subtree: true });
+    animations.forEach((animation) => animation.pause());
+    return [0, 150, 330].map((time) => {
+      animations.forEach((animation) => { animation.currentTime = time; });
+      const displayed = image.getBoundingClientRect();
+      const target = thumbnail.getBoundingClientRect();
+      return {
+        time,
+        opacity: getComputedStyle(box).opacity,
+        imageOpacity: getComputedStyle(image).opacity,
+        blur: getComputedStyle(box).backdropFilter,
+        filter: getComputedStyle(image).filter,
+        thumbnail: getComputedStyle(thumbnail).visibility,
+        error: Math.max(Math.abs(displayed.x - target.x), Math.abs(displayed.y - target.y), Math.abs(displayed.width - target.width), Math.abs(displayed.height - target.height)),
+      };
+    });
+  });
+  for (const frame of frames) {
+    expect(frame.opacity).toBe('1');
+    expect(frame.imageOpacity).toBe('1');
+    expect(frame.blur).toBe('none');
+    expect(frame.filter).toBe('none');
+    expect(frame.thumbnail).toBe('hidden');
+  }
+  expect(frames[2].error).toBeLessThan(1);
+  await expect(page.locator('#lightbox')).toBeHidden();
+  await expect(page.locator('.is-lightbox-source')).toHaveCount(0);
+  await expect(page.locator('.gallery-item img').first()).toHaveCSS('visibility', 'visible');
+});
+
+test('展开途中关闭保持当前画面位置，快速重开不被旧回调清空', async ({ page }) => {
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  const result = await page.evaluate(() => {
+    const cards = document.querySelectorAll<HTMLElement>('.gallery-item');
+    cards[0].click();
+    const image = document.querySelector<HTMLElement>('#lightboxImg')!;
+    const opening = image.getAnimations()[0];
+    if (opening) { opening.pause(); opening.currentTime = 90; }
+    const before = image.getBoundingClientRect();
+    document.querySelector<HTMLElement>('.lightbox-close')!.click();
+    const after = image.getBoundingClientRect();
+    // 在上一次退场尚未结束时重新打开另一张，旧清理不能隐藏新的灯箱。
+    cards[1].click();
+    return Math.max(Math.abs(before.x - after.x), Math.abs(before.y - after.y), Math.abs(before.width - after.width), Math.abs(before.height - after.height));
+  });
+  expect(result).toBeLessThan(1);
+  await page.waitForTimeout(450);
+  await expect(page.locator('#lightbox')).toHaveClass(/active/);
+  await expect(page.locator('#lightboxCounter')).toContainText('2 / 36');
+  await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /qingdao-2/);
+  await expect(page.locator('.is-lightbox-source')).toHaveCount(1);
+  await expect(page.locator('.gallery-item img').first()).toHaveCSS('visibility', 'visible');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#lightbox')).toBeHidden();
+  await expect(page.locator('.is-lightbox-source')).toHaveCount(0);
+  await expect(page.locator('.gallery-item').nth(1)).toBeFocused();
+});
+
+test('切图过程中关闭可返回远处照片且无隐藏图片残留', async ({ page }) => {
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('.gallery-item').first().click();
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#lightboxCounter')).toContainText('36 / 36');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#lightbox')).toBeHidden();
+  await expect(page.locator('.is-lightbox-source')).toHaveCount(0);
+  const last = page.locator('.gallery-item').last();
+  await expect(last).toBeFocused();
+  await expect(last).toBeInViewport();
+  await expect(last.locator('img')).toHaveCSS('visibility', 'visible');
+});
+
+test('切图淡入尚未完成时关闭，不会突然闪亮', async ({ page }) => {
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  const opacity = await page.evaluate(() => {
+    document.querySelector<HTMLElement>('.gallery-item')!.click();
+    document.querySelector<HTMLElement>('.lightbox-next')!.click();
+    const image = document.querySelector<HTMLElement>('#lightboxImg')!;
+    const changing = image.getAnimations()[0];
+    changing.pause();
+    changing.currentTime = 45;
+    const before = Number(getComputedStyle(image).opacity);
+    document.querySelector<HTMLElement>('.lightbox-close')!.click();
+    return { before, after: Number(getComputedStyle(image).opacity) };
+  });
+  expect(opacity.before).toBeGreaterThan(0.45);
+  expect(opacity.before).toBeLessThan(1);
+  expect(opacity.after).toBeCloseTo(opacity.before, 3);
+  await expect(page.locator('#lightbox')).toBeHidden();
+  await expect(page.locator('.is-lightbox-source')).toHaveCount(0);
+});

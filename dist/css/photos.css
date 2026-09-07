@@ -226,6 +226,7 @@
   -webkit-backface-visibility: hidden;
   transition: filter var(--transition), transform var(--motion-slow) var(--motion-ease);
 }
+.gallery-item img.is-lightbox-source { visibility: hidden; filter: grayscale(0%); }
 .gallery-item:hover img {
   filter: grayscale(0%);
 }
@@ -316,9 +317,7 @@
   inset: 0;
   height: 100dvh;
   z-index: 9999;
-  background: rgba(5, 5, 5, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -327,14 +326,22 @@
   padding: clamp(56px, 6vh, 76px) clamp(72px, 7vw, 140px) max(24px, 3vh);
   box-sizing: border-box;
   overflow: hidden;
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
   cursor: zoom-out;
-  transition: opacity 0.35s ease;
 }
 .lightbox[hidden] { display: none; }
+.lightbox::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(5, 5, 5, 0.96);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.lightbox.active::before { opacity: 1; }
 .lightbox.active {
-  opacity: 1;
   pointer-events: auto;
 }
 
@@ -364,11 +371,14 @@
   touch-action: pan-y pinch-zoom;
   user-select: none;
   -webkit-user-select: none;
-  filter: grayscale(50%);
-  transition: filter 0.5s ease;
+  filter: none;
   box-shadow: 0 24px 80px rgba(0,0,0,0.5);
 }
-.lightbox.active .lightbox-content img { filter: grayscale(0%); }
+.lightbox.is-closing .lightbox-content img { box-shadow: none; }
+.lightbox.is-closing .lightbox-info,
+.lightbox.is-closing .lightbox-close,
+.lightbox.is-closing .lightbox-prev,
+.lightbox.is-closing .lightbox-next { opacity: 0; transition-duration: 120ms; }
 
 /* 放大后的横向拖动属于浏览器平移，不能继续限制为竖向手势。 */
 .lightbox.is-zoomed .lightbox-content,
@@ -423,6 +433,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: opacity 160ms ease;
 }
 .lightbox-title {
   font-size: 0.88rem;
@@ -501,5 +512,5 @@
   .lightbox-close { top: 20px; right: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lightbox, .lightbox-content img, .gallery-item img, .gallery-view { transition: none; }
+  .lightbox, .lightbox::before, .lightbox-info, .lightbox-content img, .gallery-item img, .gallery-view { transition: none; }
 }

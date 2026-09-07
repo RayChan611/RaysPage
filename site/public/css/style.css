@@ -108,79 +108,44 @@ button { font-family: inherit; }
   justify-content: space-between;
 }
 .nav-logo {
+  --logo-columns: 0fr;
+  --logo-opacity: 0;
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: baseline;
+  flex-shrink: 0;
   white-space: nowrap;
 }
-/* Anthropic-style expand: R + C stay, "Ray Chan" reveals on hover
- * Elegant: expand in order, collapse in REVERSE order.
- * Collapse has a 220ms grace period before starting (avoids urgency on quick mouse-leave).
- */
+/* 按文字真实宽度展开，位移与显隐共用一条时间线；快速移出时可直接反向，避免空等和跳帧。 */
 .nav-logo-c,
 .nav-logo-r {
   display: inline-block;
-  transition: color 0.3s;
 }
 .nav-logo-expand,
 .nav-logo-expand2 {
-  display: inline-block;
-  max-width: 0;
-  overflow: hidden;
+  display: inline-grid;
+  grid-template-columns: var(--logo-columns);
   white-space: nowrap;
-  vertical-align: baseline;
-  opacity: 0;
-  /* Fast layout snap + smooth GPU visual */
-  transition: max-width 0.15s ease 0s,
-              clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0s,
-              opacity 0.4s ease 0s;
-  clip-path: inset(0 100% 0 0);
-  margin: 0;
-  padding: 0;
+  opacity: var(--logo-opacity);
+  transition: grid-template-columns var(--transition), opacity var(--transition);
 }
-/* Collapse stagger: reverse — first expand2 closes, then expand */
-.nav-logo-expand  {
-  transition: max-width 0.15s ease 0s,
-              clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0s,
-              opacity 0.4s ease 0s;
+.nav-logo-expand > span,
+.nav-logo-expand2 > span {
+  min-width: 0;
+  overflow: hidden;
 }
-
-/* Expand: no grace, instant start, staggered — herish first, emain second */
-.nav-logo:hover .nav-logo-expand {
-  max-width: 140px;
-  clip-path: inset(0 0% 0 0);
-  opacity: 1;
-  transition: max-width 0.15s ease 0s,
-              clip-path 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0s,
-              opacity 0.4s ease 0s;
+.nav-logo:focus-visible {
+  --logo-columns: 1fr;
+  --logo-opacity: 1;
 }
-.nav-logo:hover .nav-logo-expand2 {
-  max-width: 140px;
-  clip-path: inset(0 0% 0 0);
-  opacity: 1;
-  transition: max-width 0.15s ease 0s,
-              clip-path 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.12s,
-              opacity 0.4s ease 0.12s;
-}
-
-/* Grace period on collapse — 220ms delay before starting */
-.nav-logo:not(:hover) .nav-logo-expand,
-.nav-logo:not(:hover) .nav-logo-expand2 {
-  transition: max-width 0.15s ease 0.22s,
-              clip-path 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.22s,
-              opacity 0.4s ease 0.22s;
-}
-.nav-logo:not(:hover) .nav-logo-expand2 {
-  transition: max-width 0.15s ease 0.22s,
-              clip-path 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.22s,
-              opacity 0.4s ease 0.22s;
-}
-.nav-logo:not(:hover) .nav-logo-expand {
-  transition: max-width 0.15s ease 0.32s,
-              clip-path 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.32s,
-              opacity 0.4s ease 0.32s;
+/* 触屏点击只负责回首页，不留下黏住的悬停展开态。 */
+@media (hover: hover) and (pointer: fine) {
+  .nav-logo:hover {
+    --logo-columns: 1fr;
+    --logo-opacity: 1;
+  }
 }
 
 .nav-links { display: flex; gap: 32px; }
