@@ -88,6 +88,11 @@ html[data-article-navigation] #pageTransitionOverlay { display: none; }
 }
 .page-essay--quote .essay-body p,
 .page-essay--poem .essay-body p { margin-bottom: .85em; }
+.page-essay--quote .essay-body .essay-quote-text--long {
+  font-size: clamp(1.2rem, 1.75vw, 1.4rem);
+  line-height: 2;
+  letter-spacing: .025em;
+}
 .page-essay--quote .essay-quote-block p:last-child,
 .page-essay--poem .essay-quote-block p:last-child { margin-bottom: 0; }
 .page-essay--quote .essay-body .meta-line,
@@ -113,6 +118,10 @@ html[data-article-navigation] #pageTransitionOverlay { display: none; }
     padding: 24px 0;
     font-size: clamp(1.35rem, 5.9vw, 1.85rem);
     line-height: 2;
+  }
+  .page-essay--quote .essay-body .essay-quote-text--long {
+    font-size: 1.125rem;
+    line-height: 2.05;
   }
   .page-essay--quote .article-pagination,
   .page-essay--poem .article-pagination { margin-top: 16px; }

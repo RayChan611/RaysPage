@@ -45,6 +45,20 @@ test('短句采用扉页，长文采用内页，窄屏保持完整可读', async
   expect(accessibility.violations).toEqual([]);
 });
 
+test('长引文使用紧凑字号，不沿用三行短句的展示字号', async ({ page }) => {
+  await page.goto('/essay-no-belief.html', { waitUntil: 'domcontentloaded' });
+  const shortQuoteSize = await page.locator('.essay-quote-text').evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+
+  await page.goto('/essay-dragons-and-princesses.html', { waitUntil: 'domcontentloaded' });
+  const longQuote = page.locator('.essay-quote-text--long');
+  const longQuoteSize = await longQuote.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+
+  expect(longQuoteSize).toBeLessThan(shortQuoteSize);
+  expect(longQuoteSize).toBeGreaterThanOrEqual(18);
+  expect(longQuoteSize).toBeLessThanOrEqual(22.4);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test('支持原生转场的浏览器实际捕获共享标题', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', '原生转场能力只需检查一次');
   await page.addInitScript(() => {
