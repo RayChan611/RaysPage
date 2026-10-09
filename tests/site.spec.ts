@@ -392,6 +392,17 @@ test('compact mobile article navigation stacks and quick search survives keyboar
   expect(searchLayout.resultsMinHeight).toBe('0px');
 });
 
+test('桌面首页滚轮使用原生滚动，Explore 锚点仍可定位', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '只检查桌面首页滚轮策略');
+  await openPage(page, '/index.html');
+  await expect.poll(() => page.evaluate(() => Boolean((window as Window & { lenis?: unknown }).lenis))).toBe(false);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(400);
+  await page.locator('#hero .btn-primary').click();
+  await expect(page).toHaveURL(/#about$/);
+  await expect(page.locator('#about')).toBeInViewport();
+});
+
 test('touch devices use native scrolling and the lower-cost particle profile', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.use.isMobile, '只检查触摸设备性能策略');
   await openPage(page, '/essays.html');
