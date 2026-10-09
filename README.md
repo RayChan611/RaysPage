@@ -29,7 +29,7 @@ npm run photos:optimize # 生成并校验 400/600/800/1280px WebP（需要 cwebp
 npm run validate   # 校验构建产物、链接、HTML 结构与安全响应头配置
 npm test           # 依次执行检查、构建和产物校验
 npm run test:e2e   # 执行桌面端和移动端浏览器回归测试
-npm run audit      # 检查高危依赖漏洞
+npm run audit      # 检查中危及以上依赖漏洞
 npm run preview    # 本地预览 Astro 构建结果
 ```
 
@@ -47,6 +47,7 @@ site/src/data/      摄影作品等结构化数据
 site/src/layouts/   全站共用页面骨架
 site/src/pages/     页面与 JSON、RSS、Sitemap 输出入口
 site/public/        样式、脚本、照片等静态资源
+source-assets/       不随网站发布的旧图片原始素材
 scripts/            构建产物校验和本地静态服务器
 tests/              Playwright 浏览器回归测试
 dist/               提交并用于线上发布的构建产物
@@ -61,6 +62,7 @@ dist/               提交并用于线上发布的构建产物
 - 摄影系列与图片元数据维护在 `site/src/data/photos.ts`；每张图片都应提供能说明画面的 `alt` 替代文本。
 - 新增摄影原图并补齐 `site/src/data/photos.ts` 元数据后，运行 `npm run photos:optimize` 生成并校验画廊使用的 400、600、800 与最高 1280px WebP；普通画廊不会加载原图，桌面灯箱按需加载原图，手机与省流量模式优先使用可用的中尺寸 WebP（最高 1280px）。命令需要本机可用的 `cwebp` 与 `webpinfo`，也可以分别通过 `CWEBP_PATH`、`WEBPINFO_PATH` 指定路径。替换原图并希望强制重建已有派生图时，执行 `npm run photos:optimize -- --force`。
 - 内容日期相同时，网站会使用内容 ID 作为固定的第二排序条件，避免不同环境下顺序漂移。
+- 不再展示但需要保留的旧图片放在 `source-assets/`，不要留在 `site/public/`；公开目录中的文件会原样进入 `dist/`。
 
 ## 构建与发布
 

@@ -158,6 +158,9 @@ test('全站搜索可打开被 Notes 列表过滤隐藏的同页摘录', async (
   await expect(target).not.toHaveClass(/is-hidden/);
   await expect(target).not.toHaveAttribute('inert');
   await expect(target).toBeInViewport();
+  // 等待滚动动画与延迟尺寸更新完成，确认目标没有被旧滚动上限拉走。
+  await page.waitForTimeout(1100);
+  await expect(target).toBeInViewport();
 });
 
 test('目录恢复事件同步重建筛选顺序并真正移除隐藏卡片占位', async ({ page }) => {

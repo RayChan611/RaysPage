@@ -30,7 +30,9 @@
       bound = true;
       function updateLoops(shouldStop) {
         loops.forEach(function (l) {
-          try { shouldStop ? l.stop() : l.start(); } catch (e) {}
+          try { shouldStop ? l.stop() : l.start(); } catch (error) {
+            console.error('[RayRAF] 动画回调执行失败：', error);
+          }
         });
       }
       document.addEventListener('visibilitychange', function () {
@@ -65,7 +67,9 @@
     function flush() {
       ticking = false;
       handlers.forEach(function (fn) {
-        try { fn(); } catch (e) {}
+        try { fn(); } catch (error) {
+          console.error('[RayScroll] 滚动回调执行失败：', error);
+        }
       });
     }
 

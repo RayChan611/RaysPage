@@ -10,6 +10,10 @@ const siteOrigin = 'https://www.raychan.top';
 const failures = [];
 
 function walk(directory) {
+  if (!existsSync(directory)) {
+    failures.push(`missing directory ${relative(repoRoot, directory)}/`);
+    return [];
+  }
   return readdirSync(directory).flatMap((name) => {
     const entry = join(directory, name);
     return statSync(entry).isDirectory() ? walk(entry) : [entry];
@@ -142,16 +146,21 @@ if (!existsSync(distRoot)) {
     if (!existsSync(join(distRoot, output))) failures.push(`missing required output dist/${output}`);
   }
 
-  const notFoundHtml = readFileSync(join(distRoot, '404.html'), 'utf8');
-  const robotsMeta = [...notFoundHtml.matchAll(/<meta\b[^>]*>/gi)]
-    .map((match) => parseAttributes(match[0]))
-    .find((attributes) => attributes.name?.toLowerCase() === 'robots');
-  if (!robotsMeta?.content?.toLowerCase().split(',').map((value) => value.trim()).includes('noindex')) {
-    failures.push('dist/404.html -> robots 元信息必须包含 noindex');
+  const notFoundPath = join(distRoot, '404.html');
+  if (existsSync(notFoundPath)) {
+    const notFoundHtml = readFileSync(notFoundPath, 'utf8');
+    const robotsMeta = [...notFoundHtml.matchAll(/<meta\b[^>]*>/gi)]
+      .map((match) => parseAttributes(match[0]))
+      .find((attributes) => attributes.name?.toLowerCase() === 'robots');
+    if (!robotsMeta?.content?.toLowerCase().split(',').map((value) => value.trim()).includes('noindex')) {
+      failures.push('dist/404.html -> robots 元信息必须包含 noindex');
+    }
   }
 
   for (const pageName of ['essays.html', 'notes.html']) {
-    const html = readFileSync(join(distRoot, pageName), 'utf8');
+    const pageFile = join(distRoot, pageName);
+    if (!existsSync(pageFile)) continue;
+    const html = readFileSync(pageFile, 'utf8');
     const backgroundTag = html.match(/<div\b[^>]*\bid=(?:"global-bg-effect"|'global-bg-effect')[^>]*>/i)?.[0];
     const attributes = backgroundTag ? parseAttributes(backgroundTag) : {};
     if (attributes['aria-hidden'] !== 'true') {
@@ -159,15 +168,20 @@ if (!existsSync(distRoot)) {
     }
   }
 
-  const assetNames = readdirSync(join(distRoot, 'assets'));
-  const heroAssets = assetNames.filter((name) => /^ray-photo\.[a-f0-9]{8}\.webp$/i.test(name));
-  if (heroAssets.length !== 1) {
-    failures.push('dist/assets -> 应且仅应存在一个带内容哈希的 ray-photo 主图');
+  const assetsRoot = join(distRoot, 'assets');
+  if (!existsSync(assetsRoot)) {
+    failures.push('missing directory dist/assets/');
   } else {
-    const indexHtml = readFileSync(join(distRoot, 'index.html'), 'utf8');
-    const expectedReference = `/assets/${heroAssets[0]}`;
-    if (!indexHtml.includes(expectedReference)) {
-      failures.push(`dist/index.html -> 缺少版本化主图引用 ${expectedReference}`);
+    const assetNames = readdirSync(assetsRoot);
+    const heroAssets = assetNames.filter((name) => /^ray-photo\.[a-f0-9]{8}\.webp$/i.test(name));
+    if (heroAssets.length !== 1) {
+      failures.push('dist/assets -> 应且仅应存在一个带内容哈希的 ray-photo 主图');
+    } else {
+      const indexFile = join(distRoot, 'index.html');
+      const expectedReference = `/assets/${heroAssets[0]}`;
+      if (existsSync(indexFile) && !readFileSync(indexFile, 'utf8').includes(expectedReference)) {
+        failures.push(`dist/index.html -> 缺少版本化主图引用 ${expectedReference}`);
+      }
     }
   }
   if (existsSync(join(distRoot, 'assets', 'ray-photo.webp'))) {
@@ -176,31 +190,40 @@ if (!existsSync(distRoot)) {
 
   const htmlFiles = walk(distRoot).filter((file) => file.endsWith('.html'));
   let versionedAssets = {};
-  try {
-    versionedAssets = JSON.parse(readFileSync(join(distRoot, 'asset-manifest.json'), 'utf8'));
-    for (const [original, versioned] of Object.entries(versionedAssets)) {
-      const source = join(distRoot, original);
-      const target = join(distRoot, versioned);
-      if (!existsSync(source) || !existsSync(target)) {
-        failures.push(`资源版本清单存在缺失文件：${original} -> ${versioned}`);
-        continue;
+  let manifestValid = false;
+  const manifestPath = join(distRoot, 'asset-manifest.json');
+  if (existsSync(manifestPath)) {
+    try {
+      versionedAssets = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      if (!versionedAssets || typeof versionedAssets !== 'object' || Array.isArray(versionedAssets)) {
+        throw new TypeError('expected an object');
       }
-      const content = readFileSync(source);
-      const hash = createHash('sha256').update(content).digest('hex').slice(0, 12);
-      const expected = original.replace(/\.(css|js)$/, `.${hash}.$1`);
-      if (versioned !== expected || !content.equals(readFileSync(target))) {
-        failures.push(`资源版本与内容不匹配：${original} -> ${versioned}`);
+      for (const [original, versioned] of Object.entries(versionedAssets)) {
+        const source = join(distRoot, original);
+        const target = join(distRoot, versioned);
+        if (!existsSync(source) || !existsSync(target)) {
+          failures.push(`资源版本清单存在缺失文件：${original} -> ${versioned}`);
+          continue;
+        }
+        const content = readFileSync(source);
+        const hash = createHash('sha256').update(content).digest('hex').slice(0, 12);
+        const expected = original.replace(/\.(css|js)$/, `.${hash}.$1`);
+        if (versioned !== expected || !content.equals(readFileSync(target))) {
+          failures.push(`资源版本与内容不匹配：${original} -> ${versioned}`);
+        }
       }
+      manifestValid = true;
+    } catch (error) {
+      versionedAssets = {};
+      failures.push(`资源版本清单无效：${error.message}`);
     }
-    for (const directory of ['css', 'js']) {
-      for (const file of walk(join(distRoot, directory))) {
-        if (!/\.(?:css|js)$/.test(file) || /\.[a-f0-9]{12}\.(?:css|js)$/.test(file)) continue;
-        const url = `/${relative(distRoot, file).split('\\').join('/')}`;
-        if (!versionedAssets[url]) failures.push(`资源版本清单缺少 ${url}`);
-      }
+  }
+  for (const directory of ['css', 'js']) {
+    for (const file of walk(join(distRoot, directory))) {
+      if (!/\.(?:css|js)$/.test(file) || /\.[a-f0-9]{12}\.(?:css|js)$/.test(file)) continue;
+      const url = `/${relative(distRoot, file).split('\\').join('/')}`;
+      if (manifestValid && !versionedAssets[url]) failures.push(`资源版本清单缺少 ${url}`);
     }
-  } catch (error) {
-    failures.push(`资源版本清单无效：${error.message}`);
   }
   for (const file of htmlFiles) {
     const pagePath = relative(distRoot, file).split('\\').join('/');
@@ -211,7 +234,7 @@ if (!existsSync(distRoot)) {
       validateLocalReference(file, reference, pagePath);
       let url;
       try { url = new URL(reference, `${siteOrigin}/${pagePath}`); } catch { continue; }
-      if (url.origin === siteOrigin && /^\/(?:css|js)\/.*\.(?:css|js)$/.test(url.pathname) &&
+      if (manifestValid && url.origin === siteOrigin && /^\/(?:css|js)\/.*\.(?:css|js)$/.test(url.pathname) &&
           !Object.values(versionedAssets).includes(url.pathname)) {
         failures.push(`${relative(repoRoot, file)} -> CSS/JS 引用没有内容版本号：${reference}`);
       }
