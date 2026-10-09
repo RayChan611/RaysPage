@@ -75,6 +75,9 @@
   }
 
   function scrollToTarget(target, duration) {
+    // 搜索筛选会立即改变列表高度，Lenis 的延迟尺寸观测此时可能仍是旧值。
+    // 先刷新滚动边界，否则 scrollTo 会把目标截断在筛选后的短页面底部。
+    if (lenis) lenis.resize();
     const targetPos = target.getBoundingClientRect().top + window.scrollY - getFixedOffset(target);
     if (lenis) {
       lenis.scrollTo(targetPos, reduceMotion ? { immediate: true } : { duration: duration });
@@ -108,13 +111,17 @@
   }
   window.addEventListener('popstate', function () { scrollToHashTarget(false); });
 
-  // Smooth scroll for anchor links — event delegation
-  // Works regardless of when BaseLayout renders nav
+  // 同页锚点也可能写成完整路径（如全站搜索结果 /notes.html#note-extra-1）。
+  // 统一交给 Lenis 滚动，避免浏览器原生滚动与 Lenis 当前目标互相争抢。
   document.addEventListener('click', function (e) {
-    const anchor = e.target.closest('a[href^="#"]');
-    if (!anchor) return;
-    const targetId = anchor.getAttribute('href');
-    const target = getHashTarget(targetId);
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const anchor = e.target instanceof Element && e.target.closest('a[href]');
+    if (!anchor || (anchor.target && anchor.target !== '_self') || anchor.hasAttribute('download')) return;
+    let url;
+    try { url = new URL(anchor.href, window.location.href); } catch (_) { return; }
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname ||
+        url.search !== window.location.search || !url.hash) return;
+    const target = getHashTarget(url.hash);
     if (target) {
       e.preventDefault();
       if (anchor.classList.contains('skip-link')) {
@@ -123,8 +130,8 @@
       scrollToTarget(target, 0.7);
       // preventDefault 会同时阻止浏览器写入片段历史；这里显式恢复，
       // 让当前系列可以被收藏，也支持浏览器前进与后退。
-      if (window.location.hash !== targetId) {
-        history.pushState(null, '', targetId);
+      if (window.location.hash !== url.hash) {
+        history.pushState(null, '', url.hash);
       }
     }
   });

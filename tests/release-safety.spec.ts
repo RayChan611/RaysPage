@@ -1,5 +1,6 @@
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -33,6 +34,30 @@ test('资源版本由内容决定，重复处理和嵌套页面保持正确', as
     expect(changed['/js/vendor/test.min.js']).toBe(initial['/js/vendor/test.min.js']);
     expect(readFileSync(join(root, 'index.html'), 'utf8')).toContain(changed['/css/site.css']);
     expect(readFileSync(join(root, 'index.html'), 'utf8')).not.toContain(initial['/css/site.css']);
+  } finally {
+    // 只移除本测试通过 mkdtemp 创建的专用目录。
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('产物缺失时校验器汇总错误而不抛文件读取异常', ({}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '构建逻辑只需检查一次');
+  const root = mkdtempSync(join(tmpdir(), 'rayspage-validate-missing-'));
+  try {
+    mkdirSync(join(root, 'scripts'));
+    mkdirSync(join(root, 'dist'));
+    copyFileSync(new URL('../scripts/validate-dist.mjs', import.meta.url), join(root, 'scripts/validate-dist.mjs'));
+    copyFileSync(new URL('../edgeone.json', import.meta.url), join(root, 'edgeone.json'));
+
+    const result = spawnSync(process.execPath, [join(root, 'scripts/validate-dist.mjs')], { encoding: 'utf8' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Validation failed:');
+    expect(result.stderr).toContain('missing required output dist/404.html');
+    for (const directory of ['assets', 'css', 'js']) {
+      expect(result.stderr).toContain(`missing directory dist/${directory}/`);
+    }
+    expect(result.stderr).not.toContain('ENOENT');
+    expect(result.stderr).not.toMatch(/^\s+at .+$/m);
   } finally {
     // 只移除本测试通过 mkdtemp 创建的专用目录。
     rmSync(root, { recursive: true, force: true });
