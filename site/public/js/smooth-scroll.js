@@ -13,6 +13,7 @@
     (window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches) ||
     navigator.maxTouchPoints > 0
   );
+  const isHome = document.body.classList.contains('page-home');
 
   // Keep native history restoration. Lenis only owns animated/programmatic
   // scrolling; forcing manual restoration made Back return every list to top.
@@ -23,7 +24,8 @@
   // 滚轮插值虽然不是 CSS 动画，仍可能引起不适；减少动态效果时保留原生滚动。
   // 触摸设备本来就使用浏览器原生惯性滚动；不启动 Lenis，避免一个没有
   // 实际视觉收益的常驻 requestAnimationFrame 循环。
-  if (window.Lenis && !reduceMotion && !prefersNativeTouch) {
+  // 首页滚轮使用原生滚动，避免一秒插值让操作显得滞后；锚点仍可平滑定位。
+  if (window.Lenis && !reduceMotion && !prefersNativeTouch && !isHome) {
     lenis = new Lenis({
       duration: 1.0,
       easing: (t) => 1 - Math.pow(1 - t, 3),
