@@ -392,12 +392,20 @@ test('compact mobile article navigation stacks and quick search survives keyboar
   expect(searchLayout.resultsMinHeight).toBe('0px');
 });
 
-test('桌面首页滚轮使用原生滚动，Explore 锚点仍可定位', async ({ page }, testInfo) => {
+test('桌面首页滚轮连续过渡，Explore 锚点仍可定位', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', '只检查桌面首页滚轮策略');
   await openPage(page, '/index.html');
-  await expect.poll(() => page.evaluate(() => Boolean((window as Window & { lenis?: unknown }).lenis))).toBe(false);
+  await expect.poll(() => page.evaluate(() => Boolean((window as Window & { lenis?: unknown }).lenis))).toBe(true);
+  await page.evaluate(() => {
+    (window as Window & { scrollSamples?: number[] }).scrollSamples = [];
+    window.addEventListener('scroll', () => {
+      (window as Window & { scrollSamples?: number[] }).scrollSamples?.push(scrollY);
+    }, { passive: true });
+  });
   await page.mouse.wheel(0, 600);
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(400);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(550);
+  const samples = await page.evaluate(() => (window as Window & { scrollSamples?: number[] }).scrollSamples || []);
+  expect(samples.some((position) => position > 0 && position < 550)).toBe(true);
   await page.locator('#hero .btn-primary').click();
   await expect(page).toHaveURL(/#about$/);
   await expect(page.locator('#about')).toBeInViewport();
