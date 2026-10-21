@@ -71,7 +71,6 @@ const notes = defineCollection({
     detailTitle: z.string().min(1).optional(),
     detailTags: z.array(z.string()).min(1).optional(),
     excerpt: z.string().min(1),
-    tags: z.array(z.string()).min(1),
     // false = listing-only excerpt card with no dedicated detail page.
     hasDetail: z.boolean().default(true),
   }),
