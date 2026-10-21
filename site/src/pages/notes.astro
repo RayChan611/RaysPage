@@ -49,7 +49,7 @@ const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
               <span class="note-book-name">{n.data.book || n.data.title}</span>
               <span class="note-card-tags">
                 {!n.data.hasDetail && <span class="note-card-tag note-card-tag--excerpt">摘录</span>}
-                <span class="note-card-tag">{n.data.tags[0] || 'Note'}</span>
+                {n.data.tags[0] && <span class="note-card-tag">{n.data.tags[0]}</span>}
               </span>
             </div>
             <div
