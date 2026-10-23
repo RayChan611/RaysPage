@@ -16,6 +16,21 @@
     } catch (_) { return null; }
   }
 
+  function rememberKeyboard(keyboard) {
+    try {
+      var state = readState();
+      if (!state || state.keyboard === keyboard) return;
+      state.keyboard = keyboard;
+      sessionStorage.setItem(stateKey, JSON.stringify(state));
+    } catch (_) { /* 禁用存储时不影响普通导航。 */ }
+  }
+
+  // 正文中切换输入方式时同步记录，浏览器后退也能沿用最近的操作方式。
+  if (!isIndex) {
+    document.addEventListener('keydown', function () { rememberKeyboard(true); });
+    document.addEventListener('pointerdown', function () { rememberKeyboard(false); });
+  }
+
   document.addEventListener('click', function (event) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (!(event.target instanceof Element)) return;
@@ -30,10 +45,12 @@
           id: link.getAttribute('data-essay-link'),
           scroll: window.scrollY,
           query: input instanceof HTMLInputElement ? input.value : '',
+          keyboard: event.detail === 0,
           time: Date.now()
         }));
         sessionStorage.removeItem(returnKey);
       } else if (!isIndex && /\/essays\.html$/.test(target.pathname)) {
+        rememberKeyboard(event.detail === 0);
         sessionStorage.setItem(returnKey, 'true');
       }
     } catch (_) { /* 私密模式或禁用存储时，链接依旧正常导航。 */ }
@@ -59,7 +76,9 @@
     var scrollPosition = Math.max(0, state.scroll);
     window.scrollTo({ top: scrollPosition, behavior: 'instant' });
     var card = document.getElementById('entry-' + state.id);
-    if (card) card.focus({ preventScroll: true });
+    if (card && state.keyboard === true) card.focus({ preventScroll: true });
+    // 历史缓存可能保留点击过的链接焦点，鼠标返回时一并释放。
+    else if (card && document.activeElement === card) card.blur();
   }
 
   // pagereveal 在原生转场截图前恢复目录；其余浏览器在 DOM 就绪时退回普通导航。

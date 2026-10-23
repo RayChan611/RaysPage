@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('目录标题延续到正文，返回时保留筛选、滚动位置与键盘焦点', async ({ page }) => {
+test('鼠标返回目录时保留筛选与滚动位置，不显示焦点框', async ({ page }) => {
   await page.goto('/essays.html', { waitUntil: 'domcontentloaded' });
   await page.locator('#searchInput').fill('Poetry');
   const card = page.locator('[data-essay-link="qingsimeng"]');
@@ -17,12 +17,83 @@ test('目录标题延续到正文，返回时保留筛选、滚动位置与键�
   await page.locator('.note-back-fixed').click();
   await expect(page).toHaveURL(/\/essays\.html$/);
   await expect(page.locator('#searchInput')).toHaveValue('Poetry');
-  await expect(card).toBeFocused();
+  await expect(card).not.toBeFocused();
+  await expect(card).toHaveCSS('outline-style', 'none');
   await expect(card).toBeInViewport();
   await expect(page.locator('[data-essay-link="embers-remain"]')).toBeHidden();
   const state = await page.evaluate(() => JSON.parse(sessionStorage.getItem('ray:essay-position:v1')!));
   expect(await page.evaluate(() => scrollY)).toBeCloseTo(state.scroll, 0);
+
+  await page.locator('#searchInput').click();
+  await page.keyboard.press('Tab');
+  await expect(card).toBeFocused();
+  await expect(card).toHaveCSS('outline-style', 'solid');
 });
+
+for (const { entryKeyboard, returnKeyboard } of [
+  { entryKeyboard: true, returnKeyboard: true },
+  { entryKeyboard: false, returnKeyboard: true },
+  { entryKeyboard: true, returnKeyboard: false },
+]) {
+  test(`${entryKeyboard ? '键盘' : '鼠标'}进入文章，${returnKeyboard ? '键盘' : '鼠标'}返回时按返回操作恢复焦点`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', '键盘与鼠标切换只需在桌面端检查');
+    await page.goto('/essays.html', { waitUntil: 'domcontentloaded' });
+    await page.locator('#searchInput').fill('轻似梦');
+    await expect(page.locator('[data-essay-link="no-belief"]')).toHaveAttribute('inert', '');
+    const card = page.locator('[data-essay-link="qingsimeng"]');
+    if (entryKeyboard) {
+      await page.keyboard.press('Tab');
+      await expect(card).toBeFocused();
+      await page.keyboard.press('Enter');
+    } else {
+      await card.click();
+    }
+    await expect(page).toHaveURL(/essay-qingsimeng\.html$/);
+    const back = page.locator('.note-back-fixed');
+    if (returnKeyboard) {
+      await back.focus();
+      await page.keyboard.press('Enter');
+    } else {
+      await back.click();
+    }
+    await expect(page).toHaveURL(/\/essays\.html$/);
+    await expect(page.locator('#searchInput')).toHaveValue('轻似梦');
+    if (returnKeyboard) {
+      await expect(card).toBeFocused();
+      await expect(card).toHaveCSS('outline-style', 'solid');
+    } else {
+      await expect(card).not.toBeFocused();
+      await expect(card).toHaveCSS('outline-style', 'none');
+    }
+  });
+}
+
+for (const keyboard of [false, true]) {
+  test(`${keyboard ? '键盘' : '鼠标'}进入文章后，浏览器后退保持对应焦点行为`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', '浏览器历史与输入方式的组合只需检查一次');
+    await page.goto('/essays.html', { waitUntil: 'domcontentloaded' });
+    await page.locator('#searchInput').fill('轻似梦');
+    await expect(page.locator('[data-essay-link="no-belief"]')).toHaveAttribute('inert', '');
+    const card = page.locator('[data-essay-link="qingsimeng"]');
+    if (keyboard) {
+      await page.keyboard.press('Tab');
+      await expect(card).toBeFocused();
+      await page.keyboard.press('Enter');
+    } else {
+      await card.click();
+    }
+    await expect(page).toHaveURL(/essay-qingsimeng\.html$/);
+    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#searchInput')).toHaveValue('轻似梦');
+    if (keyboard) {
+      await expect(card).toBeFocused();
+      await expect(card).toHaveCSS('outline-style', 'solid');
+    } else {
+      await expect(card).not.toBeFocused();
+      await expect(card).toHaveCSS('outline-style', 'none');
+    }
+  });
+}
 
 test('短句采用扉页，长文采用内页，窄屏保持完整可读', async ({ page }) => {
   for (const slug of ['no-belief', 'qingsimeng', 'trial', 'embers-remain']) {
@@ -118,5 +189,5 @@ test('目录先解析而搜索脚本迟到时，不提前消费恢复状态', as
   }
   await expect(page.locator('#searchInput')).toHaveValue('Poetry');
   await expect(page.locator('[data-essay-link="embers-remain"]')).toBeHidden();
-  await expect(page.locator('[data-essay-link="qingsimeng"]')).toBeFocused();
+  await expect(page.locator('[data-essay-link="qingsimeng"]')).not.toBeFocused();
 });
