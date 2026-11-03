@@ -442,10 +442,10 @@ test('external resources cannot destabilize Chinese article layout or core initi
 test('all photo cards are present in static markup and the lightbox interactions work', async ({ page, request }) => {
   const response = await request.get('/photos.html');
   const html = await response.text();
-  expect((html.match(/class="gallery-item /g) || []).length).toBe(36);
-  expect((html.match(/-400\.webp 400w/g) || []).length).toBe(36);
-  expect((html.match(/-600\.webp 600w/g) || []).length).toBe(36);
-  expect((html.match(/-medium\.webp \d+w/g) || []).length).toBe(26);
+  expect((html.match(/class="gallery-item /g) || []).length).toBe(55);
+  expect((html.match(/-400\.webp 400w/g) || []).length).toBe(55);
+  expect((html.match(/-600\.webp 600w/g) || []).length).toBe(55);
+  expect((html.match(/-medium\.webp \d+w/g) || []).length).toBe(45);
   expect(html).not.toContain('/photos/f1-2025-shanghai/f1-2.jpeg');
   expect(html).not.toContain('/photos/photo-4.webp');
   expect(html).not.toContain('/photos/photo-6.webp');
@@ -461,15 +461,20 @@ test('all photo cards are present in static markup and the lightbox interactions
   expect(mobilePhoto.headers()['content-type']).toContain('image/webp');
 
   await openPage(page, '/photos.html');
+  await expect(page.locator('.series-name').first()).toHaveText('兰圃');
+  await expect(page.locator('#gallery-lanpu .gallery-item')).toHaveCount(10);
+  await expect(page.locator('#gallery-after-hours-til-dawn .gallery-item')).toHaveCount(9);
+  await expect(page.locator('#series-after-hours-til-dawn .series-name')).toHaveText('After Hours Til Dawn Tour');
+  await expect(page.locator('#series-after-hours-til-dawn .series-desc')).toContainText('香港 · 10 月 24 日');
   const cards = page.locator('.gallery-item');
-  await expect(cards).toHaveCount(36);
+  await expect(cards).toHaveCount(55);
   await cards.first().click();
   const lightbox = page.locator('#lightbox');
   await expect(lightbox).toHaveClass(/active/);
-  await expect(page.locator('#lightboxCounter')).toContainText('1 / 36');
+  await expect(page.locator('#lightboxCounter')).toContainText('1 / 55');
 
   await lightbox.dispatchEvent('wheel', { deltaX: 72, deltaY: 0, deltaMode: 0 });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 36');
+  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
 
   await lightbox.click({ position: { x: 8, y: 8 } });
   await expect(lightbox).toHaveAttribute('aria-hidden', 'true');
