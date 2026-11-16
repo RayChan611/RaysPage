@@ -18,6 +18,7 @@ interface Props {
   activeSection?: string;
   articleNavigation?: boolean;
   bodyClass?: string;
+  privatePage?: boolean;
 }
 const {
   title = 'Ray Chan',
@@ -39,6 +40,7 @@ const {
   activeSection,
   articleNavigation = false,
   bodyClass,
+  privatePage = false,
 } = Astro.props;
 
 const NAV_ITEMS = [
@@ -91,6 +93,7 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <meta name="baidu-site-verification" content="codeva-FkS9J5NQKE" />
   <title>{title}</title>
   <meta name="description" content={description} />
+  {privatePage && <meta name="robots" content="noindex, nofollow, noarchive" />}
   <meta name="author" content="Ray Chan" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta property="og:title" content={title} />
@@ -117,7 +120,7 @@ const resolvedOgImageAlt = ogImageAlt || title;
   {articleNavigation && <link rel="stylesheet" href="/css/article-reading.css" />}
   {articleNavigation && <script is:inline src="/js/article-navigation.js"></script>}
   <!-- 第三方统计在页面 load 后再请求，避免其网络状态拖住核心页面生命周期。 -->
-  <script is:inline>
+  {!privatePage && <script is:inline>
     window.addEventListener('load', function () {
       var analyticsScript = document.createElement('script');
       analyticsScript.async = true;
@@ -128,7 +131,7 @@ const resolvedOgImageAlt = ogImageAlt || title;
       }, { once: true });
       document.head.appendChild(analyticsScript);
     }, { once: true });
-  </script>
+  </script>}
   {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.98a946ad.webp" fetchpriority="high" />}
 </head>
 <body class:list={[{ 'page-home': onIndex }, bodyClass]}>
@@ -230,7 +233,7 @@ const resolvedOgImageAlt = ogImageAlt || title;
 
   <footer class="footer">
     <div class="container">
-      <p class="footer-sign">&mdash; Ray Chan</p>
+      <a class="footer-sign" href="/resume.html" rel="nofollow" aria-label="查看简历（需要访问码）">&mdash; Ray Chan</a>
       <p class="footer-sign-sub">Between the written and the unspoken &middot; <a class="footer-link" href="/rss.xml" aria-label="RSS 订阅">RSS</a></p>
     </div>
   </footer>
