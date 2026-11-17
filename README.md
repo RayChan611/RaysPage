@@ -11,7 +11,7 @@ Ray Chan 的个人网站，收录个人介绍、Soul-Searching 文章、阅读�
 
 ## 本地运行
 
-需要 Node.js 22.12.0 或更高版本；仓库的 `.nvmrc` 固定了团队使用的 Node.js 版本。
+需要 Node.js 22.23.4 或更高版本；仓库的 `.nvmrc` 固定了团队使用的 Node.js 版本。
 
 ```bash
 npm ci
