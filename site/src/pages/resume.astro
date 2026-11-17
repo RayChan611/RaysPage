@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="简历 | Ray Chan"
+  description="凭访问码查看简历。"
+  canonical=""
+  ogUrl="https://www.raychan.top/resume.html"
+  current="resume"
+  privatePage
+  extraCss={['css/resume.css']}
+>
+  <section class="resume-shell" aria-labelledby="resume-page-title">
+    <div id="resumeGate" class="resume-gate">
+      <span class="resume-eyebrow">RAY CHAN · RÉSUMÉ</span>
+      <h1 id="resume-page-title">一份简历，<br />留给一次对话。</h1>
+      <p class="resume-intro">此页仅向受邀者开放。请输入分享给你的访问码。</p>
+      <form id="resumeForm" class="resume-form" method="post">
+        <label for="resumeCode">访问码</label>
+        <div class="resume-input-row">
+          <input
+            id="resumeCode"
+            name="access-code"
+            type="password"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            maxlength="80"
+            required
+            disabled
+            aria-describedby="resumeStatus"
+            placeholder="请输入访问码"
+          />
+          <button id="resumeReveal" class="resume-reveal" type="button" aria-label="显示访问码" aria-pressed="false" disabled>显示</button>
+        </div>
+        <button id="resumeSubmit" class="resume-submit" type="submit" disabled>查看简历 <span aria-hidden="true">↗</span></button>
+        <p id="resumeStatus" class="resume-status" role="status" aria-live="polite"></p>
+      </form>
+      <p id="resumeUnavailable" class="resume-status">请启用 JavaScript 后输入访问码，或联系分享者获取 PDF。</p>
+      <a class="resume-home" href="/index.html">返回主页 <span aria-hidden="true">↗</span></a>
+    </div>
+    <div id="resumeView" class="resume-view" hidden>
+      <div class="resume-toolbar">
+        <span class="resume-eyebrow">RÉSUMÉ · 2026</span>
+        <div class="resume-actions">
+          <a id="resumeDownload" class="resume-download">下载 PDF <span aria-hidden="true">↓</span></a>
+          <button id="resumeLock" class="resume-lock" type="button">结束查看 <span aria-hidden="true">↗</span></button>
+        </div>
+      </div>
+      <article id="resumeContent" class="resume-content" aria-label="简历内容" tabindex="-1"></article>
+    </div>
+  </section>
+  <script>
+    import '../scripts/resume';
+  </script>
+</BaseLayout>

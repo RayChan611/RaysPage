@@ -11,7 +11,7 @@ Ray Chan 的个人网站，收录个人介绍、Soul-Searching 文章、阅读�
 
 ## 本地运行
 
-需要 Node.js 22.12.0 或更高版本；仓库的 `.nvmrc` 固定了团队使用的 Node.js 版本。
+需要 Node.js 22.23.4 或更高版本；仓库的 `.nvmrc` 固定了团队使用的 Node.js 版本。
 
 ```bash
 npm ci
@@ -26,6 +26,7 @@ npm run dev
 npm run check      # Astro 与 TypeScript 检查
 npm run build      # 构建静态网站到 dist/
 npm run photos:optimize # 生成并校验 400/600/800/1280px WebP（需要 cwebp 与 webpinfo）
+npm run resume:pack -- --pdf /项目外/简历.pdf --profile /项目外/resume.json --code-file /项目外/访问码.txt
 npm run validate   # 校验构建产物、链接、HTML 结构与安全响应头配置
 npm test           # 依次执行检查、构建和产物校验
 npm run test:e2e   # 执行桌面端和移动端浏览器回归测试
@@ -63,6 +64,16 @@ dist/               提交并用于线上发布的构建产物
 - 新增摄影原图并补齐 `site/src/data/photos.ts` 元数据后，运行 `npm run photos:optimize` 生成并校验画廊使用的 400、600、800 与最高 1280px WebP；普通画廊不会加载原图，桌面灯箱按需加载原图，手机与省流量模式优先使用可用的中尺寸 WebP（最高 1280px）。命令需要本机可用的 `cwebp` 与 `webpinfo`，也可以分别通过 `CWEBP_PATH`、`WEBPINFO_PATH` 指定路径。替换原图并希望强制重建已有派生图时，执行 `npm run photos:optimize -- --force`。
 - 内容日期相同时，网站会使用内容 ID 作为固定的第二排序条件，避免不同环境下顺序漂移。
 - 不再展示但需要保留的旧图片放在 `source-assets/`，不要留在 `site/public/`；公开目录中的文件会原样进入 `dist/`。
+
+## 受保护的简历
+
+页脚署名链接至 `/resume.html`。此页不进入主导航、站内搜索、RSS 或站点地图，设置 `noindex`，并关闭第三方统计。解锁后显示网页版简历，可下载未经改动的原始 PDF；结束查看、刷新或离开页面时锁定，打开满 15 分钟也会锁定。
+
+项目仍采用静态部署，没有新增服务器或依赖。`resume:pack` 使用浏览器和 Node.js 原生的 AES-256-GCM 加密，结合 PBKDF2-SHA256（600,000 次迭代）、随机盐和随机初始向量；公开目录中仅保存 `site/public/private/resume.enc` 密文。该目录名不代表服务器访问权限，资料的保密性来自加密和访问码的强度。默认生成的随机访问码具有 120 位随机性。页面不会保存访问码或已解密资料到浏览器存储，也不会将访问码放进 URL 或发送到服务器。
+
+原始 PDF、`resume.json` 和访问码文件必须放在项目目录外。运行打包命令时，访问码文件不存在则生成随机访问码，并将文件权限设为仅当前用户可读写；已存在则复用，命令不会输出访问码。支持在该文件中设置 6–64 位英文字母或数字，不区分大小写，空格和连字符作为分隔符忽略。短码或含姓名、生日等常见模式的访问码容易被离线猜中；不应将这种设置视为可靠的私密资料保护。访问码不得提交到仓库。网页版资料结构由 `site/src/lib/resume-vault.ts` 的 `ResumeProfile` 定义，内容与 PDF 分别维护；更新后先重新打包，再运行 `npm test` 检查并构建。
+
+静态加密适合持码查看，不能提供逐人授权或即时撤销。换码重新加密也不能让已保存的旧密文、旧访问码和已下载的 PDF 失效；需要这些控制时，应改为服务端授权和私有文件存储。不要把明文简历、联系方式或访问码写进公开页面、测试夹具或提交历史。
 
 ## 构建与发布
 
