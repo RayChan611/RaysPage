@@ -708,6 +708,15 @@ test('key pages have no serious accessibility violations or horizontal overflow'
   test.setTimeout(60_000);
   for (const path of keyPages) {
     await openPage(page, path);
+    // 淡入中的透明度会暂时降低文字对比度，等视口内的卡片完整显示后再扫描。
+    await expect.poll(() => page.locator('.animate-on-scroll').evaluateAll((elements) =>
+      elements.every((element) => {
+        const bounds = element.getBoundingClientRect();
+        const inViewport = bounds.bottom > 0 && bounds.top < window.innerHeight
+          && bounds.right > 0 && bounds.left < window.innerWidth;
+        return !inViewport || getComputedStyle(element).opacity === '1';
+      })
+    ), { message: `${path} 的入场内容应完成淡入` }).toBe(true);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${path} has horizontal overflow`).toBeLessThanOrEqual(1);
 
