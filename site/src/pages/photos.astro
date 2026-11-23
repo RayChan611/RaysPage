@@ -5,7 +5,7 @@ import { photoSeries } from '../data/photos';
 
 const meta = {
   title: 'Photography | Ray Chan',
-  description: 'Photography by Ray Chan — moments captured in monochrome, grouped by series.',
+  description: 'Ray Chan 的摄影记录——光、时间与日常瞬间，按系列收录。',
   canonical: 'https://www.raychan.top/photos.html',
   ogType: 'website',
   ogImage: 'https://www.raychan.top/assets/og/default.png',
@@ -44,6 +44,8 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
         </>
       ))}
     </div>
+    <span class="series-nav-hint series-nav-hint--prev" aria-hidden="true">‹</span>
+    <span class="series-nav-hint series-nav-hint--next" aria-hidden="true">›</span>
   </nav>
 
   {photoSeries.map((item, seriesIndex) => (

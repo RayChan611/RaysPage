@@ -14,6 +14,7 @@ interface Props {
   extraCss?: string[];
   current?: string;
   preloadPhoto?: boolean;
+  preloadPhotoMobile?: string;
   pageScripts?: string[];
   activeSection?: string;
   articleNavigation?: boolean;
@@ -36,6 +37,7 @@ const {
   extraCss = [],
   current = 'home',
   preloadPhoto = false,
+  preloadPhotoMobile,
   pageScripts = [],
   activeSection,
   articleNavigation = false,
@@ -132,7 +134,8 @@ const resolvedOgImageAlt = ogImageAlt || title;
       document.head.appendChild(analyticsScript);
     }, { once: true });
   </script>}
-  {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.98a946ad.webp" fetchpriority="high" />}
+  {preloadPhoto && <link rel="preload" as="image" href="/assets/ray-photo.98a946ad.webp" media={preloadPhotoMobile ? '(min-width: 769px)' : undefined} fetchpriority="high" />}
+  {preloadPhoto && preloadPhotoMobile && <link rel="preload" as="image" href={preloadPhotoMobile} media="(max-width: 768px)" fetchpriority="high" />}
 </head>
 <body class:list={[{ 'page-home': onIndex }, bodyClass]}>
   <a class="skip-link" href="#main-content">Skip to content</a>

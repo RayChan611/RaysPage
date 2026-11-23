@@ -447,8 +447,34 @@
 
   // ---- Series nav: smooth scroll + active highlight ----
   function initSeriesNav() {
+    const nav = document.getElementById('seriesNav');
+    const scroller = nav && nav.querySelector('.container');
     const navLinks = document.querySelectorAll('.series-nav-link');
     const sections = document.querySelectorAll('.series-section');
+    if (!nav || !scroller) return;
+
+    function updateOverflow() {
+      nav.dataset.overflowStart = String(scroller.scrollLeft > 2);
+      nav.dataset.overflowEnd = String(scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 2);
+    }
+
+    function revealActiveLink() {
+      const activeLink = scroller.querySelector('[aria-current="location"]');
+      if (!activeLink || scroller.scrollWidth <= scroller.clientWidth) return;
+      const bounds = scroller.getBoundingClientRect();
+      const linkBounds = activeLink.getBoundingClientRect();
+      // 只滚动标签容器的横轴，避免把正在阅读的照片拉回系列标题。
+      if (linkBounds.left < bounds.left + 20 || linkBounds.right > bounds.right - 20) {
+        scroller.scrollTo({
+          left: scroller.scrollLeft + linkBounds.left - bounds.left - (bounds.width - linkBounds.width) / 2,
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+      }
+    }
+
+    scroller.addEventListener('scroll', updateOverflow, { passive: true });
+    window.addEventListener('resize', () => { revealActiveLink(); updateOverflow(); });
+    updateOverflow();
 
     if ('IntersectionObserver' in window && sections.length) {
       const observer = new IntersectionObserver((entries) => {
@@ -461,6 +487,7 @@
               if (active) l.setAttribute('aria-current', 'location');
               else l.removeAttribute('aria-current');
             });
+            revealActiveLink();
           }
         });
       }, { rootMargin: '-40% 0px -50% 0px' });
