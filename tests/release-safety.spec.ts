@@ -133,3 +133,24 @@ test('WebKit 手机可使用横屏菜单、搜索、文章往返和照片浏览'
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   expect(errors).toEqual([]);
 });
+
+
+test('手机浏览后部摄影系列时当前标签可见，导航横移不改变照片位置', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.use.isMobile, '仅检查会横向溢出的手机系列导航');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  const scroller = page.locator('#seriesNav .container');
+  await expect(page.locator('#seriesNav')).toHaveAttribute('data-overflow-end', 'true');
+  for (const id of ['moments', 'lanpu']) {
+    await page.locator(`#series-${id} .gallery-item`).first().scrollIntoViewIfNeeded();
+    const scrollBefore = await page.evaluate(() => scrollY);
+    const active = scroller.locator(`[data-target="series-${id}"]`);
+    await expect(active).toHaveAttribute('aria-current', 'location');
+    await expect.poll(() => active.evaluate((link) => {
+      const bounds = link.getBoundingClientRect();
+      const viewport = link.parentElement!.getBoundingClientRect();
+      return bounds.left >= viewport.left - 1 && bounds.right <= viewport.right + 1;
+    })).toBe(true);
+    expect(await page.evaluate(() => scrollY)).toBeCloseTo(scrollBefore, 0);
+  }
+});

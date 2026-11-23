@@ -78,6 +78,7 @@
   opacity: 0.4;
   font-size: 0.75rem;
 }
+.series-nav-hint { display: none; }
 .series-nav-more {
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -133,7 +134,7 @@
   text-transform: uppercase;
 }
 .series-desc {
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   max-width: 340px;
   text-align: right;
@@ -226,6 +227,8 @@
   -webkit-backface-visibility: hidden;
   transition: filter var(--transition), transform var(--motion-slow) var(--motion-ease);
 }
+/* 演唱会的灯光属于画面表达，列表与大图均保留原色。 */
+#series-after-hours-til-dawn .gallery-item img { filter: none; }
 .gallery-item img.is-lightbox-source { visibility: hidden; filter: grayscale(0%); }
 .gallery-item:hover img {
   filter: grayscale(0%);
@@ -269,13 +272,13 @@
 }
 .gallery-caption-copy { min-width: 0; }
 .gallery-overlay h3 {
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   margin-bottom: 4px;
 }
 .gallery-overlay p {
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   line-height: 1.65;
   margin-top: 5px;
@@ -458,11 +461,28 @@
 @media (max-width: 768px) {
   .photos-hero { padding: 90px 24px 26px; }
   .photos-title { font-size: clamp(2.1rem, 10vw, 3.1rem); line-height: 1.15; margin-bottom: 12px; }
-  .photos-subtitle { font-size: 0.82rem; line-height: 1.8; letter-spacing: 0; }
-  .photos-edition { font-size: 0.6rem; margin-top: 12px; letter-spacing: 0.07em; }
+  .photos-subtitle { font-size: 0.9375rem; line-height: 1.8; letter-spacing: 0; }
+  .photos-edition { font-size: 0.7rem; margin-top: 12px; letter-spacing: 0.07em; }
   .series-nav { padding: 4px 24px; top: 56px; }
   .series-nav .container { gap: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .series-nav .container::-webkit-scrollbar { display: none; }
+  .series-nav-hint {
+    display: flex;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .series-nav-hint--prev { left: 16px; background: linear-gradient(to right, #0a0a0a 45%, transparent); }
+  .series-nav-hint--next { right: 16px; background: linear-gradient(to left, #0a0a0a 45%, transparent); }
+  .series-nav[data-overflow-start="true"] .series-nav-hint--prev,
+  .series-nav[data-overflow-end="true"] .series-nav-hint--next { opacity: 1; }
   .series-nav-link, .series-nav-divider { flex-shrink: 0; }
   .series-nav-link {
     min-height: 44px;
@@ -479,8 +499,8 @@
   }
   .series-name { font-size: 1.8rem; }
   .series-header-left { gap: 14px; }
-  .series-meta { font-size: 0.65rem; }
-  .series-desc { text-align: left; max-width: 100%; font-size: 0.8rem; padding-bottom: 0; }
+  .series-meta { font-size: 0.7rem; }
+  .series-desc { text-align: left; max-width: 100%; font-size: 1rem; padding-bottom: 0; }
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 34px 8px;
@@ -497,9 +517,9 @@
     grid-column: span 2;
   }
   .gallery-overlay { padding: 12px 0 0; gap: 8px; }
-  .gallery-number { font-size: 0.6rem; }
-  .gallery-overlay h3 { font-size: 0.76rem; line-height: 1.5; }
-  .gallery-overlay p { font-size: 0.7rem; line-height: 1.6; }
+  .gallery-number { font-size: 0.6875rem; }
+  .gallery-overlay h3 { font-size: 0.9375rem; line-height: 1.5; }
+  .gallery-overlay p { font-size: 0.875rem; line-height: 1.6; }
   .gallery-view { opacity: 1; transform: none; width: 26px; height: 26px; right: 8px; bottom: 8px; }
   .lightbox {
     gap: 12px;

@@ -56,6 +56,9 @@ dist/               提交并用于线上发布的构建产物
 
 ## 内容维护
 
+- 首页的 Recent Entries 从摄影目录读取兰圃系列照片，每 3 秒轮播一张。最新文章和阅读笔记固定展示，没有独立内页的摘录会链接到笔记列表中的对应位置。
+- 首页手机端使用独立裁切的轻量背景图。更换背景时应同时准备桌面图与手机图；手机图片地址由 `site/src/pages/index.astro` 中的 `preloadPhotoMobile` 统一提供给图片与预加载，避免手机重复下载桌面原图。
+
 - 新文章放入 `site/src/content/essays/`，并沿用现有文件的 frontmatter（文件顶部元数据）字段。
 - 文章排版通过 `presentation` 显式选择：默认 `article` 是连续阅读的内页，`quote` 是短句扉页，`poem` 是保留诗句换行的扉页；不按字数或标签自动猜测。可参考 `no-belief.mdx`、`qingsimeng.mdx` 与 `embers-remain.mdx`。
 - Soul-Searching 目录与文章保留普通链接，在支持跨页面视图转场的浏览器中共享标题动画；减少动态效果时关闭该动画。返回目录会恢复同标签页最近 30 分钟的筛选和阅读位置；禁用存储时退回普通导航。

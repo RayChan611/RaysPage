@@ -67,7 +67,7 @@ export async function GET() {
     {
       type: 'page',
       title: 'Photography',
-      description: 'Moments captured in monochrome, grouped by series.',
+      description: '光、时间与日常瞬间，按系列收录。',
       href: '/photos.html',
       meta: `${photoCount} frames`,
       keywords: ['photography', 'photos', '摄影', '照片'],

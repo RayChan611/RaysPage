@@ -1,5 +1,18 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { photoSeries } from '../data/photos';
+import { compareContentNewestFirst, formatContentDate, getPublishedEssays, getPublishedNotes } from '../lib/content';
+
+const [essays, notes] = await Promise.all([getPublishedEssays(), getPublishedNotes()]);
+const recentEssay = essays.sort(compareContentNewestFirst)[0];
+const recentNote = notes.sort(compareContentNewestFirst)[0];
+const recentSeries = photoSeries.find((series) => series.id === 'lanpu' && series.photos.length > 0);
+// 沿用阅读笔记中手写的可信摘录，仅取首段，避免在首页重复整张笔记卡。
+const recentNoteExcerpt = recentNote?.data.excerpt.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1]
+  ?? recentNote?.data.description ?? '';
+const recentNoteHref = recentNote
+  ? recentNote.data.hasDetail === false ? `/notes.html#note-${recentNote.id}` : `/note-${recentNote.id}.html`
+  : undefined;
 
 const meta = {
   title: 'Ray Chan',
@@ -14,22 +27,26 @@ const meta = {
   extraCss: [],
   current: 'home',
   preloadPhoto: true,
+  preloadPhotoMobile: '/assets/ray-photo-mobile.556d94fb.webp',
 };
 
-const pageScripts = ['js/hero-typewriter.js', 'js/button-effects.js', 'js/card-tilt.js'];
+const pageScripts = ['js/hero-typewriter.js', 'js/button-effects.js', 'js/card-tilt.js', 'js/recent-entries.js'];
 ---
 <BaseLayout {...meta} pageScripts={pageScripts}>
   <section class="hero" id="hero">
     <div class="hero-bg">
-      <img
-        src="/assets/ray-photo.98a946ad.webp"
-        alt=""
-        class="hero-bg-img"
-        fetchpriority="high"
-        decoding="async"
-        width="2400"
-        height="1621"
-      />
+      <picture>
+        <source media="(max-width: 768px)" srcset={meta.preloadPhotoMobile} width="990" height="1080" />
+        <img
+          src="/assets/ray-photo.98a946ad.webp"
+          alt=""
+          class="hero-bg-img"
+          fetchpriority="high"
+          decoding="async"
+          width="2400"
+          height="1621"
+        />
+      </picture>
     </div>
     <div class="hero-overlay" aria-hidden="true"></div>
 
@@ -56,12 +73,11 @@ const pageScripts = ['js/hero-typewriter.js', 'js/button-effects.js', 'js/card-t
     <div class="container">
       <div class="section-header animate-on-scroll">
         <h2 class="section-title" id="about-title">About Me</h2>
-        <div class="section-line"></div>
       </div>
 
       <div class="about-layout">
         <div class="about-text">
-          <p class="about-bio">Cherish · Remain&emsp;&emsp;温柔永存 · 岁岁相伴</p>
+          <p class="about-bio"><span>Cherish · Remain</span><span>温柔永存 · 岁岁相伴</span></p>
           <div class="about-tags">
             <span class="tag">Project Manager</span>
           </div>
@@ -91,11 +107,77 @@ const pageScripts = ['js/hero-typewriter.js', 'js/button-effects.js', 'js/card-t
     </div>
   </section>
 
-  <section class="section section-dark" id="contact" aria-labelledby="contact-title">
+  {(recentSeries || recentEssay || recentNote) && (
+    <section class="section" id="recent" aria-labelledby="recent-title">
+      <div class="container">
+        <div class="section-header animate-on-scroll">
+          <h2 class="section-title" id="recent-title">Recent Entries</h2>
+        </div>
+        <div class="recent-layout">
+          {recentSeries && (
+            <div class="recent-photo" role="group" aria-labelledby="recent-photo-title">
+              <div class="recent-photo-view">
+                <div class="recent-track" id="recent-track">
+                  {recentSeries.photos.map((photo, photoIndex) => {
+                    const image = {
+                      src: photo.compact,
+                      srcset: `${photo.small} ${photo.smallWidth}w, ${photo.compact} ${photo.compactWidth}w, ${photo.thumb} ${photo.thumbWidth}w`,
+                      sizes: '(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) calc(51.3vw - 44px), 614px',
+                      width: photo.thumbWidth,
+                      height: photo.thumbHeight,
+                      alt: photo.alt,
+                      decoding: 'async' as const,
+                    };
+                    return (
+                      <a class="recent-photo-frame" href={`/photos.html#series-${recentSeries.id}`} inert={photoIndex > 0}>
+                        {photoIndex === 0 ? <img {...image} loading="lazy" /> : <template><img {...image} /></template>}
+                      </a>
+                    );
+                  })}
+                </div>
+                <button class="recent-photo-arrow" type="button" data-recent-prev aria-label="上一张照片" aria-controls="recent-track" hidden>
+                  <span aria-hidden="true">←</span>
+                </button>
+                <button class="recent-photo-arrow" type="button" data-recent-next aria-label="下一张照片" aria-controls="recent-track" hidden>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+              <div class="recent-photo-caption">
+                <div class="recent-meta"><span class="recent-kind">摄影</span><span>{recentSeries.photos.length} 张照片</span></div>
+                <h3 class="recent-title" id="recent-photo-title">{recentSeries.name}</h3>
+                <p class="recent-excerpt">{recentSeries.description}</p>
+              </div>
+            </div>
+          )}
+          {(recentEssay || recentNote) && (
+            <div class="recent-text">
+              {recentEssay && (
+                <a class="recent-entry" href={`/essay-${recentEssay.id}.html`}>
+                  <div class="recent-meta"><span class="recent-kind">文字</span><time datetime={recentEssay.data.date.toISOString()}>{formatContentDate(recentEssay.data.date)}</time></div>
+                  <h3 class="recent-title">{recentEssay.data.title} <span class="recent-link-icon" aria-hidden="true">↗</span></h3>
+                  <p class="recent-excerpt">{recentEssay.data.excerpt}</p>
+                  <span class="recent-action">阅读全文 <span aria-hidden="true">→</span></span>
+                </a>
+              )}
+              {recentNote && (
+                <a class="recent-entry" href={recentNoteHref}>
+                  <div class="recent-meta"><span class="recent-kind">阅读</span><time datetime={recentNote.data.date.toISOString()}>{formatContentDate(recentNote.data.date)}</time></div>
+                  <h3 class="recent-title">{recentNote.data.book} <span class="recent-link-icon" aria-hidden="true">↗</span></h3>
+                  <p class="recent-excerpt" set:html={recentNoteExcerpt}></p>
+                  <span class="recent-action">{recentNote.data.hasDetail === false ? '查看摘录' : '阅读笔记'} <span aria-hidden="true">→</span></span>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="section" id="contact" aria-labelledby="contact-title">
     <div class="container">
       <div class="section-header animate-on-scroll">
         <h2 class="section-title" id="contact-title">Get In Touch</h2>
-        <div class="section-line"></div>
       </div>
 
       <div class="contact-grid">
@@ -105,7 +187,7 @@ const pageScripts = ['js/hero-typewriter.js', 'js/button-effects.js', 'js/card-t
           </div>
           <div>
             <h3>Email</h3>
-            <p>chenrui0411@outlook.com</p>
+            <p>chenrui0411@<wbr />outlook.com</p>
           </div>
           <span class="copy-hint">点击复制</span>
         </div>
