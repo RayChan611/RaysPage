@@ -33,7 +33,7 @@
     btn.classList.toggle('active', open);
     links.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    btn.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+    btn.setAttribute('aria-label', open ? '关闭菜单' : '打开菜单');
 
     if (mobileMenuFocusFrame !== null) {
       cancelAnimationFrame(mobileMenuFocusFrame);

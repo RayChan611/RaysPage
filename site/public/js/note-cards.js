@@ -31,7 +31,7 @@
         var expanded = card.classList.toggle('is-expanded');
         button.setAttribute('aria-expanded', String(expanded));
         var label = button.querySelector('[data-note-expand-label]');
-        if (label) label.textContent = expanded ? '收起' : '展开全部';
+        if (label) label.textContent = expanded ? '收起摘录' : '展开摘录';
       });
     });
 

@@ -109,14 +109,14 @@ test('关闭照片恢复原滚动位置，切图后焦点返回当前照片', as
   expect(await page.evaluate(() => scrollY)).toBeCloseTo(scrollBefore, 0);
   await cards.nth(9).click();
   await page.getByRole('button', { name: 'Next image', exact: true }).click();
-  await expect(page.locator('#lightboxCounter')).toContainText('11 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('After Hours Til Dawn Tour · 1 / 9');
   await page.keyboard.press('Escape');
   await expect(page.locator('#lightbox')).toBeHidden();
   await expect(cards.nth(10)).toBeFocused();
   await expect(cards.nth(10)).toBeInViewport();
   await cards.first().click();
   await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('#lightboxCounter')).toContainText('55 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('Moments · 4 / 4');
   await page.keyboard.press('Escape');
   await expect(page.locator('#lightbox')).toBeHidden();
   await expect(cards.last()).toBeFocused();
@@ -138,7 +138,7 @@ test('手机单指横拖跟手切图，纵向及双指手势不误切', async ({
   await expect(image).not.toHaveCSS('transform', 'none');
   await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 105, y }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
   await expect(page.locator('#lightbox')).toHaveClass(/active/);
   await expect.poll(() => image.evaluate((element) => element.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0);
   const second = (await image.boundingBox())!;
@@ -146,7 +146,7 @@ test('手机单指横拖跟手切图，纵向及双指手势不误切', async ({
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [center] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: center.x + 3, y: center.y + 80 }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [
     { x: center.x - 30, y: center.y, id: 0 }, { x: center.x + 30, y: center.y, id: 1 },
   ] });
@@ -154,7 +154,7 @@ test('手机单指横拖跟手切图，纵向及双指手势不误切', async ({
     { x: center.x - 80, y: center.y, id: 0 }, { x: center.x - 20, y: center.y, id: 1 },
   ] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
   await session.detach();
 });
 
@@ -168,7 +168,7 @@ test('大图失败保留缩略图并如实提示，继续切图仍正常', async
   await expect(page.locator('#lightboxStatus')).toContainText('大图暂时无法加载');
   await expect.poll(() => page.locator('#lightboxImg').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
   await expect(page.locator('#lightboxStatus')).toBeEmpty();
   await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /lanpu-2-medium\.webp$/);
 });
@@ -185,7 +185,7 @@ test('迟到的大图不会覆盖已经切换的照片', async ({ page }, testIn
   await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /lanpu-2-medium\.webp$/);
   await page.waitForTimeout(1100);
   await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /lanpu-2-medium\.webp$/);
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
 });
 
 test('减少动态效果时照片直接打开和关闭且保持可用', async ({ page }) => {
@@ -219,7 +219,7 @@ test('放大照片后支持原生横向平移，缩小后恢复切图手势', as
   }
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect.poll(() => page.evaluate(() => visualViewport!.offsetLeft)).toBeGreaterThan(before + 30);
-  await expect(page.locator('#lightboxCounter')).toContainText('1 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 1 / 10');
   await session.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
   await expect(lightbox).not.toHaveClass(/is-zoomed/);
   await expect(image).toHaveCSS('touch-action', 'pan-y pinch-zoom');
@@ -326,7 +326,7 @@ test('展开途中关闭保持当前画面位置，快速重开不被旧回调�
   expect(result).toBeLessThan(1);
   await page.waitForTimeout(450);
   await expect(page.locator('#lightbox')).toHaveClass(/active/);
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
   await expect(page.locator('#lightboxImg')).toHaveAttribute('src', /lanpu-2/);
   await expect(page.locator('.is-lightbox-source')).toHaveCount(1);
   await expect(page.locator('.gallery-item img').first()).toHaveCSS('visibility', 'visible');
@@ -340,7 +340,7 @@ test('切图过程中关闭可返回远处照片且无隐藏图片残留', async
   await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
   await page.locator('.gallery-item').first().click();
   await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('#lightboxCounter')).toContainText('55 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('Moments · 4 / 4');
   await page.keyboard.press('Escape');
   await expect(page.locator('#lightbox')).toBeHidden();
   await expect(page.locator('.is-lightbox-source')).toHaveCount(0);

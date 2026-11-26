@@ -41,7 +41,7 @@ const nextLink = next ? { href: `note-${next.id}.html`, title: noteTitle(next) }
 >
   <AmbientBackground />
   <div class="note-page">
-    <a href="notes.html" class="note-back-fixed" data-lenis-prevent>&larr; Back</a>
+    <a href="notes.html" class="note-back-fixed" data-lenis-prevent><span aria-hidden="true">&larr;</span> 返回读书笔记</a>
     <div class="note-title-area">
       <h1 class="note-title">{detailTitle || title}</h1>
       <div class="note-meta-row">

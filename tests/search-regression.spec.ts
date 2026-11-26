@@ -4,7 +4,10 @@ import type { Page } from '@playwright/test';
 
 async function openSearch(page: Page) {
   await page.goto('/essays.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#quickSearchTrigger')).toHaveText(/搜全站/);
   await page.locator('#quickSearchTrigger').click();
+  await expect(page.getByRole('heading', { name: '搜全站' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '关闭搜索' })).toHaveText('关闭');
   await expect(page.locator('#quickSearchInput')).toBeFocused();
   await expect(page.locator('.quick-search-result').first()).toBeVisible();
 }

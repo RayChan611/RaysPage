@@ -154,3 +154,25 @@ test('手机浏览后部摄影系列时当前标签可见，导航横移不改�
     expect(await page.evaluate(() => scrollY)).toBeCloseTo(scrollBefore, 0);
   }
 });
+
+test('全部系列可用键盘关闭，并能跳到摄影系列', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/photos.html', { waitUntil: 'domcontentloaded' });
+  const picker = page.locator('.series-picker');
+  const summary = picker.locator('summary');
+  await summary.click();
+  await expect(picker.getByRole('link')).toHaveCount(6);
+  const f1 = picker.getByRole('link', { name: /F1 2025 上海/ });
+  await f1.focus();
+  await f1.press('Escape');
+  await expect(f1).toBeHidden();
+  await expect(summary).toBeFocused();
+  await summary.press('Enter');
+  await f1.click();
+  await expect(page).toHaveURL(/#series-f1-2025$/);
+  await expect(f1).toBeHidden();
+  const target = page.getByRole('region', { name: 'F1 2025 上海' });
+  await expect(target).toBeFocused();
+  await expect(target.getByRole('heading', { level: 2 })).toBeInViewport();
+  await expect(page.locator('.series-nav-link[data-target="series-f1-2025"]')).toHaveAttribute('aria-current', 'location');
+});

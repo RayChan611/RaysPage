@@ -173,7 +173,8 @@
     lightboxImg.alt = alt;
     if (lightboxTitle) lightboxTitle.textContent = title;
     if (lightboxCounter) {
-      lightboxCounter.textContent = (idx + 1) + ' / ' + galleryItems.length + (series ? '  ·  ' + series : '');
+      const { seriesPosition, seriesSize } = item.dataset;
+      lightboxCounter.textContent = `${series} · ${seriesPosition} / ${seriesSize}`;
     }
 
     if (!wasOpen) {
@@ -449,9 +450,11 @@
   function initSeriesNav() {
     const nav = document.getElementById('seriesNav');
     const scroller = nav && nav.querySelector('.container');
-    const navLinks = document.querySelectorAll('.series-nav-link');
-    const sections = document.querySelectorAll('.series-section');
     if (!nav || !scroller) return;
+    const navLinks = nav.querySelectorAll('a[data-target]');
+    const sections = document.querySelectorAll('.series-section');
+    const picker = nav.querySelector('.series-picker');
+    const pickerSummary = picker && picker.querySelector('summary');
 
     function updateOverflow() {
       nav.dataset.overflowStart = String(scroller.scrollLeft > 2);
@@ -475,6 +478,25 @@
     scroller.addEventListener('scroll', updateOverflow, { passive: true });
     window.addEventListener('resize', () => { revealActiveLink(); updateOverflow(); });
     updateOverflow();
+
+    if (picker && pickerSummary) {
+      picker.addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-target]');
+        if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        picker.open = false;
+        document.getElementById(link.dataset.target)?.focus({ preventScroll: true });
+      });
+      document.addEventListener('click', (event) => {
+        if (picker.open && !picker.contains(event.target)) picker.open = false;
+      });
+      picker.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !picker.open) return;
+        event.preventDefault();
+        event.stopPropagation();
+        picker.open = false;
+        pickerSummary.focus();
+      });
+    }
 
     if ('IntersectionObserver' in window && sections.length) {
       const observer = new IntersectionObserver((entries) => {
