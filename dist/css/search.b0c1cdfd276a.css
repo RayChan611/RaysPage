@@ -5,8 +5,8 @@
    ============================================ */
 
 .search-container {
-  max-width: 540px;
-  margin: 0 auto 28px;
+  max-width: 800px;
+  margin: 0 auto 14px;
   position: relative;
 }
 
@@ -28,7 +28,7 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-.search-input::placeholder { color: var(--text-muted); }
+.search-input::placeholder { color: var(--text-secondary); }
 
 /* ---- Unmatched cards: blur+dim then height collapses via JS ---- */
 .is-hidden {

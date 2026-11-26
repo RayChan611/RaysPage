@@ -9,12 +9,13 @@ test('手机横屏菜单独立滚动，最后一项可以触达', async ({ page 
   const bounds = (await menu.boundingBox())!;
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(320);
   await expect(menu).toHaveCSS('overflow-y', 'auto');
-  const last = menu.locator('a[href="essays.html"]');
+  await expect(menu.locator('.nav-group:not(.nav-group-secondary) a')).toHaveText([/随笔\s*Soul-Searching/, '读书笔记', '摄影']);
+  const last = menu.getByRole('link', { name: '联系' });
   await last.scrollIntoViewIfNeeded();
   const lastBounds = (await last.boundingBox())!;
   expect(lastBounds.y + lastBounds.height).toBeLessThanOrEqual(320);
   await last.click();
-  await expect(page).toHaveURL(/essays\.html$/);
+  await expect(page).toHaveURL(/#contact$/);
 });
 
 for (const result of ['false', 'throw', 'true']) {

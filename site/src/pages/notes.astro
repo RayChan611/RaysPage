@@ -26,16 +26,17 @@ const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
 
   <section class="essays-hero">
     <div class="container">
-      <h1 class="essays-title">Reading Notes</h1>
-      <p class="essays-subtitle">Excerpts from books I've read.</p>
+      <p class="essays-kicker" lang="en">Reading Notes</p>
+      <h1 class="essays-title">读书笔记</h1>
+      <p class="essays-subtitle">读过的书、留下的摘录与笔记。</p>
     </div>
   </section>
 
   <section class="essays-section section" aria-label="Reading notes">
     <div class="container">
       <div class="search-container">
-        <input type="text" class="search-input" id="searchInput" placeholder="Search notes..." aria-label="Search notes" />
-        <div class="search-no-results" id="searchNoResults" role="status" aria-live="polite" aria-atomic="true" data-no-results="No matching notes found."></div>
+        <input type="text" class="search-input" id="searchInput" placeholder="筛选笔记…" aria-label="筛选笔记" />
+        <div class="search-no-results" id="searchNoResults" role="status" aria-live="polite" aria-atomic="true" data-no-results="没有找到相符的笔记。"></div>
       </div>
 
       <div class="notes-list" id="notesList">
@@ -59,12 +60,12 @@ const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
             ></div>
           );
           return n.data.hasDetail ? (
-            <a id={`note-${n.id}`} href={`note-${n.id}.html`} class="note-card note-card-link animate-on-scroll">
+            <a id={`note-${n.id}`} href={`note-${n.id}.html`} class="note-card note-card-link">
               {inner}
-              <span class="note-card-action">Read notes <span aria-hidden="true">&rarr;</span></span>
+              <span class="note-card-action">阅读笔记 <span aria-hidden="true">&rarr;</span></span>
             </a>
           ) : (
-            <article id={`note-${n.id}`} class="note-card note-card-excerpt animate-on-scroll">
+            <article id={`note-${n.id}`} class="note-card note-card-excerpt">
               {inner}
               <button
                 class="note-expand-button"
@@ -73,7 +74,7 @@ const pageScripts = ["js/search.js", "js/note-cards.js", "js/hero-sparkle.js"];
                 aria-expanded="false"
                 aria-controls={`note-summary-${n.id}`}
               >
-                <span data-note-expand-label>展开全部</span>
+                <span data-note-expand-label>展开摘录</span>
                 <span aria-hidden="true">&darr;</span>
               </button>
             </article>

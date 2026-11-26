@@ -23,10 +23,10 @@
   if (shortcut) shortcut.textContent = isMac ? '\u2318K' : 'Ctrl K';
 
   var TYPE_LABELS = {
-    page: 'Page',
-    essay: 'Essay',
-    note: 'Note',
-    photo: 'Photo',
+    page: '页面',
+    essay: '随笔',
+    note: '笔记',
+    photo: '摄影',
   };
 
   function setBackgroundInert(enabled) {
@@ -61,7 +61,7 @@
     if (searchIndex) return Promise.resolve(searchIndex);
     if (loadingPromise) return loadingPromise;
 
-    status.textContent = 'Loading the archive…';
+    status.textContent = '正在载入搜索…';
     loadingPromise = fetch('/search-index.json', { headers: { Accept: 'application/json' } })
       .then(function (response) {
         if (!response.ok) throw new Error('Search index request failed');
@@ -77,7 +77,7 @@
       })
       .catch(function () {
         loadingPromise = null;
-        status.textContent = 'Search is temporarily unavailable.';
+        status.textContent = '搜索暂时不可用。';
         renderEmpty('暂时无法载入搜索索引。');
         return null;
       });
@@ -144,14 +144,13 @@
   function render(items, query) {
     results.textContent = '';
     activeIndex = -1;
+    status.textContent = query ? `${items.length} 条结果` : '推荐入口';
 
     if (!items.length) {
-      status.textContent = query ? '0 results' : 'Suggested places';
       renderEmpty('没有找到相符的内容。');
       return;
     }
 
-    status.textContent = query ? items.length + ' results' : 'Suggested places';
     items.forEach(function (item, index) {
       var link = document.createElement('a');
       link.className = 'quick-search-result';

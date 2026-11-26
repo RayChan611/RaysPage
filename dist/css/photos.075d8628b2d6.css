@@ -47,13 +47,22 @@
   position: sticky;
   top: 60px;
   z-index: 50;
-  padding: 18px 40px;
+  padding: 6px 40px;
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
+.series-nav-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+.series-nav-track { position: relative; }
 .series-nav .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -79,13 +88,62 @@
   font-size: 0.75rem;
 }
 .series-nav-hint { display: none; }
-.series-nav-more {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.5;
+.series-picker { position: relative; }
+.series-picker summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #171615;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.series-picker summary::-webkit-details-marker { display: none; }
+.series-picker summary:hover,
+.series-picker[open] summary { border-color: var(--border-hover); }
+.series-picker[open] summary span { transform: rotate(180deg); }
+.series-picker-list {
+  position: absolute;
+  inset: calc(100% + 6px) 0 auto auto;
+  z-index: 1;
+  width: min(282px, calc(100vw - 48px));
+  max-height: min(320px, calc(100dvh - 126px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  padding: 6px;
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  background: #181715;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.series-picker-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 10px;
+  font-size: 0.88rem;
+  border-radius: 4px;
+}
+.series-picker-list a:hover,
+.series-picker-list a:focus-visible,
+.series-picker-list a[aria-current="location"] {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+}
+.series-picker-list a[aria-current="location"] { box-shadow: inset 2px 0 var(--ember); }
+.series-picker-count {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font: 0.75rem var(--font-mono);
 }
 
 /* ---- Series Section ---- */
@@ -93,6 +151,7 @@
   padding: 48px 40px 80px;
   position: relative;
   z-index: 1;
+  scroll-margin-top: 120px;
 }
 .series-section .container { max-width: 1200px; margin: 0 auto; }
 .series-section + .series-section { padding-top: 40px; }
@@ -446,7 +505,7 @@
 .lightbox-counter {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   letter-spacing: 0.1em;
 }
 .lightbox-status {
@@ -464,6 +523,7 @@
   .photos-subtitle { font-size: 0.9375rem; line-height: 1.8; letter-spacing: 0; }
   .photos-edition { font-size: 0.7rem; margin-top: 12px; letter-spacing: 0.07em; }
   .series-nav { padding: 4px 24px; top: 56px; }
+  .series-nav-layout { gap: 10px; }
   .series-nav .container { gap: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .series-nav .container::-webkit-scrollbar { display: none; }
   .series-nav-hint {
@@ -479,8 +539,8 @@
     pointer-events: none;
     opacity: 0;
   }
-  .series-nav-hint--prev { left: 16px; background: linear-gradient(to right, #0a0a0a 45%, transparent); }
-  .series-nav-hint--next { right: 16px; background: linear-gradient(to left, #0a0a0a 45%, transparent); }
+  .series-nav-hint--prev { left: 0; background: linear-gradient(to right, #0a0a0a 45%, transparent); }
+  .series-nav-hint--next { right: 0; background: linear-gradient(to left, #0a0a0a 45%, transparent); }
   .series-nav[data-overflow-start="true"] .series-nav-hint--prev,
   .series-nav[data-overflow-end="true"] .series-nav-hint--next { opacity: 1; }
   .series-nav-link, .series-nav-divider { flex-shrink: 0; }

@@ -28,28 +28,44 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
     </div>
   </section>
 
-  <nav class="series-nav" id="seriesNav" aria-label="Photo series">
-    <div class="container">
-      {photoSeries.map((item, index) => (
-        <>
-          {index > 0 && <span class="series-nav-divider" aria-hidden="true">/</span>}
-          <a
-            href={`#series-${item.id}`}
-            class:list={['series-nav-link', { active: index === 0 }]}
-            data-target={`series-${item.id}`}
-            aria-current={index === 0 ? 'location' : undefined}
-          >
-            {item.nav}
-          </a>
-        </>
-      ))}
+  <nav class="series-nav" id="seriesNav" aria-label="摄影系列">
+    <div class="series-nav-layout">
+      <div class="series-nav-track">
+        <div class="container">
+          {photoSeries.map((item, index) => (
+            <>
+              {index > 0 && <span class="series-nav-divider" aria-hidden="true">/</span>}
+              <a
+                href={`#series-${item.id}`}
+                class:list={['series-nav-link', { active: index === 0 }]}
+                data-target={`series-${item.id}`}
+                aria-current={index === 0 ? 'location' : undefined}
+              >
+                {item.nav}
+              </a>
+            </>
+          ))}
+        </div>
+        <span class="series-nav-hint series-nav-hint--prev" aria-hidden="true">‹</span>
+        <span class="series-nav-hint series-nav-hint--next" aria-hidden="true">›</span>
+      </div>
+      <details class="series-picker">
+        <summary>全部系列 <span aria-hidden="true">⌄</span></summary>
+        <ul class="series-picker-list">
+          {photoSeries.map((item, index) => (
+            <li>
+              <a href={`#series-${item.id}`} data-target={`series-${item.id}`} aria-current={index === 0 ? 'location' : undefined}>
+                <span>{item.name}</span><span class="series-picker-count">{item.photos.length} 张</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
-    <span class="series-nav-hint series-nav-hint--prev" aria-hidden="true">‹</span>
-    <span class="series-nav-hint series-nav-hint--next" aria-hidden="true">›</span>
   </nav>
 
   {photoSeries.map((item, seriesIndex) => (
-    <section class="series-section" id={`series-${item.id}`} aria-labelledby={`${item.id}-title`}>
+    <section class="series-section" id={`series-${item.id}`} aria-labelledby={`${item.id}-title`} tabindex="-1">
       <div class="container">
         <div class="series-header animate-on-scroll">
           <div class="series-header-left">
@@ -86,6 +102,8 @@ const pageScripts = ['js/hero-sparkle.js', 'js/photos.js'];
                 data-layout={photo.layout}
                 data-title={photo.title}
                 data-series={item.name}
+                data-series-position={photoIndex + 1}
+                data-series-size={item.photos.length}
                 data-full={photo.src}
                 data-medium={photo.medium}
                 data-alt={photo.alt}

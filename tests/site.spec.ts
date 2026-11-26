@@ -267,7 +267,7 @@ test('mobile controls, inputs and active navigation remain touch-friendly', asyn
   const activeLine = await page.locator('.nav-link-active').evaluate((link) => ({
     linkWidth: link.getBoundingClientRect().width,
     lineWidth: Number.parseFloat(getComputedStyle(link, '::after').width),
-    menuWidth: link.parentElement?.getBoundingClientRect().width || 0,
+    menuWidth: link.closest('#navLinks')?.getBoundingClientRect().width || 0,
   }));
   expect(activeLine.lineWidth).toBeCloseTo(activeLine.linkWidth, 0);
   expect(activeLine.linkWidth).toBeLessThan(activeLine.menuWidth * 0.75);
@@ -304,13 +304,13 @@ test('secondary photo and note controls remain touch-friendly on mobile', async 
 
 test('collection search status starts empty and announces a no-match result', async ({ page }) => {
   const collections = [
-    { path: '/essays.html', empty: 'No matching entries found.' },
-    { path: '/notes.html', empty: 'No matching notes found.' },
+    { path: '/essays.html', filter: '筛选随笔', empty: '没有找到相符的随笔。' },
+    { path: '/notes.html', filter: '筛选笔记', empty: '没有找到相符的笔记。' },
   ];
 
   for (const collection of collections) {
     await openPage(page, collection.path);
-    const input = page.locator('#searchInput');
+    const input = page.getByRole('textbox', { name: collection.filter });
     const status = page.locator('#searchNoResults');
     await expect(status).toHaveText('');
 
@@ -324,9 +324,10 @@ test('collection search status starts empty and announces a no-match result', as
   }
 });
 
-test('short mobile essays keep the footer at the viewport edge and Back clear of it', async ({ page }, testInfo) => {
+test('手机短文的返回随笔链接与页脚保持间距', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', '固定在 390×844 高屏手机上检查');
   await openPage(page, '/essay-no-belief.html');
+  await expect(page.getByRole('link', { name: '返回随笔' })).toBeVisible();
 
   await expect.poll(() => page.evaluate(() => {
     const footer = document.querySelector('.footer')?.getBoundingClientRect();
@@ -352,9 +353,10 @@ test('short mobile essays keep the footer at the viewport edge and Back clear of
   expect(Math.abs(layout.gapAfterFooter)).toBeLessThanOrEqual(1);
 });
 
-test('320px Soul-Searching title stays compact without horizontal overflow', async ({ page }, testInfo) => {
+test('320px 手机上的随笔标题保持紧凑，无横向溢出', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-narrow', '固定在 320×568 极窄手机上检查');
   await openPage(page, '/essays.html');
+  await expect(page.getByRole('heading', { name: '随笔', exact: true })).toBeVisible();
   const title = await page.locator('.essays-title').evaluate((element) => {
     const rect = element.getBoundingClientRect();
     return {
@@ -471,10 +473,10 @@ test('all photo cards are present in static markup and the lightbox interactions
   await cards.first().click();
   const lightbox = page.locator('#lightbox');
   await expect(lightbox).toHaveClass(/active/);
-  await expect(page.locator('#lightboxCounter')).toContainText('1 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 1 / 10');
 
   await lightbox.dispatchEvent('wheel', { deltaX: 72, deltaY: 0, deltaMode: 0 });
-  await expect(page.locator('#lightboxCounter')).toContainText('2 / 55');
+  await expect(page.locator('#lightboxCounter')).toHaveText('兰圃 · 2 / 10');
 
   await lightbox.click({ position: { x: 8, y: 8 } });
   await expect(lightbox).toHaveAttribute('aria-hidden', 'true');
